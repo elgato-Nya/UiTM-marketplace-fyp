@@ -1,0 +1,1 @@
+{"environment":"test","level":"info","message":"CORS: Using origins from environment","nodeEnv":"test","origins":["http://localhost:3000","https://your-production-url.com"],"timestamp":"2025-08-12T10:52:38.904Z"}

@@ -79,7 +79,9 @@ app.get("/api/health", (req, res) => {
 
 // ================== ERROR HANDLING ========================
 // Handle undefined routes (404) - must come before global error handler
-app.all("*", handleNotFound);
+app.use((req, res, next) => {
+  handleNotFound(req, res, next);
+});
 
 // Global error handling middleware - MUST be last middleware in the stack
 app.use(globalErrorHandler);

@@ -9,6 +9,11 @@
             "date": 1754995958901,
             "name": "C:\\Coding\\ecommerce-project\\server\\logs\\2025-08-12\\security-2025-08-12.log",
             "hash": "48ee97b45b4f455327336aa07c11ae991dae9375a7eb384da0551cfad1836556"
+        },
+        {
+            "date": 1755014429933,
+            "name": "C:\\Coding\\ecommerce-project\\server\\logs\\2025-08-12\\security-2025-08-13.log",
+            "hash": "1ac0f16f58a0ce9e64e88d59dea5f084065e91bc0cce9b824ab32a9b0493d576"
         }
     ],
     "hashType": "sha256"

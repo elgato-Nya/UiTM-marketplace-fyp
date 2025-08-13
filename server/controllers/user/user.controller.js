@@ -1,4 +1,5 @@
 const User = require("../../models/user");
+const BaseController = require("../base.controller");
 const logger = require("../../utils/logger");
 const asyncHandler = require("../../utils/asyncHandler");
 const {
@@ -7,16 +8,28 @@ const {
 } = require("../../utils/errors");
 const sanitize = require("sanitize-html");
 
-// ! NOT COMPLETED YET
+/**
+ * User Controller - Function-based approach with BaseController utilities
+ *
+ * PURPOSE: Handle user profile operations
+ * PATTERN: Functions + BaseController helpers (Industry Standard for Express)
+ * BENEFITS: Simple, testable, maintainable, follows Express conventions
+ */
+
+// Create BaseController instance for utility methods
+const baseController = new BaseController();
 
 /**
  * Get Current User Profile
  *
  * PURPOSE: Retrieve authenticated user's profile information
- * WRAPPED: With asyncHandler for automatic error handling
+ * PATTERN: Function with BaseController utilities
  * SECURITY: Only returns non-sensitive user data
  */
 const getMe = asyncHandler(async (req, res) => {
+  // Log action using BaseController utility
+  baseController.logAction("get_user_profile", req);
+
   const user = await User.findById(req.user._id).select(
     "-password -refreshTokens"
   );
@@ -29,11 +42,10 @@ const getMe = asyncHandler(async (req, res) => {
     throw createNotFoundError("User");
   }
 
-  return res.status(200).json({
-    success: true,
-    message: "User information retrieved successfully",
-    code: "USER_RETRIEVED",
-    data: {
+  // Use BaseController's sendSuccess method for consistent response
+  return baseController.sendSuccess(
+    res,
+    {
       user: {
         _id: user._id,
         email: user.email,
@@ -41,25 +53,29 @@ const getMe = asyncHandler(async (req, res) => {
         role: user.role,
       },
     },
-  });
+    "User information retrieved successfully"
+  );
 }, "get_user_profile");
 
 /**
  * Update Current User Profile
  *
  * PURPOSE: Allow users to update their profile information
- * WRAPPED: With asyncHandler for clean error handling
+ * PATTERN: Function with BaseController utilities and manual validation
  * SECURITY: Sanitizes input and prevents password updates
- * VALIDATION: Should be validated by middleware before reaching here
  */
 const updateMe = asyncHandler(async (req, res) => {
+  // Log action using BaseController utility
+  baseController.logAction("update_user_profile", req);
+
   // Prevent password updates here (use separate endpoint for password changes)
   if (req.body.password || req.body.passwordConfirm) {
-    return res.status(400).json({
-      success: false,
-      message: "Password updates not allowed here",
-      code: "PASSWORD_UPDATE_NOT_ALLOWED",
-    });
+    return baseController.sendError(
+      res,
+      new Error("Password updates not allowed here"),
+      400,
+      { action: "update_user_profile", reason: "password_update_attempted" }
+    );
   }
 
   // Only allow certain fields to be updated
@@ -115,11 +131,10 @@ const updateMe = asyncHandler(async (req, res) => {
     throw createNotFoundError("User");
   }
 
-  return res.status(200).json({
-    success: true,
-    message: "User profile updated successfully",
-    code: "USER_UPDATED",
-    data: {
+  // Use BaseController's sendSuccess method for consistent response
+  return baseController.sendSuccess(
+    res,
+    {
       user: {
         _id: user._id,
         email: user.email,
@@ -134,7 +149,8 @@ const updateMe = asyncHandler(async (req, res) => {
         role: user.role,
       },
     },
-  });
+    "User profile updated successfully"
+  );
 }, "update_user_profile");
 
 // TODO: add change password, and other user-related functionality.

@@ -120,6 +120,6 @@ const validateUpdateProfile = [
 
 module.exports = {
   validateUpdateProfile,
-
+  validateUpdateMe: validateUpdateProfile, // Alias for routes
   avatarValidation,
 };

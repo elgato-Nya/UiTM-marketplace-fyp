@@ -1,4 +1,5 @@
 const User = require("../../models/user");
+const BaseController = require("../base.controller");
 const {
   getTokenPair,
   clearRefreshTokenCookie,
@@ -15,6 +16,23 @@ const {
   createServerError,
 } = require("../../utils/errors");
 
+/**
+ * Auth Controller - Function-based approach with BaseController utilities
+ *
+ * PURPOSE: Handle authentication operations (register, login, logout, refresh)
+ * PATTERN: Functions + BaseController helpers (Industry Standard for Express)
+ * SECURITY: JWT-based authentication with refresh tokens
+ */
+
+// Create BaseController instance for utility methods
+const baseController = new BaseController();
+
+/**
+ * Send JWT Tokens Response
+ *
+ * PURPOSE: Generate and send access/refresh tokens with consistent response format
+ * PATTERN: Helper function using BaseController utilities
+ */
 const sendStatusToken = asyncHandler(async (user, statusCode, res) => {
   const tokenData = await getTokenPair(user);
 
@@ -31,21 +49,25 @@ const sendStatusToken = asyncHandler(async (user, statusCode, res) => {
     hasRefreshToken: !!tokenData.refreshToken,
   });
 
-  res
-    .status(statusCode)
-    .cookie("refreshToken", tokenData.refreshToken, cookieOptions)
-    .json({
-      success: true,
-      message: "Tokens generated successfully",
-      data: {
-        token: tokenData.accessToken,
-        user: tokenData.user,
-      },
-    });
+  // Set cookie and use BaseController for consistent response
+  res.cookie("refreshToken", tokenData.refreshToken, cookieOptions);
+
+  return baseController.sendSuccess(
+    res,
+    {
+      token: tokenData.accessToken,
+      user: tokenData.user,
+    },
+    "Tokens generated successfully",
+    statusCode
+  );
 });
 
 const register = asyncHandler(async (req, res) => {
   const { email, password, profile, role } = req.body;
+
+  // Log action using BaseController utility
+  baseController.logAction("user_registration", req, { email });
 
   logger.info("registration attempted", { email });
 
@@ -79,6 +101,9 @@ const register = asyncHandler(async (req, res) => {
 
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+
+  // Log action using BaseController utility
+  baseController.logAction("user_login", req, { email });
 
   const user = await User.findByCredentials(email, password);
   if (!user) {

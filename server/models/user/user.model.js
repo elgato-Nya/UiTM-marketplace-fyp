@@ -32,6 +32,7 @@ const UserSchema = new mongoose.Schema(
         validator: isValidUiTMEmail,
         message: errorMessages.email,
       },
+      index: true,
     },
     password: {
       type: String,
@@ -115,6 +116,7 @@ const UserSchema = new mongoose.Schema(
         validator: isValidRoleArray,
         message: errorMessages.roleArray,
       },
+      index: true,
     },
 
     // ======================   Merchant Details   ========================
@@ -181,6 +183,11 @@ const UserSchema = new mongoose.Schema(
     },
   }
 );
+
+// ======================   Indexes   ========================
+UserSchema.index({ email: 1, isActive: 1 }, { unique: true });
+// UserSchema.index({ "profile.username": 1 }, { unique: true }); // Removed: unique field already creates index
+UserSchema.index({ role: 1, isActive: 1 });
 
 // ======================   Pre-save Middleware   ========================
 UserSchema.pre("save", async function (next) {

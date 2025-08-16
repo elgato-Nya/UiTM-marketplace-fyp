@@ -26,10 +26,14 @@ const {
   isValidPassword,
   isValidUsername,
   isValidPhoneNumber,
-} = require("../../utils/validators");
-
-// Import the User model for testing model-specific functionality
-const User = require("../../models/user");
+  isValidMongoId,
+  isValidAvatar,
+  isValidRoleArray,
+  isValidRole,
+  isValidCampus,
+  isValidFaculty,
+  isValidBio,
+} = require("../../utils/validators/user");
 
 // Mock mongoose to avoid database connections during unit tests
 /**
@@ -291,6 +295,8 @@ describe("User Model Unit Test", () => {
         "password",
         "profile.username",
         "profile.phoneNumber",
+        "profile.campus",
+        "profile.faculty",
       ];
 
       // Test that we know what fields are required
@@ -298,6 +304,8 @@ describe("User Model Unit Test", () => {
       expect(requiredFields).toContain("password");
       expect(requiredFields).toContain("profile.username");
       expect(requiredFields).toContain("profile.phoneNumber");
+      expect(requiredFields).toContain("profile.campus");
+      expect(requiredFields).toContain("profile.faculty");
     });
   });
 
@@ -350,6 +358,30 @@ describe("User Model Unit Test", () => {
       // Invalid bios
       expect(isValidBio("A".repeat(201))).toBe(false); // too long
       expect(isValidBio(123)).toBe(false); // not a string
+    });
+
+    it("should validate campus enum values", () => {
+      // Valid campus values
+      expect(isValidCampus("UiTM Kampus Segamat")).toBe(true);
+      expect(isValidCampus("UiTM Kampus Arau")).toBe(true);
+
+      // Invalid campus values
+      expect(isValidCampus("INVALID_CAMPUS")).toBe(false);
+      expect(isValidCampus(123)).toBe(false); // not a string
+      expect(isValidCampus(null)).toBe(false);
+      expect(isValidCampus(undefined)).toBe(false);
+    });
+
+    it("should validate faculty enum values", () => {
+      // Valid faculty values
+      expect(isValidFaculty("Fakulti Sains Gunaan")).toBe(true);
+      expect(isValidFaculty("Fakulti Sains Komputer dan Matematik")).toBe(true);
+
+      // Invalid faculty values
+      expect(isValidFaculty("INVALID_FACULTY")).toBe(false);
+      expect(isValidFaculty(123)).toBe(false); // not a string
+      expect(isValidFaculty(null)).toBe(false);
+      expect(isValidFaculty(undefined)).toBe(false);
     });
 
     it("should return error messages object", () => {

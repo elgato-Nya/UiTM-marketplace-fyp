@@ -1,2 +1,8 @@
 // Barrel export for User model
-module.exports = require("./user.model");
+const User = require("./user.model");
+const Address = require("./address.schema");
+
+module.exports = {
+  User,
+  Address,
+};

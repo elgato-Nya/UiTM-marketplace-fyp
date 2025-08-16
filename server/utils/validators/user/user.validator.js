@@ -1,5 +1,4 @@
-const { CampusEnum, FacultyEnum } = require("../enums/user.enum");
-
+const { CampusEnum, FacultyEnum } = require("../../enums/user.enum");
 /**
  * Pure validation functions for user-related data
  * These functions only validate and return boolean results
@@ -93,7 +92,7 @@ class UserValidator {
    */
   static isValidCampus(campus) {
     if (!campus || typeof campus !== "string") return false;
-    return Object.keys(CampusEnum).includes(campus);
+    return Object.values(CampusEnum).includes(campus);
   }
 
   /**
@@ -103,7 +102,7 @@ class UserValidator {
    */
   static isValidFaculty(faculty) {
     if (!faculty || typeof faculty !== "string") return false;
-    return Object.keys(FacultyEnum).includes(faculty);
+    return Object.values(FacultyEnum).includes(faculty);
   }
 
   /**
@@ -134,7 +133,7 @@ class UserValidator {
    * Returns error messages for validation failures
    * @returns {Object}
    */
-  static getErrorMessages() {
+  static userErrorMessages() {
     return {
       email:
         "Email must be a valid UiTM email address (e.g., user@uitm.edu.my)",

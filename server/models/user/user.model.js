@@ -4,8 +4,6 @@ const jwt = require("jsonwebtoken");
 
 const { CampusEnum, FacultyEnum } = require("../../utils/enums/user.enum");
 const logger = require("../../utils/logger");
-
-// Destructure for cleaner code
 const {
   isValidUiTMEmail,
   isValidPassword,
@@ -15,10 +13,10 @@ const {
   isValidCampus,
   isValidFaculty,
   isValidBio,
-  getErrorMessages,
-} = require("../../utils/validators");
+  userErrorMessages,
+} = require("../../utils/validators/user");
 
-const errorMessages = getErrorMessages();
+const errorMessages = userErrorMessages();
 
 const UserSchema = new mongoose.Schema(
   {
@@ -82,7 +80,7 @@ const UserSchema = new mongoose.Schema(
         type: String,
         required: [true, "Campus is required"],
         enum: {
-          values: Object.keys(CampusEnum),
+          values: Object.values(CampusEnum),
           message: errorMessages.campus,
         },
         validate: {
@@ -94,7 +92,10 @@ const UserSchema = new mongoose.Schema(
         type: String,
         required: [true, "Faculty is required"],
         enum: {
-          values: Object.keys(FacultyEnum),
+          // ! this doesnt mean that the object values will be saved in database
+          // ! it just means that the values will be accepted from frontend and validated
+          // ! it will be converted to object key before saving using pre-save middleware
+          values: Object.values(FacultyEnum),
           message: errorMessages.faculty,
         },
         validate: {
@@ -103,6 +104,14 @@ const UserSchema = new mongoose.Schema(
         },
       },
     },
+
+    // ======================   Address References   ========================
+    addresses: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Address",
+      },
+    ],
 
     role: {
       type: [String],
@@ -181,6 +190,14 @@ const UserSchema = new mongoose.Schema(
         return ret;
       },
     },
+    toObject: {
+      virtuals: true,
+      versionKey: false,
+      transform: (doc, ret) => {
+        delete ret.password; // don't return password in Object
+        return ret;
+      },
+    },
   }
 );
 
@@ -200,6 +217,22 @@ UserSchema.pre("save", async function (next) {
   } catch (error) {
     next(error);
   }
+});
+
+UserSchema.pre("save", function (next) {
+  // Convert faculty value to key if it's a display value
+  if (Object.values(FacultyEnum).includes(this.profile.faculty)) {
+    this.profile.faculty = Object.keys(FacultyEnum).find(
+      (key) => FacultyEnum[key] === this.profile.faculty
+    );
+  }
+  // Convert campus value to key if it's a display value
+  if (Object.values(CampusEnum).includes(this.profile.campus)) {
+    this.profile.campus = Object.keys(CampusEnum).find(
+      (key) => CampusEnum[key] === this.profile.campus
+    );
+  }
+  next();
 });
 
 // ======================   Instance Methods   ========================
@@ -276,4 +309,42 @@ UserSchema.statics.findByCredentials = async function (email, password) {
   }
 };
 
-module.exports = mongoose.model("User", UserSchema);
+// ======================   Address Management Methods   ========================
+UserSchema.methods.addAddress = async function (addressData) {
+  const Address = mongoose.model("Address");
+
+  // Add userId to address data
+  const newAddress = new Address({
+    ...addressData,
+    userId: this._id,
+  });
+
+  const savedAddress = await newAddress.save();
+
+  // Add address reference to user
+  this.addresses.push(savedAddress._id);
+  await this.save({ validateBeforeSave: false });
+
+  return savedAddress;
+};
+
+UserSchema.methods.getAddresses = async function () {
+  await this.populate("addresses");
+  return this.addresses;
+};
+
+UserSchema.methods.removeAddress = async function (addressId) {
+  const Address = mongoose.model("Address");
+
+  // Remove address document
+  await Address.findByIdAndDelete(addressId);
+
+  // Remove address reference from user
+  this.addresses = this.addresses.filter((id) => !id.equals(addressId));
+  await this.save({ validateBeforeSave: false });
+
+  return true;
+};
+
+const User = mongoose.model("User", UserSchema);
+module.exports = User;

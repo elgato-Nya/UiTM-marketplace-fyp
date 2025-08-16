@@ -1,5 +1,5 @@
 // campus enum
-exports.CampusEnum = Object.freeze({
+const CampusEnum = Object.freeze({
   SHAH_ALAM: "UiTM Shah Alam",
   KOTA_KINABALU: "UiTM Kampus Kota Kinabalu",
   TAWAU: "UiTM Kampus Tawau",
@@ -31,7 +31,7 @@ exports.CampusEnum = Object.freeze({
   SUNGAI_BULOH: "UiTM Kampus Sungai Buloh",
 });
 
-exports.FacultyEnum = Object.freeze({
+const FacultyEnum = Object.freeze({
   // GUGUSAN SAINS & TEKNOLOGI
   APPLIED_SCIENCE: "Fakulti Sains Gunaan",
   COMPUTER_SCIENCE_MATH: "Fakulti Sains Komputer dan Matematik",
@@ -61,3 +61,31 @@ exports.FacultyEnum = Object.freeze({
   LANGUAGE_STUDIES: "Akademi Pengajian Bahasa",
   ISLAMIC_STUDIES: "Akademi Pengajian Islam Kontemporari",
 });
+
+const StateEnum = Object.freeze({
+  // States
+  JOHOR: "Johor",
+  KEDAH: "Kedah",
+  KELANTAN: "Kelantan",
+  MELAKA: "Melaka",
+  NEGERI_SEMBILAN: "Negeri Sembilan",
+  PAHANG: "Pahang",
+  PERAK: "Perak",
+  PERLIS: "Perlis",
+  PULAU_PINANG: "Pulau Pinang",
+  SABAH: "Sabah",
+  SARAWAK: "Sarawak",
+  SELANGOR: "Selangor",
+  TERENGGANU: "Terengganu",
+
+  // Federal Territories
+  KUALA_LUMPUR: "Kuala Lumpur", // ? idk yet if i should set the "wilayah persekutuan" or just "kuala lumpur"
+  LABUAN: "Labuan",
+  PUTRAJAYA: "Putrajaya",
+});
+
+module.exports = {
+  CampusEnum,
+  FacultyEnum,
+  StateEnum,
+};

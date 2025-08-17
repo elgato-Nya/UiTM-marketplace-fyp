@@ -1,5 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
+// TODO: Improve error handling
+const { AppError } = require("../utils/errors");
 
 const getTokenFromHeader = (req) => {
   const authHeader = req.headers.authorization;
@@ -7,6 +9,29 @@ const getTokenFromHeader = (req) => {
     return null;
   }
   return authHeader.split(" ")[1];
+};
+
+const verifyRefreshToken = (token) => {
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET, {
+      issuer: process.env.JWT_ISSUER,
+      audience: process.env.JWT_AUDIENCE,
+    });
+
+    if (decoded.tokenType && decoded.tokenType !== "refresh") {
+      throw new jwt.JsonWebTokenError("Invalid token type");
+    }
+
+    return decoded;
+  } catch (jwtError) {
+    if (jwtError.name === "TokenExpiredError") {
+      throw new jwt.TokenExpiredError(jwtError.message, jwtError.expiredAt);
+    } else if (jwtError.name === "JsonWebTokenError") {
+      throw new jwt.JsonWebTokenError(jwtError.message);
+    } else {
+      throw new jwt.JsonWebTokenError("Token verification failed");
+    }
+  }
 };
 
 const verifyAccessToken = (token) => {
@@ -75,6 +100,7 @@ const clearRefreshTokenCookie = (res) => {
 
 module.exports = {
   getTokenFromHeader,
+  verifyRefreshToken,
   verifyAccessToken,
   getTokenPair,
   clearRefreshTokenCookie,

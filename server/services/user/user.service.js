@@ -1,59 +1,127 @@
 const User = require("../../models/user");
-const { handleServiceError, sanitizeUserData } = require("../base.service");
 const logger = require("../../utils/logger");
+const { AppError } = require("../../utils/errors");
+const { CampusEnum, FacultyEnum } = require("../../utils/enum");
+const {
+  handleServiceError,
+  sanitizeUserData,
+  getEnumValueByKey,
+} = require("../base.service");
 const {
   createNotFoundError,
   createConflictError,
-  AppError,
 } = require("../../utils/errors");
+const { sanitizeInput, sanitizeObject } = require("../../utils/sanitizer");
 
-const findUserById = async (userId, fields = {}) => {
+const findUserById = async (userId, options = {}) => {
   try {
-    const selectedFields = fields.includePassword
+    const selectedOptions = options.includePassword
       ? "+password"
       : "-password -refreshTokens -__v";
-    const user = await User.findById(userId).select(selectedFields);
+    const user = await User.findById(userId).select(selectedOptions);
 
     if (!user) {
+      logger.warn("User not found in database", {
+        action: "get_me",
+        userId: req.user._id,
+      });
       throw createNotFoundError("User", "USER_NOT_FOUND");
     }
 
-    return fields.includeSensitiveData ? user : sanitizeUserData(user);
+    const profile = {
+      ...user.profile,
+      campus: getEnumValueByKey(CampusEnum, user.profile.campus),
+      faculty: getEnumValueByKey(FacultyEnum, user.profile.faculty),
+    };
+    const userData = {
+      _id: user._id,
+      email: user.email,
+      profile,
+      role: user.role,
+    };
+    return options.includeSensitiveData
+      ? userData.toObject()
+      : sanitizeUserData(userData);
   } catch (error) {
     handleServiceError(error, "findUserById", { userId });
   }
 };
 
-const findUserByEmail = async (email, fields = {}) => {
+const findUserByEmail = async (email, options = {}) => {
   try {
-    const selectedFields = fields.includePassword
+    const selectedOptions = options.includePassword
       ? "+password"
       : "-password -refreshTokens -__v";
     const user = await User.findOne({ email: email.toLowerCase() }).select(
-      selectedFields
+      selectedOptions
     );
 
     if (!user) {
+      logger.warn("User not found in database", {
+        action: "get_me",
+        userId: req.user._id,
+      });
       throw createNotFoundError("User", "USER_NOT_FOUND");
     }
-    return fields.includeSensitiveData ? user : sanitizeUserData(user);
+    const profile = {
+      ...user.profile,
+      campus: getEnumValueByKey(CampusEnum, user.profile.campus),
+      faculty: getEnumValueByKey(FacultyEnum, user.profile.faculty),
+    };
+    const userData = {
+      _id: user._id,
+      email: user.email,
+      profile,
+      role: user.role,
+    };
+    return options.includeSensitiveData ? userData : sanitizeUserData(userData);
   } catch (error) {
     handleServiceError(error, "findUserByEmail", { email });
   }
 };
 
 const updateUserProfile = async (userId, updateData) => {
-  try {
-    const allowedUpdates = ["username", "bio", "avatar"];
-    const sanitizedData = {};
+  // Prevent password updates here (use separate endpoint for password changes)
+  if (updateData.password || updateData.passwordConfirm) {
+    logger.warn("Password update attempted in profile update", {
+      action: "update_me",
+      userId,
+    });
+    throw new AppError(
+      "Password updates are not allowed here. Use the change password endpoint.",
+      400,
+      { action: "update_me", userId }
+    );
+  }
 
-    Object.keys(updateData).forEach((key) => {
-      if (allowedUpdates.includes(key)) {
-        sanitizedData[key] = updateData[key];
+  try {
+    // Sanitize input data
+    const sanitizedData = sanitizeObject(updateData);
+    const allowedProfileFields = ["avatar", "bio", "phoneNumber"];
+    const allowedDirectFields = ["username"];
+    const updates = {};
+
+    // Handle direct fields
+    allowedDirectFields.forEach((field) => {
+      if (sanitizedData[field] !== undefined) {
+        updates[field] = sanitizedData[field];
       }
     });
 
-    const updatedUser = await User.findByIdAndUpdate(userId, sanitizedData, {
+    // Handle profile fields
+    if (sanitizedData.profile) {
+      const profileUpdates = {};
+      allowedProfileFields.forEach((field) => {
+        if (sanitizedData.profile[field] !== undefined) {
+          profileUpdates[field] = sanitizedData.profile[field];
+        }
+      });
+      if (Object.keys(profileUpdates).length > 0) {
+        updates.profile = profileUpdates;
+      }
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updates, {
       new: true,
       runValidators: true,
     }).select("-password -refreshTokens -__v");
@@ -61,6 +129,8 @@ const updateUserProfile = async (userId, updateData) => {
     if (!updatedUser) {
       throw createNotFoundError("User", "USER_NOT_FOUND");
     }
+
+    return updatedUser.toObject();
   } catch (error) {
     handleServiceError(error, "updateUserProfile", {
       userId,

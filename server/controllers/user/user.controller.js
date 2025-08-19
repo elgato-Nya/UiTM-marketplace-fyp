@@ -1,9 +1,6 @@
-const User = require("../../models/user");
 const BaseController = require("../base.controller");
-const logger = require("../../utils/logger");
-const asyncHandler = require("../../utils/asyncHandler");
 const { user: userService } = require("../../services/user");
-const { createNotFoundError, AppError } = require("../../utils/errors");
+const asyncHandler = require("../../utils/asyncHandler");
 /**
  * User Controller - Function-based approach with BaseController utilities
  *

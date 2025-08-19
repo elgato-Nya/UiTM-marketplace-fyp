@@ -1,15 +1,9 @@
-const bcrypt = require("bcryptjs");
-
 const User = require("../../models/user");
 const logger = require("../../utils/logger");
 const { sanitizeObject, sanitizeInput } = require("../../utils/sanitizer");
-const {
-  createAuthError,
-  createNotFoundError,
-  createConflictError,
-} = require("../../utils/errors");
-const { handleServiceError } = require("../base.service");
-const { getTokenPair, verifyRefreshToken } = require("../jwt.service");
+const { createAuthError, createConflictError } = require("../../utils/errors");
+const { handleServiceError, handleNotFoundError } = require("../base.service");
+const { verifyRefreshToken } = require("../jwt.service");
 
 const createUser = async (userData) => {
   try {
@@ -94,12 +88,10 @@ const logoutUser = async (userId, refreshToken) => {
 
     const user = await User.findById(userId).select("+refreshTokens");
     if (!user) {
-      logger.warn("Logout attempt failed: User not found", {
-        action: "logout_user",
+      handleNotFoundError("User", "USER_NOT_FOUND", "logout_user", {
         userId,
         refreshToken,
       });
-      throw createNotFoundError("User", "USER_NOT_FOUND");
     }
 
     user.refreshTokens = user.refreshTokens.filter(
@@ -147,15 +139,10 @@ const refreshUserTokens = async (refreshToken) => {
       "+refreshTokens -password -__v"
     );
     if (!user) {
-      logger.error("Refresh token failed: User not found", {
-        action: "refresh_tokens",
+      handleNotFoundError("User", "USER_NOT_FOUND", "refresh_user_tokens", {
         userId: decoded.userId,
         refreshToken,
       });
-      throw createNotFoundError(
-        "User not found during token refresh",
-        "USER_NOT_FOUND"
-      );
     }
     if (!user.refreshTokens || !user.refreshTokens.includes(refreshToken)) {
       logger.error("Refresh token failed: Token not recognized for user", {

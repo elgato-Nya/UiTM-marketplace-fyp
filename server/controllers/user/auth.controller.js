@@ -1,21 +1,12 @@
-const User = require("../../models/user");
 const BaseController = require("../base.controller");
-const { user: userService } = require("../../services/user");
+const { auth: authService } = require("../../services/user");
 const {
   getTokenPair,
   clearRefreshTokenCookie,
-  verifyRefreshToken,
 } = require("../../services/jwt.service");
 const logger = require("../../utils/logger");
 const asyncHandler = require("../../utils/asyncHandler");
-const {
-  AppError,
-  createValidationError,
-  createAuthError,
-  createNotFoundError,
-  createConflictError,
-  createServerError,
-} = require("../../utils/errors");
+const { AppError } = require("../../utils/errors");
 
 /**
  * Auth Controller - Function-based approach with BaseController utilities
@@ -73,7 +64,7 @@ const register = asyncHandler(async (req, res) => {
   };
 
   baseController.logAction("register_user", req, { email: userDTO.email });
-  const user = await userService.createUser(userDTO);
+  const user = await authService.createUser(userDTO);
 
   sendStatusToken(user, 201, res);
 }, "register_user");
@@ -82,7 +73,7 @@ const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   baseController.logAction("login_user", req, { email });
-  const user = await userService.authenticateUser(email, password);
+  const user = await authService.authenticateUser(email, password);
 
   sendStatusToken(user, 200, res);
 }, "login_user");
@@ -91,7 +82,7 @@ const logout = asyncHandler(async (req, res) => {
   clearRefreshTokenCookie(res);
 
   const refreshToken = req.cookies.refreshToken || req.body?.refreshToken;
-  const data = await userService.logoutUser(req.user._id, refreshToken);
+  const data = await authService.logoutUser(req.user._id, refreshToken);
 
   baseController.sendSuccess(res, data, "User logged out successfully", 200);
 }, "logout_user");
@@ -99,7 +90,7 @@ const logout = asyncHandler(async (req, res) => {
 const handleTokenRefresh = asyncHandler(async (req, res) => {
   const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
-  const user = await userService.refreshUserTokens(refreshToken);
+  const user = await authService.refreshUserTokens(refreshToken);
 
   sendStatusToken(user, 200, res);
 }, "refresh_tokens");

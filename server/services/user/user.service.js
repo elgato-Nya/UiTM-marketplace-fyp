@@ -1,16 +1,13 @@
 const User = require("../../models/user");
 const logger = require("../../utils/logger");
 const { AppError } = require("../../utils/errors");
-const { CampusEnum, FacultyEnum } = require("../../utils/enum");
+const { CampusEnum, FacultyEnum } = require("../../utils/enums/user.enum");
 const {
   handleServiceError,
+  handleNotFoundError,
   sanitizeUserData,
   getEnumValueByKey,
 } = require("../base.service");
-const {
-  createNotFoundError,
-  createConflictError,
-} = require("../../utils/errors");
 const { sanitizeInput, sanitizeObject } = require("../../utils/sanitizer");
 
 const findUserById = async (userId, options = {}) => {
@@ -21,11 +18,9 @@ const findUserById = async (userId, options = {}) => {
     const user = await User.findById(userId).select(selectedOptions);
 
     if (!user) {
-      logger.warn("User not found in database", {
-        action: "get_me",
-        userId: req.user._id,
+      handleNotFoundError("User", "USER_NOT_FOUND", "find_user_by_id", {
+        userId,
       });
-      throw createNotFoundError("User", "USER_NOT_FOUND");
     }
 
     const profile = {
@@ -57,11 +52,9 @@ const findUserByEmail = async (email, options = {}) => {
     );
 
     if (!user) {
-      logger.warn("User not found in database", {
-        action: "get_me",
-        userId: req.user._id,
+      handleNotFoundError("User", "USER_NOT_FOUND", "find_user_by_email", {
+        email,
       });
-      throw createNotFoundError("User", "USER_NOT_FOUND");
     }
     const profile = {
       ...user.profile,
@@ -127,7 +120,9 @@ const updateUserProfile = async (userId, updateData) => {
     }).select("-password -refreshTokens -__v");
 
     if (!updatedUser) {
-      throw createNotFoundError("User", "USER_NOT_FOUND");
+      handleNotFoundError("User", "USER_NOT_FOUND", "update_user_profile", {
+        userId,
+      });
     }
 
     return updatedUser.toObject();

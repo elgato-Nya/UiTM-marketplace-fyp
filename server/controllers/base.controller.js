@@ -1,3 +1,5 @@
+const logger = require("../utils/logger");
+const { getTokenPair } = require("../services/jwt.service");
 /**
  * Base Controller Class
  *
@@ -18,14 +20,10 @@
  *   });
  * }
  */
-
-const logger = require("../utils/logger");
-
 class BaseController {
   constructor() {
     // Bind methods to ensure 'this' context is maintained
     this.sendSuccess = this.sendSuccess.bind(this);
-    this.sendValidationError = this.sendValidationError.bind(this);
     this.logAction = this.logAction.bind(this);
 
     // Make logger available to all child controllers
@@ -36,6 +34,7 @@ class BaseController {
    * Standard Success Response
    *
    * PURPOSE: Send consistent success responses
+   *
    * FORMAT: Always includes success flag, message, and data
    */
   sendSuccess(
@@ -54,38 +53,6 @@ class BaseController {
     };
 
     return res.status(statusCode).json(response);
-  }
-
-  /**
-   * Validation Error Response
-   *
-   * PURPOSE: Handle validation errors from express-validator
-   * FORMAT: Includes detailed field-level errors
-   */
-  sendValidationError(
-    res,
-    validationErrors = [],
-    message = "Validation failed"
-  ) {
-    const formattedErrors = validationErrors.map((error) => ({
-      field: error.path || error.param,
-      message: error.msg,
-      value: error.value,
-      location: error.location,
-    }));
-
-    this.logger.warn("Validation errors in controller", {
-      errors: formattedErrors,
-      category: "validation_error",
-    });
-
-    return res.status(400).json({
-      success: false,
-      message,
-      code: "VALIDATION_ERROR",
-      errors: formattedErrors,
-      timestamp: new Date().toISOString(),
-    });
   }
 
   /**
@@ -114,25 +81,6 @@ class BaseController {
       prevPage: page > 1 ? page - 1 : null,
       skip,
     };
-  }
-
-  /**
-   * Action Logging Helper
-   *
-   * PURPOSE: Log controller actions with context
-   * USAGE: this.logAction('get_users', req, { additional: 'context' });
-   */
-  logAction(action, req, additionalContext = {}) {
-    this.logger.info(`Controller action: ${action}`, {
-      action,
-      method: req.method,
-      url: req.originalUrl,
-      userId: req.user?._id || req.user?.id || "anonymous",
-      ip: req.ip,
-      userAgent: req.get("User-Agent"),
-      ...additionalContext,
-      category: "controller_action",
-    });
   }
 
   /**
@@ -173,69 +121,22 @@ class BaseController {
   }
 
   /**
-   * Sort Helper
+   * Action Logging Helper
    *
-   * PURPOSE: Build MongoDB sort object from query parameters
-   * USAGE: const sort = this.buildSort(req.query, ['name', 'createdAt']);
+   * PURPOSE: Log controller actions with context
+   * USAGE: this.logAction('get_users', req, { additional: 'context' });
    */
-  buildSort(query, allowedFields = []) {
-    if (!query.sort) {
-      return { createdAt: -1 }; // Default: newest first
-    }
-
-    const sortFields = query.sort.split(",");
-    const sort = {};
-
-    sortFields.forEach((field) => {
-      let sortField = field.trim();
-      let sortOrder = 1; // Ascending by default
-
-      if (sortField.startsWith("-")) {
-        sortOrder = -1; // Descending
-        sortField = sortField.substring(1);
-      }
-
-      if (allowedFields.includes(sortField)) {
-        sort[sortField] = sortOrder;
-      }
+  logAction(action, req, additionalContext = {}) {
+    this.logger.info(`Controller action: ${action}`, {
+      action,
+      method: req.method,
+      url: req.originalUrl,
+      userId: req.user?._id || req.user?.id || "undefined",
+      ip: req.ip,
+      userAgent: req.get("User-Agent"),
+      ...additionalContext,
+      category: "controller_action",
     });
-
-    return Object.keys(sort).length > 0 ? sort : { createdAt: -1 };
-  }
-
-  /**
-   * Cache Key Generator
-   *
-   * PURPOSE: Generate consistent cache keys for controller actions
-   * USAGE: const cacheKey = this.generateCacheKey('users', req.query);
-   */
-  generateCacheKey(prefix, params = {}) {
-    const sortedParams = Object.keys(params)
-      .sort()
-      .reduce((result, key) => {
-        result[key] = params[key];
-        return result;
-      }, {});
-
-    return `${prefix}:${JSON.stringify(sortedParams)}`;
-  }
-
-  /**
-   * Field Selection Helper
-   *
-   * PURPOSE: Handle field selection from query parameters
-   * USAGE: const select = this.buildSelect(req.query.fields, defaultFields);
-   */
-  buildSelect(fieldsQuery, defaultFields = "") {
-    if (!fieldsQuery) return defaultFields;
-
-    // Split by comma and clean up
-    const fields = fieldsQuery.split(",").map((field) => field.trim());
-
-    // Always exclude sensitive fields
-    const excludeFields = ["-password", "-refreshTokens", "-__v"];
-
-    return [...fields, ...excludeFields].join(" ");
   }
 }
 

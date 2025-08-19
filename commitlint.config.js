@@ -10,11 +10,15 @@ module.exports = {
         "user", // User management
         "product", // Product features
         "api", // API endpoints
+        "ui", // User interface changes
         "middleware", // Express middleware
         "config", // Configuration
         "utils", // Utilities
         "test", // Testing
         "docs", // Documentation
+        "service", // Service layer
+        "utils", // Utility functions
+        "cleanup", // Code cleanup
       ],
     ],
     "subject-max-length": [2, "always", 72],
@@ -28,6 +32,7 @@ module.exports = {
         "refactor", // Code refactoring
         "test", // Testing
         "chore", // Maintenance
+        "perf", // Performance improvements
       ],
     ],
   },

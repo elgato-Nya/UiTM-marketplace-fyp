@@ -19,7 +19,7 @@
  * 5. Log the error for monitoring
  */
 
-const { AppError } = require("../utils/errors");
+const { AppError, createServerError } = require("../utils/errors");
 const logger = require("../utils/logger");
 
 // Handle specific MongoDB/Mongoose errors and convert to AppError
@@ -126,12 +126,10 @@ const sendErrorProd = (err, req, res) => {
       requestContext: err.requestContext || null,
     });
 
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong!",
-      code: "INTERNAL_ERROR",
-      timestamp: new Date().toISOString(),
-    });
+    throw createServerError(
+      "Something went wrong! Please try again later.",
+      "SERVER_ERROR"
+    );
   }
 };
 

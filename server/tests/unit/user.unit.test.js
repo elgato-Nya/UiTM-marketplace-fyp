@@ -33,6 +33,7 @@ const {
   isValidCampus,
   isValidFaculty,
   isValidBio,
+  userErrorMessages,
 } = require("../../utils/validators/user");
 
 // Mock mongoose to avoid database connections during unit tests
@@ -310,15 +311,6 @@ describe("User Model Unit Test", () => {
   });
 
   describe("Additional Validator Functions", () => {
-    const {
-      isValidMongoId,
-      isValidRoleArray,
-      isValidCampus,
-      isValidFaculty,
-      isValidBio,
-      getErrorMessages,
-    } = require("../../utils/validators");
-
     it("should validate MongoDB ObjectIds", () => {
       // Valid MongoDB ObjectIds
       expect(isValidMongoId("507f1f77bcf86cd799439011")).toBe(true);
@@ -385,7 +377,7 @@ describe("User Model Unit Test", () => {
     });
 
     it("should return error messages object", () => {
-      const messages = getErrorMessages();
+      const messages = userErrorMessages();
 
       expect(typeof messages).toBe("object");
       expect(messages.email).toBeDefined();
@@ -398,10 +390,16 @@ describe("User Model Unit Test", () => {
       expect(messages.faculty).toBeDefined();
       expect(messages.bio).toBeDefined();
 
-      // Test that error messages are strings
-      Object.values(messages).forEach((message) => {
-        expect(typeof message).toBe("string");
-        expect(message.length).toBeGreaterThan(0);
+      // Test that error messages have the correct nested structure
+      Object.values(messages).forEach((messageGroup) => {
+        expect(typeof messageGroup).toBe("object");
+        // Each message group should have at least one string property
+        const messageValues = Object.values(messageGroup);
+        expect(messageValues.length).toBeGreaterThan(0);
+        messageValues.forEach((message) => {
+          expect(typeof message).toBe("string");
+          expect(message.length).toBeGreaterThan(0);
+        });
       });
     });
   });

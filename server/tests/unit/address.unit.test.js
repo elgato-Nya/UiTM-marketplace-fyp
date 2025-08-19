@@ -1,11 +1,12 @@
 const {
   isValidAddressType,
   isValidCampusBuilding,
+  isValidAddressLine1,
   isValidPersonalAddress,
   isValidPhoneNumber,
-  validateAddressByType,
-  getErrorMessages,
-} = require("../../utils/validators/user/address.validator");
+  AddressValidator,
+  addressErrorMessages,
+} = require("../../utils/validators");
 
 const { CampusEnum } = require("../../utils/enums/user.enum");
 
@@ -14,7 +15,7 @@ describe("Address Schema Unit Tests", () => {
     it("should validate correct address types", () => {
       expect(isValidAddressType("campus")).toBe(true);
       expect(isValidAddressType("personal")).toBe(true);
-      expect(isValidAddressType("temporary")).toBe(true);
+      // temporary is not yet supported
     });
 
     it("should reject invalid address types", () => {
@@ -47,34 +48,34 @@ describe("Address Schema Unit Tests", () => {
     it("should validate campus address completeness", () => {
       const validCampusAddress = {
         type: "campus",
-        campusDetails: {
+        campusAddress: {
+          campus: "UiTM Shah Alam",
           building: "Kolej Kediaman",
-          block: "Blok A",
           floor: "Tingkat 3",
           room: "Bilik 305",
-          zone: "Zon Kediaman",
         },
         recipientName: "Ahmad Bin Ali",
         phoneNumber: "0123456789",
-        campus: "SHAH_ALAM",
       };
 
-      expect(validateAddressByType(validCampusAddress)).toBe(true);
+      expect(AddressValidator.validateAddressByType(validCampusAddress)).toBe(
+        true
+      );
     });
 
     it("should reject incomplete campus addresses", () => {
       const incompleteCampusAddress = {
         type: "campus",
-        campusDetails: {
+        campusAddress: {
           building: "Kolej Kediaman",
-          // missing required fields
         },
         recipientName: "Ahmad Bin Ali",
         phoneNumber: "0123456789",
-        campus: "SHAH_ALAM",
       };
 
-      expect(validateAddressByType(incompleteCampusAddress)).toBe(false);
+      expect(
+        AddressValidator.validateAddressByType(incompleteCampusAddress)
+      ).toBe(false);
     });
   });
 
@@ -82,27 +83,28 @@ describe("Address Schema Unit Tests", () => {
     it("should validate complete personal addresses", () => {
       const validPersonalAddress = {
         type: "personal",
-        personalDetails: {
+        personalAddress: {
           addressLine1: "123 Jalan Merdeka",
           addressLine2: "Taman Setia",
           city: "Shah Alam",
           state: "Selangor",
           postcode: "40000",
-          country: "Malaysia",
         },
         recipientName: "Siti Fatimah",
         phoneNumber: "0123456789",
       };
 
-      expect(validateAddressByType(validPersonalAddress)).toBe(true);
+      expect(AddressValidator.validateAddressByType(validPersonalAddress)).toBe(
+        true
+      );
     });
 
     it("should validate personal address fields individually", () => {
-      expect(isValidPersonalAddress("123 Jalan Merdeka")).toBe(true);
-      expect(isValidPersonalAddress("No. 45, Lorong 3/2")).toBe(true);
-      expect(isValidPersonalAddress("")).toBe(false);
-      expect(isValidPersonalAddress("   ")).toBe(false);
-      expect(isValidPersonalAddress("A".repeat(201))).toBe(false); // too long
+      expect(isValidAddressLine1("123 Jalan Merdeka")).toBe(true);
+      expect(isValidAddressLine1("No. 45, Lorong 3/2")).toBe(true);
+      expect(isValidAddressLine1("")).toBe(false);
+      expect(isValidAddressLine1("   ")).toBe(false);
+      expect(isValidAddressLine1("A".repeat(201))).toBe(false); // too long
     });
 
     it("should validate Malaysian postcodes", () => {
@@ -112,33 +114,31 @@ describe("Address Schema Unit Tests", () => {
       validPostcodes.forEach((postcode) => {
         const address = {
           type: "personal",
-          personalDetails: {
+          personalAddress: {
             addressLine1: "123 Jalan Test",
             city: "Test City",
             state: "Selangor",
             postcode: postcode,
-            country: "Malaysia",
           },
           recipientName: "Test User",
           phoneNumber: "0123456789",
         };
-        expect(validateAddressByType(address)).toBe(true);
+        expect(AddressValidator.validateAddressByType(address)).toBe(true);
       });
 
       invalidPostcodes.forEach((postcode) => {
         const address = {
           type: "personal",
-          personalDetails: {
+          personalAddress: {
             addressLine1: "123 Jalan Test",
             city: "Test City",
             state: "Selangor",
             postcode: postcode,
-            country: "Malaysia",
           },
           recipientName: "Test User",
           phoneNumber: "0123456789",
         };
-        expect(validateAddressByType(address)).toBe(false);
+        expect(AddressValidator.validateAddressByType(address)).toBe(false);
       });
     });
   });
@@ -186,7 +186,7 @@ describe("Address Schema Unit Tests", () => {
       const userCampus = "SHAH_ALAM";
       const validAddress = {
         type: "campus",
-        campus: "SHAH_ALAM",
+        campus: "SHAH_ALAM", // TODO: try recheck this test if have time
         campusDetails: {
           building: "Kolej Kediaman",
           block: "Blok A",
@@ -199,10 +199,9 @@ describe("Address Schema Unit Tests", () => {
     });
 
     it("should allow personal addresses regardless of user campus", () => {
-      const userCampus = "SHAH_ALAM";
       const personalAddress = {
         type: "personal",
-        personalDetails: {
+        personalAddress: {
           addressLine1: "123 Jalan Merdeka",
           city: "Kuala Lumpur", // Different from user campus
           state: "Kuala Lumpur",
@@ -217,13 +216,12 @@ describe("Address Schema Unit Tests", () => {
 
   describe("Error Messages", () => {
     it("should provide comprehensive error messages", () => {
-      const errorMessages = getErrorMessages();
+      const errorMessages = addressErrorMessages();
 
-      expect(errorMessages.addressType).toBeDefined();
-      expect(errorMessages.campusBuilding).toBeDefined();
-      expect(errorMessages.campusBlock).toBeDefined();
-      expect(errorMessages.campusFloor).toBeDefined();
-      expect(errorMessages.campusRoom).toBeDefined();
+      expect(errorMessages.type).toBeDefined();
+      expect(errorMessages.building).toBeDefined();
+      expect(errorMessages.floor).toBeDefined();
+      expect(errorMessages.room).toBeDefined();
       expect(errorMessages.addressLine1).toBeDefined();
       expect(errorMessages.city).toBeDefined();
       expect(errorMessages.state).toBeDefined();
@@ -231,10 +229,16 @@ describe("Address Schema Unit Tests", () => {
       expect(errorMessages.recipientName).toBeDefined();
       expect(errorMessages.phoneNumber).toBeDefined();
 
-      // All error messages should be strings
-      Object.values(errorMessages).forEach((message) => {
-        expect(typeof message).toBe("string");
-        expect(message.length).toBeGreaterThan(0);
+      // Test that error messages have the correct nested structure
+      Object.values(errorMessages).forEach((messageGroup) => {
+        expect(typeof messageGroup).toBe("object");
+        // Each message group should have at least one string property
+        const messageValues = Object.values(messageGroup);
+        expect(messageValues.length).toBeGreaterThan(0);
+        messageValues.forEach((message) => {
+          expect(typeof message).toBe("string");
+          expect(message.length).toBeGreaterThan(0);
+        });
       });
     });
   });
@@ -269,7 +273,7 @@ describe("Address Schema Unit Tests", () => {
       ];
 
       malformedAddresses.forEach((address) => {
-        expect(validateAddressByType(address)).toBe(false);
+        expect(AddressValidator.validateAddressByType(address)).toBe(false);
       });
     });
   });

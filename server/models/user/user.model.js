@@ -4,6 +4,8 @@ const jwt = require("jsonwebtoken");
 
 const { CampusEnum, FacultyEnum } = require("../../utils/enums/user.enum");
 const logger = require("../../utils/logger");
+const merchantSchema = require("./merchant.schema");
+const addressSchema = require("./address.schema");
 const {
   isValidUiTMEmail,
   isValidPassword,
@@ -15,6 +17,7 @@ const {
   isValidBio,
   userErrorMessages,
 } = require("../../utils/validators/user");
+const { AppError } = require("../../utils/errors");
 
 const errorMessages = userErrorMessages();
 
@@ -28,7 +31,7 @@ const UserSchema = new mongoose.Schema(
       lowercase: true,
       validate: {
         validator: isValidUiTMEmail,
-        message: errorMessages.email,
+        message: errorMessages.email.invalid,
       },
       index: true,
     },
@@ -39,7 +42,7 @@ const UserSchema = new mongoose.Schema(
       trim: true,
       validate: {
         validator: isValidPassword,
-        message: errorMessages.password,
+        message: errorMessages.password.invalid,
       },
     },
 
@@ -55,7 +58,7 @@ const UserSchema = new mongoose.Schema(
         trim: true,
         validate: {
           validator: isValidUsername,
-          message: errorMessages.username,
+          message: errorMessages.username.invalid,
         },
       },
       bio: {
@@ -63,8 +66,9 @@ const UserSchema = new mongoose.Schema(
         trim: true,
         validate: {
           validator: isValidBio,
-          message: errorMessages.bio,
+          message: errorMessages.bio.invalid,
         },
+        default: "",
       },
       phoneNumber: {
         type: String,
@@ -73,7 +77,7 @@ const UserSchema = new mongoose.Schema(
         trim: true,
         validate: {
           validator: isValidPhoneNumber,
-          message: errorMessages.phoneNumber,
+          message: errorMessages.phoneNumber.invalid,
         },
       },
       campus: {
@@ -81,11 +85,11 @@ const UserSchema = new mongoose.Schema(
         required: [true, "Campus is required"],
         enum: {
           values: Object.values(CampusEnum),
-          message: errorMessages.campus,
+          message: errorMessages.campus.invalid,
         },
         validate: {
           validator: isValidCampus,
-          message: errorMessages.campus,
+          message: errorMessages.campus.invalid,
         },
       },
       faculty: {
@@ -96,75 +100,35 @@ const UserSchema = new mongoose.Schema(
           // ! it just means that the values will be accepted from frontend and validated
           // ! it will be converted to object key before saving using pre-save middleware
           values: Object.values(FacultyEnum),
-          message: errorMessages.faculty,
+          message: errorMessages.faculty.invalid,
         },
         validate: {
           validator: isValidFaculty,
-          message: errorMessages.faculty,
+          message: errorMessages.faculty.invalid,
         },
       },
     },
 
     // ======================   Address References   ========================
-    addresses: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Address",
-      },
-    ],
+    addresses: [addressSchema],
 
     role: {
       type: [String],
       required: [true, "Role is required"],
       enum: {
         values: ["consumer", "merchant", "admin"],
-        message: errorMessages.role,
+        message: errorMessages.role.invalid,
       },
       default: ["consumer"],
       validate: {
         validator: isValidRoleArray,
-        message: errorMessages.roleArray,
+        message: errorMessages.roleArray.invalid,
       },
       index: true,
     },
 
     // ======================   Merchant Details   ========================
-    merchantDetails: {
-      shopName: {
-        type: String,
-        unique: [true, "Shop name already exists"],
-        sparse: true, // Allow multiple null values for non-merchants
-        trim: true,
-        required: function () {
-          return this.role.includes("merchant");
-        },
-        minlength: [3, "Shop name must be at least 3 characters long"],
-        maxlength: [50, "Shop name cannot exceed 50 characters"],
-      },
-      shopSlug: {
-        type: String,
-        unique: true,
-        sparse: true, // if not set to true, null values are considered duplicate
-        lowercase: true,
-        match: [
-          /^[a-z0-9-]+$/,
-          "Shop slug can only contain lowercase letters, numbers, and hyphens",
-        ],
-      },
-      shopDescription: {
-        type: String,
-        trim: true,
-        maxlength: [200, "Shop description cannot exceed 200 characters"],
-      },
-      shopLogo: {
-        type: String,
-        trim: true,
-      },
-      shopBanner: {
-        type: String,
-        trim: true,
-      },
-    },
+    merchantDetails: merchantSchema,
 
     lastActive: {
       type: Date,
@@ -243,9 +207,16 @@ UserSchema.methods.comparePassword = async function (inputPassword) {
 UserSchema.methods.updateLastActive = function () {
   setImmediate(async () => {
     try {
-      await User.findByIdAndUpdate(this._id, { lastActive: new Date() });
+      await User.findByIdAndUpdate(this._id, {
+        lastActive: new Date(),
+        isActive: true,
+      });
     } catch (error) {
-      logger.warn("Failed to update last active", { userId: this._id });
+      logger.error("Failed to update last active", { userId: this._id });
+      throw new AppError(
+        "Failed to update last active time",
+        "LAST_ACTIVE_UPDATE_FAILED"
+      );
     }
   });
 };
@@ -307,43 +278,6 @@ UserSchema.statics.findByCredentials = async function (email, password) {
     });
     throw error;
   }
-};
-
-// ======================   Address Management Methods   ========================
-UserSchema.methods.addAddress = async function (addressData) {
-  const Address = mongoose.model("Address");
-
-  // Add userId to address data
-  const newAddress = new Address({
-    ...addressData,
-    userId: this._id,
-  });
-
-  const savedAddress = await newAddress.save();
-
-  // Add address reference to user
-  this.addresses.push(savedAddress._id);
-  await this.save({ validateBeforeSave: false });
-
-  return savedAddress;
-};
-
-UserSchema.methods.getAddresses = async function () {
-  await this.populate("addresses");
-  return this.addresses;
-};
-
-UserSchema.methods.removeAddress = async function (addressId) {
-  const Address = mongoose.model("Address");
-
-  // Remove address document
-  await Address.findByIdAndDelete(addressId);
-
-  // Remove address reference from user
-  this.addresses = this.addresses.filter((id) => !id.equals(addressId));
-  await this.save({ validateBeforeSave: false });
-
-  return true;
 };
 
 const User = mongoose.model("User", UserSchema);

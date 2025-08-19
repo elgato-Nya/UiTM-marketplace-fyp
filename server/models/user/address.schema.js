@@ -32,7 +32,8 @@ const AddressSchema = new mongoose.Schema(
       trim: true,
       validate: {
         validator: isValidName,
-        message: errorMessages.recipientName,
+        message:
+          "Recipient name contains only alphabet, '@', '/' and must be between 4 to 100 characters",
       },
     },
     phoneNumber: {
@@ -41,69 +42,42 @@ const AddressSchema = new mongoose.Schema(
       trim: true,
       validate: {
         validator: isValidPhoneNumber,
-        message: errorMessages.phoneNumber,
+        message: "Phone number must start with 0 and be 10 or 11 digits long",
       },
     },
 
     campusAddress: {
       campus: {
         type: String,
-        required: [
-          function () {
-            return this.type === "campus";
-          },
-          "Campus is required for campus address",
-        ],
-        enum: {
-          values: Object.values(CampusEnum),
-          message: errorMessages.campus,
-        },
         trim: true,
         validate: {
           validator: isValidCampus,
-          message: errorMessages.campus,
+          message: "Campus must be a valid enum value",
         },
       },
       building: {
         type: String,
-        required: [
-          function () {
-            return this.type === "campus";
-          },
-          "Building name is required for campus address",
-        ],
         trim: true,
         validate: {
           validator: isValidCampusBuilding,
-          message: errorMessages.building,
+          message:
+            "Building name must be a string not exceeding 100 characters",
         },
       },
       floor: {
         type: String,
-        required: [
-          function () {
-            return this.type === "campus";
-          },
-          "Floor number is required for campus address",
-        ],
         trim: true,
         validate: {
           validator: isValidCampusFloor,
-          message: errorMessages.floor,
+          message: "Floor must be a string not exceeding 25 characters",
         },
       },
       room: {
         type: String,
-        required: [
-          function () {
-            return this.type === "campus";
-          },
-          "Room number is required for campus address",
-        ],
         trim: true,
         validate: {
           validator: isValidCampusRoom,
-          message: errorMessages.room,
+          message: "Room number is required for campus address",
         },
       },
     },
@@ -111,16 +85,10 @@ const AddressSchema = new mongoose.Schema(
     personalAddress: {
       addressLine1: {
         type: String,
-        required: [
-          function () {
-            return this.type === "personal";
-          },
-          "Address line 1 is required for personal address",
-        ],
         trim: true,
         validate: {
           validator: isValidAddressLine1,
-          message: errorMessages.addressLine1,
+          message: "Address line 1 is required for personal address",
         },
       },
       addressLine2: {
@@ -128,49 +96,32 @@ const AddressSchema = new mongoose.Schema(
         trim: true,
         validate: {
           validator: isValidAddressLine2,
-          message: errorMessages.addressLine2,
+          message:
+            "Address line 2 must be a string not exceeding 150 characters",
         },
       },
       city: {
         type: String,
-        required: [
-          function () {
-            return this.type === "personal";
-          },
-          "City is required for personal address",
-        ],
         trim: true,
         validate: {
           validator: isValidCity,
-          message: errorMessages.city,
+          message: "City is required for personal address",
         },
       },
       state: {
         type: String,
-        required: [
-          function () {
-            return this.type === "personal";
-          },
-          "State is required for personal address",
-        ],
         trim: true,
         validate: {
           validator: isValidState,
-          message: errorMessages.state,
+          message: "State is required for personal address",
         },
       },
       postcode: {
         type: String,
-        required: [
-          function () {
-            return this.type === "personal";
-          },
-          "Postcode is required for personal address",
-        ],
         trim: true,
         validate: {
           validator: isValidPostcode,
-          message: errorMessages.postcode,
+          message: "Postcode is required for personal address",
         },
       },
     },
@@ -181,18 +132,14 @@ const AddressSchema = new mongoose.Schema(
       maxlength: [500, "Special instructions cannot exceed 500 characters"],
     },
 
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: [true, "User ID is required"],
-      index: true,
-      validate: {
-        validator: (v) => mongoose.isValidObjectId(v),
-        message: "Invalid User ID",
-      },
+    isDefault: {
+      type: Boolean,
+      default: false,
+      required: [true, "Default address flag is required"],
     },
   },
   {
+    _id: true, // Keep _id for embedded documents
     timestamps: true,
     toJSON: {
       virtuals: true,
@@ -214,29 +161,53 @@ const AddressSchema = new mongoose.Schema(
 );
 
 // ======================   Indexes   ========================
-AddressSchema.index({ userId: 1, type: 1 }, { unique: true });
+// Indexes are handled at the User model level for embedded documents
 
 // =======================   Pre-save Hooks   ========================
 AddressSchema.pre("save", function (next) {
-  if (Object.values(CampusEnum).includes(this.campusAddress.campus)) {
-    this.campusAddress.campus = Object.keys(CampusEnum).find(
-      (key) => CampusEnum[key] === this.campusAddress.campus
+  // Validate that campus addresses have campusAddress details
+  if (
+    this.type === "campus" &&
+    (!this.campusAddress || !this.campusAddress.campus)
+  ) {
+    const error = new Error(
+      "Campus address details are required for campus type addresses"
+    );
+    error.name = "ValidationError";
+    return next(error);
+  }
+
+  // Validate that personal addresses have personalAddress details
+  if (
+    this.type === "personal" &&
+    (!this.personalAddress || !this.personalAddress.addressLine1)
+  ) {
+    const error = new Error(
+      "Personal address details are required for personal type addresses"
+    );
+    error.name = "ValidationError";
+    return next(error);
+  }
+
+  // Campus enum conversion is now handled in the service layer
+  // for better separation of concerns and easier testing
+  next();
+});
+
+AddressSchema.pre("save", async function (next) {
+  if (this.isDefault && this.isModified("isDefault")) {
+    // Remove default flag from other addresses of the same type
+    await this.constructor.updateMany(
+      {
+        userId: this.userId,
+        type: this.type,
+        _id: { $ne: this._id },
+      },
+      { isDefault: false }
     );
   }
   next();
 });
-
-// ? Ensure only one default address per user (if needed in future)
-// AddressSchema.pre("save", async function(next) {
-//   if (this.isDefault && this.isModified("isDefault")) {
-//        Remove default flag from other addresses
-//     await this.constructor.updateMany(
-//       { userId: this.userId, _id: { $ne: this._id } },
-//       { isDefault: false }
-//     );
-//   }
-//   next();
-// });
 
 AddressSchema.virtual("formattedAddress").get(function () {
   if (this.type === "campus" && this.campusAddress) {
@@ -254,4 +225,4 @@ AddressSchema.virtual("formattedAddress").get(function () {
   return "";
 });
 
-module.exports = mongoose.model("Address", AddressSchema);
+module.exports = AddressSchema;

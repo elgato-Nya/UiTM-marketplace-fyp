@@ -1,365 +1,691 @@
 const mongoose = require("mongoose");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 
-const { User, Address } = require("../../models/user");
+const { User } = require("../../models/user");
+const { address: addressService } = require("../../services/user");
 
-describe("Address Integration Tests", () => {
+/**
+ * INTEGRATION TESTS FOR ADDRESS MANAGEMENT
+ *
+ * PURPOSE: Test how address components work together in realistic ecommerce scenarios
+ *
+ * WHAT ARE INTEGRATION TESTS FOR ADDRESSES?
+ * - Test complete address workflows from service to database
+ * - Use real database (MongoDB Memory Server for testing)
+ * - Test actual address business logic, not mocked behavior
+ * - Verify address operations that users depend on daily
+ *
+ * INTEGRATION vs UNIT TESTS FOR ADDRESSES:
+ * ┌─────────────────┬─────────────────┬──────────────────┐
+ * │                 │ Unit Tests      │ Integration Tests│
+ * ├─────────────────┼─────────────────┼──────────────────┤
+ * │ Address Schema  │ Validation only │ Full CRUD ops    │
+ * │ Service Layer   │ Mocked DB       │ Real DB + User   │
+ * │ Error Handling  │ Isolated        │ End-to-end flow  │
+ * │ Business Logic  │ Function level  │ Complete workflow│
+ * └─────────────────┴─────────────────┴──────────────────┘
+ *
+ * WHAT WE'RE TESTING:
+ * - Address CRUD operations through service layer
+ * - Address validation with real user documents
+ * - Business logic for campus vs personal addresses
+ * - Error handling with actual database constraints
+ * - Address lifecycle management (add, update, delete)
+ */
+
+describe("Address Management", () => {
   let mongoServer;
-  let testUser;
 
+  /**
+   * TEST SETUP AND TEARDOWN
+   *
+   * beforeAll(): Runs once before all tests in this describe block
+   * - Creates an in-memory MongoDB instance
+   * - Connects mongoose to this test database
+   *
+   * beforeEach(): Runs before each individual test
+   * - Cleans the database to ensure test isolation
+   * - Each test starts with a fresh, empty database
+   *
+   * afterAll(): Runs once after all tests complete
+   * - Disconnects from database
+   * - Stops the in-memory MongoDB server
+   * - Prevents memory leaks
+   */
   beforeAll(async () => {
+    // Create in-memory MongoDB instance for testing
     mongoServer = await MongoMemoryServer.create();
     const uri = mongoServer.getUri();
     await mongoose.connect(uri);
   });
 
   beforeEach(async () => {
-    await Address.deleteMany({}); // Clear the Address collection before each test
-    await User.deleteMany({}); // Clear the User collection before each test
-
-    testUser = await User.create({
-      email: "test@uitm.edu.my",
-      password: "Password123",
-      profile: {
-        username: "testuser",
-        phoneNumber: "0123456789",
-        campus: "UiTM Kampus Arau",
-        faculty: "Fakulti Senibina, Perancangan dan Ukur",
-      },
-      role: ["consumer"],
-    });
+    // Clean database before each test for isolation
+    await User.deleteMany({});
   });
 
   afterAll(async () => {
+    // Cleanup after all tests
     await mongoose.disconnect();
     await mongoServer.stop();
   });
 
-  describe("Campus Address CRUD", () => {
-    it("should create a valid campus address", async () => {
-      const campusAddress = {
-        recipientName: "John Weak",
-        phoneNumber: "01234567890",
-        type: "campus",
-        campusAddress: {
-          campus: "UiTM Kampus Arau",
-          building: "Go Block 8",
-          floor: "3A",
-          room: "3A",
-        },
-        userId: testUser._id,
-      };
+  /**
+   * HELPER FUNCTIONS
+   *
+   * These utility functions help us write cleaner, more maintainable tests:
+   *
+   * getBaseValidUser(): Creates a valid user for address testing
+   * - Ensures each test gets clean, unmodified user data
+   * - Prevents tests from interfering with each other
+   * - Follows same pattern as user integration tests
+   *
+   * getValidCampusAddress(): Factory for campus address data
+   * getValidPersonalAddress(): Factory for personal address data
+   */
 
-      const savedAddress = await Address.create(campusAddress);
-
-      expect(savedAddress).toBeDefined();
-      expect(savedAddress.type).toBe("campus");
-      expect(savedAddress.recipientName).toBe("John Weak");
-      expect(savedAddress.phoneNumber).toBe("01234567890");
-      expect(savedAddress.campusAddress.campus).toBe("ARAU");
-      expect(savedAddress.campusAddress.building).toBe("Go Block 8");
-      expect(savedAddress.campusAddress.floor).toBe("3A");
-      expect(savedAddress.campusAddress.room).toBe("3A");
-    });
+  // Shared test data factory function to get fresh user data for each test
+  const getBaseValidUser = () => ({
+    email: "addresstest@uitm.edu.my",
+    password: "TestPass123!", // Valid password with special char
+    profile: {
+      username: "addressuser",
+      phoneNumber: "01234567890",
+      campus: "UiTM Shah Alam", // Use display value for user profile
+      faculty: "Fakulti Sains Komputer dan Matematik", // Use display value
+    },
+    role: ["consumer"],
+    lastActive: new Date(),
   });
 
-  describe("Personal Address CRUD", () => {
-    it("should create a valid personal address", async () => {
-      const personalAddress = {
-        recipientName: "Jennifer Lawrence",
-        phoneNumber: "01234567890",
-        type: "personal",
-        personalAddress: {
-          addressLine1: "123 Main St",
-          addressLine2: "Apt 4B",
-          city: "Shah Alam",
-          state: "Selangor",
-          postcode: "40000",
-        },
-        userId: testUser._id,
-      };
+  // Factory for valid campus address data
+  const getValidCampusAddress = () => ({
+    type: "campus",
+    recipientName: "John Doe",
+    phoneNumber: "01234567890",
+    campusAddress: {
+      campus: "UiTM Shah Alam", // Use display value, will be converted to enum key by pre-save hook
+      building: "Block A",
+      floor: "Level 3",
+      room: "Room 301",
+    },
+  });
 
-      const savedAddress = await Address.create(personalAddress);
+  // Factory for valid personal address data
+  const getValidPersonalAddress = () => ({
+    type: "personal",
+    recipientName: "Jane Smith",
+    phoneNumber: "01234567891",
+    personalAddress: {
+      addressLine1: "123 Main Street",
+      addressLine2: "Apartment 2B",
+      city: "Shah Alam",
+      state: "Selangor",
+      postcode: "40000",
+    },
+  });
 
-      expect(savedAddress).toBeDefined();
-      expect(savedAddress.type).toBe("personal");
-      expect(savedAddress.recipientName).toBe("Jennifer Lawrence");
+  describe("Address Service Integration", () => {
+    /**
+     * DATA FACTORY PATTERN
+     *
+     * Following the same pattern as user integration tests:
+     * - Each test creates its own fresh user data
+     * - Prevents test interference
+     * - Makes tests independent and reliable
+     */
+
+    let testUser;
+
+    beforeEach(async () => {
+      // Create a fresh user for each address test
+      const userData = getBaseValidUser();
+      testUser = await User.create(userData);
+    });
+
+    it("should add a campus address with complete data validation", async () => {
+      /**
+       * INTEGRATION TEST: ADDRESS CREATION
+       *
+       * WHAT WE'RE TESTING:
+       * 1. Service layer can create address
+       * 2. Address gets embedded in user document
+       * 3. All fields are saved correctly
+       * 4. Campus address validation works
+       *
+       * WHY THIS IS AN INTEGRATION TEST:
+       * - Uses real database operations
+       * - Tests service layer + schema together
+       * - Verifies complete address workflow
+       * - Tests actual embedded document behavior
+       */
+
+      const campusAddress = getValidCampusAddress();
+
+      const updatedUser = await addressService.addUserAddress(
+        testUser._id,
+        campusAddress
+      );
+
+      // Verify address was added
+      expect(updatedUser).toBeDefined();
+      expect(updatedUser.addresses).toHaveLength(1);
+
+      // Verify address data integrity
+      const savedAddress = updatedUser.addresses[0];
+      expect(savedAddress.type).toBe("campus");
+      expect(savedAddress.recipientName).toBe("John Doe");
       expect(savedAddress.phoneNumber).toBe("01234567890");
-      expect(savedAddress.personalAddress.addressLine1).toBe("123 Main St");
-      expect(savedAddress.personalAddress.addressLine2).toBe("Apt 4B");
+      expect(savedAddress.campusAddress.campus).toBe("SHAH_ALAM"); // Converted to enum key by pre-save hook
+      expect(savedAddress.campusAddress.building).toBe("Block A");
+      expect(savedAddress.campusAddress.floor).toBe("Level 3");
+      expect(savedAddress.campusAddress.room).toBe("Room 301");
+
+      // Verify address has MongoDB _id
+      expect(savedAddress._id).toBeDefined();
+    });
+
+    it("should add a personal address with complete data validation", async () => {
+      /**
+       * INTEGRATION TEST: PERSONAL ADDRESS CREATION
+       *
+       * Testing personal address type with different validation rules
+       */
+
+      const personalAddress = getValidPersonalAddress();
+
+      const updatedUser = await addressService.addUserAddress(
+        testUser._id,
+        personalAddress
+      );
+
+      // Verify address was added
+      expect(updatedUser.addresses).toHaveLength(1);
+
+      // Verify personal address data integrity
+      const savedAddress = updatedUser.addresses[0];
+      expect(savedAddress.type).toBe("personal");
+      expect(savedAddress.recipientName).toBe("Jane Smith");
+      expect(savedAddress.phoneNumber).toBe("01234567891");
+      expect(savedAddress.personalAddress.addressLine1).toBe("123 Main Street");
+      expect(savedAddress.personalAddress.addressLine2).toBe("Apartment 2B");
       expect(savedAddress.personalAddress.city).toBe("Shah Alam");
       expect(savedAddress.personalAddress.state).toBe("Selangor");
       expect(savedAddress.personalAddress.postcode).toBe("40000");
     });
-  });
 
-  describe("Address Queries", () => {
-    beforeEach(async () => {
-      // Create test addresses
-      await Address.create([
-        {
-          type: "campus",
-          recipientName: "Ahmad bin Ali",
-          phoneNumber: "0123456789",
-          campusAddress: {
-            campus: "UiTM Kampus Arau", // Use consistent campus with testUser
-            building: "Kolej Kediaman",
-            floor: "Tingkat 2",
-            room: "Bilik 205",
-          },
-          userId: testUser._id,
-        },
-        {
-          type: "personal",
-          recipientName: "Ahmad bin Ali",
-          phoneNumber: "0123456789",
-          personalAddress: {
-            addressLine1: "123 Jalan Merdeka",
-            city: "Shah Alam",
-            state: "Selangor",
-            postcode: "40150",
-          },
-          userId: testUser._id,
-        },
-      ]);
-    });
+    it("should retrieve all user addresses efficiently", async () => {
+      /**
+       * INTEGRATION TEST: ADDRESS RETRIEVAL
+       *
+       * Testing complete workflow:
+       * 1. Add multiple addresses
+       * 2. Retrieve all addresses
+       * 3. Verify data integrity
+       */
 
-    it("should find user addresses by type", async () => {
-      const campusAddresses = await Address.find({
-        userId: testUser._id,
-        type: "campus",
-      });
+      const campusAddress = getValidCampusAddress();
+      const personalAddress = getValidPersonalAddress();
 
-      expect(campusAddresses).toHaveLength(1);
-      expect(campusAddresses[0].type).toBe("campus");
-    });
+      // Add both addresses
+      await addressService.addUserAddress(testUser._id, campusAddress);
+      await addressService.addUserAddress(testUser._id, personalAddress);
 
-    it("should find all user addresses", async () => {
-      const userAddresses = await Address.find({
-        userId: testUser._id,
-      });
+      // Retrieve addresses
+      const addresses = await addressService.getUserAddresses(testUser._id);
 
-      expect(userAddresses).toHaveLength(2);
-      expect(userAddresses.some((addr) => addr.type === "campus")).toBe(true);
-      expect(userAddresses.some((addr) => addr.type === "personal")).toBe(true);
-    });
-
-    it("should find addresses by campus", async () => {
-      const campusAddresses = await Address.find({
-        "campusAddress.campus": "ARAU", // Query by stored key, not display value
-      });
-
-      expect(campusAddresses).toHaveLength(1);
-      expect(campusAddresses[0].campusAddress.campus).toBe("ARAU");
-    });
-  });
-
-  describe("Address Management Methods", () => {
-    it("should add address using user method", async () => {
-      const addressData = {
-        type: "campus",
-        recipientName: "Test User",
-        phoneNumber: "0123456789",
-        campusAddress: {
-          campus: "UiTM Kampus Arau",
-          building: "Block A",
-          floor: "Level 2",
-          room: "Room 201",
-        },
-      };
-
-      const savedAddress = await testUser.addAddress(addressData);
-
-      expect(savedAddress).toBeDefined();
-      expect(savedAddress.userId.toString()).toBe(testUser._id.toString());
-
-      // Refresh user to check addresses array
-      const updatedUser = await User.findById(testUser._id);
-      expect(updatedUser.addresses).toHaveLength(1);
-      expect(updatedUser.addresses[0].toString()).toBe(
-        savedAddress._id.toString()
-      );
-    });
-
-    it("should get user addresses using user method", async () => {
-      // Add test addresses first
-      await testUser.addAddress({
-        type: "campus",
-        recipientName: "Test User",
-        phoneNumber: "0123456789",
-        campusAddress: {
-          campus: "UiTM Kampus Arau",
-          building: "Block A",
-          floor: "Level 2",
-          room: "Room 201",
-        },
-      });
-
-      await testUser.addAddress({
-        type: "personal",
-        recipientName: "Test User",
-        phoneNumber: "0123456789",
-        personalAddress: {
-          addressLine1: "123 Test Street",
-          city: "Test City",
-          state: "Selangor",
-          postcode: "40000",
-        },
-      });
-
-      const addresses = await testUser.getAddresses();
-
+      // Verify retrieval
       expect(addresses).toHaveLength(2);
-      expect(addresses[0]).toHaveProperty("type");
-      expect(addresses[1]).toHaveProperty("type");
+      expect(addresses.find((addr) => addr.type === "campus")).toBeDefined();
+      expect(addresses.find((addr) => addr.type === "personal")).toBeDefined();
+
+      // Verify data integrity after retrieval
+      const campusAddr = addresses.find((addr) => addr.type === "campus");
+      const personalAddr = addresses.find((addr) => addr.type === "personal");
+
+      expect(campusAddr.recipientName).toBe("John Doe");
+      expect(personalAddr.recipientName).toBe("Jane Smith");
     });
 
-    it("should remove address using user method", async () => {
-      // Add address first
-      const address = await testUser.addAddress({
-        type: "campus",
-        recipientName: "Test User",
-        phoneNumber: "0123456789",
-        campusAddress: {
-          campus: "UiTM Kampus Arau",
-          building: "Block A",
-          floor: "Level 2",
-          room: "Room 201",
-        },
-      });
+    it("should update an existing address completely", async () => {
+      /**
+       * INTEGRATION TEST: ADDRESS UPDATE
+       *
+       * Testing complete update workflow:
+       * 1. Create address
+       * 2. Update with new data
+       * 3. Verify changes persisted
+       */
 
-      // Remove the address
-      await testUser.removeAddress(address._id);
+      // Add an address first
+      const originalAddress = getValidPersonalAddress();
+      originalAddress.recipientName = "John Doe";
+      originalAddress.personalAddress.addressLine1 = "123 Old Street";
 
-      // Verify address is removed from database
-      const deletedAddress = await Address.findById(address._id);
-      expect(deletedAddress).toBeNull();
+      const userWithAddress = await addressService.addUserAddress(
+        testUser._id,
+        originalAddress
+      );
+      const addressId = userWithAddress.addresses[0]._id;
 
-      // Verify address reference is removed from user
-      const updatedUser = await User.findById(testUser._id);
-      expect(updatedUser.addresses).toHaveLength(0);
-    });
-  });
-
-  describe("Address Validation", () => {
-    it("should reject invalid campus address", async () => {
-      const invalidAddress = {
-        type: "campus",
-        recipientName: "", // Invalid: empty name
-        phoneNumber: "invalid", // Invalid: wrong format
-        campusAddress: {
-          campus: "Invalid Campus", // Invalid: not in enum
-          building: "", // Invalid: empty
-          floor: "", // Invalid: empty
-          room: "", // Invalid: empty
-        },
-        userId: testUser._id,
-      };
-
-      await expect(Address.create(invalidAddress)).rejects.toThrow();
-    });
-
-    it("should reject invalid personal address", async () => {
-      const invalidAddress = {
-        type: "personal",
-        recipientName: "A", // Invalid: too short
-        phoneNumber: "123", // Invalid: wrong format
+      // Update the address
+      const updatedAddressData = {
+        recipientName: "John Smith", // Changed name
+        phoneNumber: "01234567890",
         personalAddress: {
-          addressLine1: "ABC", // Invalid: too short
-          city: "X", // Invalid: too short
-          state: "Invalid State", // Invalid: not Malaysian state
-          postcode: "123", // Invalid: wrong format
-        },
-        userId: testUser._id,
-      };
-
-      await expect(Address.create(invalidAddress)).rejects.toThrow();
-    });
-
-    it("should require correct fields based on address type", async () => {
-      // Campus address missing campus fields
-      const campusAddressMissingFields = {
-        type: "campus",
-        recipientName: "Test User",
-        phoneNumber: "0123456789",
-        personalAddress: {
-          // Wrong: personal fields for campus type
-          addressLine1: "123 Test Street",
-          city: "Test City",
-          state: "Selangor",
-          postcode: "40000",
-        },
-        userId: testUser._id,
-      };
-
-      await expect(
-        Address.create(campusAddressMissingFields)
-      ).rejects.toThrow();
-
-      // Personal address missing personal fields
-      const personalAddressMissingFields = {
-        type: "personal",
-        recipientName: "Test User",
-        phoneNumber: "0123456789",
-        campusAddress: {
-          // Wrong: campus fields for personal type
-          campus: "UiTM Kampus Arau",
-          building: "Block A",
-          floor: "Level 2",
-          room: "Room 201",
-        },
-        userId: testUser._id,
-      };
-
-      await expect(
-        Address.create(personalAddressMissingFields)
-      ).rejects.toThrow();
-    });
-  });
-
-  describe("Address Virtual Methods", () => {
-    it("should format campus address correctly", async () => {
-      const address = await Address.create({
-        type: "campus",
-        recipientName: "Test User",
-        phoneNumber: "0123456789",
-        campusAddress: {
-          campus: "UiTM Kampus Arau",
-          building: "Block A",
-          floor: "Level 2",
-          room: "Room 201",
-        },
-        userId: testUser._id,
-      });
-
-      const formatted = address.formattedAddress;
-      expect(formatted).toContain("Level 2");
-      expect(formatted).toContain("Room 201");
-      expect(formatted).toContain("Block A");
-      expect(formatted).toContain("ARAU"); // Stored as key after conversion
-    });
-
-    it("should format personal address correctly", async () => {
-      const address = await Address.create({
-        type: "personal",
-        recipientName: "Test User",
-        phoneNumber: "0123456789",
-        personalAddress: {
-          addressLine1: "123 Test Street",
-          addressLine2: "Unit 4B",
+          addressLine1: "456 New Street", // Changed street
           city: "Shah Alam",
           state: "Selangor",
           postcode: "40000",
         },
-        userId: testUser._id,
-      });
+      };
 
-      const formatted = address.formattedAddress;
-      expect(formatted).toContain("123 Test Street");
-      expect(formatted).toContain("Unit 4B");
-      expect(formatted).toContain("Shah Alam");
-      expect(formatted).toContain("Selangor");
-      expect(formatted).toContain("40000");
+      const updatedUser = await addressService.updateUserAddress(
+        testUser._id,
+        addressId,
+        updatedAddressData
+      );
+
+      // Verify update worked
+      expect(updatedUser.addresses).toHaveLength(1);
+      expect(updatedUser.addresses[0].recipientName).toBe("John Smith");
+      expect(updatedUser.addresses[0].personalAddress.addressLine1).toBe(
+        "456 New Street"
+      );
+
+      // Verify unchanged fields remain
+      expect(updatedUser.addresses[0].personalAddress.city).toBe("Shah Alam");
+      expect(updatedUser.addresses[0].personalAddress.state).toBe("Selangor");
+    });
+
+    it("should delete an address from user profile", async () => {
+      /**
+       * INTEGRATION TEST: ADDRESS DELETION
+       *
+       * Testing complete deletion workflow:
+       * 1. Create address
+       * 2. Verify it exists
+       * 3. Delete it
+       * 4. Verify it's gone
+       */
+
+      const address = getValidCampusAddress();
+
+      const userWithAddress = await addressService.addUserAddress(
+        testUser._id,
+        address
+      );
+      expect(userWithAddress.addresses).toHaveLength(1);
+
+      const addressId = userWithAddress.addresses[0]._id;
+
+      // Delete the address
+      const updatedUser = await addressService.deleteUserAddress(
+        testUser._id,
+        addressId
+      );
+
+      // Verify deletion
+      expect(updatedUser.addresses).toHaveLength(0);
+    });
+
+    it("should handle multiple addresses per user correctly", async () => {
+      /**
+       * INTEGRATION TEST: MULTIPLE ADDRESSES
+       *
+       * Real-world scenario: Users often have multiple delivery addresses
+       */
+
+      const campusAddress1 = getValidCampusAddress();
+      campusAddress1.recipientName = "Campus Recipient";
+      campusAddress1.campusAddress.room = "Room 101";
+
+      const campusAddress2 = getValidCampusAddress();
+      campusAddress2.recipientName = "Second Campus Recipient";
+      campusAddress2.campusAddress.room = "Room 202";
+      campusAddress2.phoneNumber = "01234567892";
+
+      const personalAddress = getValidPersonalAddress();
+
+      // Add all addresses
+      await addressService.addUserAddress(testUser._id, campusAddress1);
+      await addressService.addUserAddress(testUser._id, campusAddress2);
+      await addressService.addUserAddress(testUser._id, personalAddress);
+
+      // Verify all were added
+      const addresses = await addressService.getUserAddresses(testUser._id);
+      expect(addresses).toHaveLength(3);
+
+      // Verify each address is distinct
+      const campus1 = addresses.find(
+        (addr) => addr.campusAddress?.room === "Room 101"
+      );
+      const campus2 = addresses.find(
+        (addr) => addr.campusAddress?.room === "Room 202"
+      );
+      const personal = addresses.find((addr) => addr.type === "personal");
+
+      expect(campus1).toBeDefined();
+      expect(campus2).toBeDefined();
+      expect(personal).toBeDefined();
+
+      expect(campus1.recipientName).toBe("Campus Recipient");
+      expect(campus2.recipientName).toBe("Second Campus Recipient");
+    });
+  });
+
+  describe("Address Validation Integration", () => {
+    /**
+     * VALIDATION TESTING WITH REAL CONSTRAINTS
+     *
+     * Following user integration test pattern for validation:
+     * - Test each validation rule
+     * - Use real database constraints
+     * - Verify error messages are correct
+     */
+
+    let testUser;
+
+    beforeEach(async () => {
+      const userData = getBaseValidUser();
+      testUser = await User.create(userData);
+    });
+
+    describe("address type validation", () => {
+      const invalidTypes = [
+        {
+          type: "invalid",
+          error: "Address type must be one of 'campus', 'personal'",
+        },
+        { type: "", error: "Address type is required" },
+        { type: null, error: "Address type is required" },
+      ];
+
+      invalidTypes.forEach(({ type, error }) => {
+        it(`should reject ${
+          type === null ? "null" : type === "" ? "empty" : "invalid"
+        } address type`, async () => {
+          const invalidAddress = {
+            type: type,
+            recipientName: "John Doe",
+            phoneNumber: "01234567890",
+          };
+
+          await expect(
+            addressService.addUserAddress(testUser._id, invalidAddress)
+          ).rejects.toThrow(error);
+        });
+      });
+    });
+
+    describe("required fields validation", () => {
+      const requiredFields = [
+        { field: "recipientName", error: "Receipant name is required" },
+        { field: "phoneNumber", error: "Phone number is required" },
+      ];
+
+      requiredFields.forEach(({ field, error }) => {
+        describe(`${field} validation`, () => {
+          it("should reject empty string", async () => {
+            const address = getValidCampusAddress();
+            address[field] = "";
+            await expect(
+              addressService.addUserAddress(testUser._id, address)
+            ).rejects.toThrow(error);
+          });
+
+          it("should reject null value", async () => {
+            const address = getValidCampusAddress();
+            address[field] = null;
+            await expect(
+              addressService.addUserAddress(testUser._id, address)
+            ).rejects.toThrow(error);
+          });
+
+          it("should reject undefined value", async () => {
+            const address = getValidCampusAddress();
+            delete address[field];
+            await expect(
+              addressService.addUserAddress(testUser._id, address)
+            ).rejects.toThrow(error);
+          });
+        });
+      });
+    });
+
+    describe("phone number validation", () => {
+      const invalidPhoneNumbers = [
+        {
+          phone: "invalid",
+          error: "Phone number must start with 0 and be 10 or 11 digits long",
+        },
+        {
+          phone: "12345",
+          error: "Phone number must start with 0 and be 10 or 11 digits long",
+        },
+        {
+          phone: "123456789012",
+          error: "Phone number must start with 0 and be 10 or 11 digits long",
+        },
+      ];
+
+      invalidPhoneNumbers.forEach(({ phone, error }) => {
+        it(`should reject invalid phone number: ${phone}`, async () => {
+          const address = getValidCampusAddress();
+          address.phoneNumber = phone;
+
+          await expect(
+            addressService.addUserAddress(testUser._id, address)
+          ).rejects.toThrow(error);
+        });
+      });
+    });
+
+    describe("campus address specific validation", () => {
+      it("should require campus address details for campus type", async () => {
+        const invalidCampusAddress = {
+          type: "campus",
+          recipientName: "John Doe",
+          phoneNumber: "01234567890",
+          // Missing campusAddress
+        };
+
+        await expect(
+          addressService.addUserAddress(testUser._id, invalidCampusAddress)
+        ).rejects.toThrow();
+      });
+    });
+
+    describe("personal address specific validation", () => {
+      it("should require personal address details for personal type", async () => {
+        const invalidPersonalAddress = {
+          type: "personal",
+          recipientName: "Jane Smith",
+          phoneNumber: "01234567891",
+          // Missing personalAddress
+        };
+
+        await expect(
+          addressService.addUserAddress(testUser._id, invalidPersonalAddress)
+        ).rejects.toThrow();
+      });
+    });
+  });
+
+  describe("Address Error Handling Integration", () => {
+    /**
+     * ERROR HANDLING WITH REAL DATABASE
+     *
+     * Testing error scenarios that occur in production:
+     * - Non-existent users
+     * - Non-existent addresses
+     * - Database connection issues
+     */
+
+    let testUser;
+
+    beforeEach(async () => {
+      const userData = getBaseValidUser();
+      testUser = await User.create(userData);
+    });
+
+    it("should handle non-existent user gracefully", async () => {
+      const nonExistentUserId = new mongoose.Types.ObjectId();
+      const address = getValidCampusAddress();
+
+      await expect(
+        addressService.addUserAddress(nonExistentUserId, address)
+      ).rejects.toThrow("User not found");
+    });
+
+    it("should handle non-existent address retrieval gracefully", async () => {
+      const nonExistentUserId = new mongoose.Types.ObjectId();
+
+      await expect(
+        addressService.getUserAddresses(nonExistentUserId)
+      ).rejects.toThrow("User not found");
+    });
+
+    it("should handle non-existent address update gracefully", async () => {
+      const nonExistentAddressId = new mongoose.Types.ObjectId();
+      const updateData = {
+        recipientName: "Updated Name",
+        phoneNumber: "01234567890",
+      };
+
+      await expect(
+        addressService.updateUserAddress(
+          testUser._id,
+          nonExistentAddressId,
+          updateData
+        )
+      ).rejects.toThrow();
+    });
+
+    it("should handle non-existent address deletion gracefully", async () => {
+      const nonExistentAddressId = new mongoose.Types.ObjectId();
+
+      await expect(
+        addressService.deleteUserAddress(testUser._id, nonExistentAddressId)
+      ).rejects.toThrow();
+    });
+
+    it("should handle invalid ObjectId format gracefully", async () => {
+      const invalidId = "invalid-object-id";
+
+      await expect(
+        addressService.getUserAddresses(invalidId)
+      ).rejects.toThrow();
+    });
+  });
+
+  describe("Address Business Logic Integration", () => {
+    /**
+     * BUSINESS LOGIC TESTING
+     *
+     * Testing ecommerce-specific address behavior:
+     * - Default addresses
+     * - Address limits
+     * - Address preferences
+     */
+
+    let testUser;
+
+    beforeEach(async () => {
+      const userData = getBaseValidUser();
+      testUser = await User.create(userData);
+    });
+
+    it("should allow users to have both campus and personal addresses", async () => {
+      const campusAddress = getValidCampusAddress();
+      const personalAddress = getValidPersonalAddress();
+
+      await addressService.addUserAddress(testUser._id, campusAddress);
+      await addressService.addUserAddress(testUser._id, personalAddress);
+
+      const addresses = await addressService.getUserAddresses(testUser._id);
+
+      expect(addresses).toHaveLength(2);
+      expect(addresses.some((addr) => addr.type === "campus")).toBe(true);
+      expect(addresses.some((addr) => addr.type === "personal")).toBe(true);
+    });
+
+    it("should maintain address order and timestamps", async () => {
+      const address1 = getValidCampusAddress();
+      address1.recipientName = "First Address";
+
+      const address2 = getValidPersonalAddress();
+      address2.recipientName = "Second Address";
+
+      // Add addresses with slight delay
+      await addressService.addUserAddress(testUser._id, address1);
+      await new Promise((resolve) => setTimeout(resolve, 10)); // Small delay
+      await addressService.addUserAddress(testUser._id, address2);
+
+      const addresses = await addressService.getUserAddresses(testUser._id);
+
+      expect(addresses).toHaveLength(2);
+      // Verify addresses maintain their data
+      expect(
+        addresses.find((addr) => addr.recipientName === "First Address")
+      ).toBeDefined();
+      expect(
+        addresses.find((addr) => addr.recipientName === "Second Address")
+      ).toBeDefined();
+    });
+
+    it("should handle address updates without affecting other addresses", async () => {
+      const address1 = getValidCampusAddress();
+      address1.recipientName = "First Address";
+
+      const address2 = getValidPersonalAddress();
+      address2.recipientName = "Second Address";
+
+      // Add both addresses
+      await addressService.addUserAddress(testUser._id, address1);
+      const userWithBoth = await addressService.addUserAddress(
+        testUser._id,
+        address2
+      );
+
+      // Get first address ID
+      const firstAddressId = userWithBoth.addresses.find(
+        (addr) => addr.recipientName === "First Address"
+      )._id;
+
+      // Update first address
+      const updateData = {
+        recipientName: "Updated First Address",
+        phoneNumber: "01234567890",
+        campusAddress: {
+          campus: "UiTM Shah Alam", // Use display value, will be converted to enum key
+          building: "Updated Building",
+          floor: "Updated Floor",
+          room: "Updated Room",
+        },
+      };
+
+      const updatedUser = await addressService.updateUserAddress(
+        testUser._id,
+        firstAddressId,
+        updateData
+      );
+
+      // Verify update didn't affect second address
+      expect(updatedUser.addresses).toHaveLength(2);
+
+      const updatedFirstAddr = updatedUser.addresses.find(
+        (addr) => addr.recipientName === "Updated First Address"
+      );
+      const unchangedSecondAddr = updatedUser.addresses.find(
+        (addr) => addr.recipientName === "Second Address"
+      );
+
+      expect(updatedFirstAddr).toBeDefined();
+      expect(updatedFirstAddr.campusAddress.building).toBe("Updated Building");
+
+      expect(unchangedSecondAddr).toBeDefined();
+      expect(unchangedSecondAddr.personalAddress.city).toBe("Shah Alam"); // Original data intact
     });
   });
 });

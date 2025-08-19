@@ -15,6 +15,8 @@ class AddressValidator {
 
   static isValidCampusBuilding(building) {
     if (!building || typeof building !== "string") return false;
+    if (building.trim().length === 0) return false; // Reject empty/whitespace strings
+    if (building.trim().length < 2) return false; // Minimum 2 characters for building names
     if (building.length > 100) return false;
     return true;
   }
@@ -84,6 +86,7 @@ class AddressValidator {
 
   static isValidAddressLine1(addressLine1) {
     if (!addressLine1 || typeof addressLine1 !== "string") return false;
+    if (addressLine1.trim().length === 0) return false; // Reject empty/whitespace strings
     if (addressLine1.length > 150) return false;
 
     return true;
@@ -153,29 +156,151 @@ class AddressValidator {
     return true;
   }
 
-  static addressErrorMessages() {
-    return {
-      type: "Address type must be one of 'campus', 'personal'",
-      recipientName:
-        "Recipient name is required, contains only alphabet, '@', '/' and must be between 4 to 100 characters",
-      phoneNumber: "Phone number is required (e.g., 01234567890)",
-      campus: "Campus is required and must be a valid enum value",
-      campusAddress: "Campus address is required if type is 'campus'",
-      building:
-        "Building name is required and must be a string not exceeding 100 characters",
-      floor:
-        "Floor is required and must be a string not exceeding 25 characters",
-      room: "Room is required and must be a string not exceeding 25 characters",
-      personalAddress: "Personal address is required if type is 'personal'",
-      addressLine1:
-        "Address line 1 is required and must be a string not exceeding 150 characters",
-      addressLine2:
-        "Address line 2 is optional but must be a string not exceeding 150 characters",
-      city: "City is required and must be a valid string (max 50 characters, alphabetic only)",
-      state: "State is required and must be a valid enum value",
-      postcode: "Postcode is required and must be a 5-digit string",
-    };
+  /**
+   * Comprehensive address validation based on type
+   * @param {Object} address - The address object to validate
+   * @returns {boolean} - True if valid, false otherwise
+   */
+  static validateAddressByType(address) {
+    if (!address || typeof address !== "object") {
+      return false;
+    }
+
+    // Basic required fields
+    if (!address.type || !address.recipientName || !address.phoneNumber) {
+      return false;
+    }
+
+    // Validate basic fields
+    if (
+      !AddressValidator.isValidAddressType(address.type) ||
+      !AddressValidator.isValidName(address.recipientName) ||
+      !isValidPhoneNumber(address.phoneNumber)
+    ) {
+      return false;
+    }
+
+    // Type-specific validation
+    if (address.type === "campus") {
+      if (!address.campusAddress) {
+        return false;
+      }
+
+      const { campusAddress } = address;
+      return (
+        isValidCampus(campusAddress.campus) &&
+        AddressValidator.isValidCampusBuilding(campusAddress.building) &&
+        AddressValidator.isValidCampusFloor(campusAddress.floor) &&
+        AddressValidator.isValidCampusRoom(campusAddress.room)
+      );
+    } else if (address.type === "personal") {
+      if (!address.personalAddress) {
+        return false;
+      }
+
+      const { personalAddress } = address;
+      return (
+        AddressValidator.isValidAddressLine1(personalAddress.addressLine1) &&
+        AddressValidator.isValidCity(personalAddress.city) &&
+        AddressValidator.isValidState(personalAddress.state) &&
+        AddressValidator.isValidPostcode(personalAddress.postcode)
+      );
+    }
+
+    return false;
   }
 }
 
-module.exports = AddressValidator;
+/**
+ * Centralized error messages for address validation
+ */
+const addressErrorMessages = () => ({
+  type: {
+    required: "Address type is required",
+    invalid: "Address type must be one of 'campus', 'personal'",
+  },
+  recipientName: {
+    required: "Recipient name is required",
+    invalid:
+      "Recipient name contains only alphabet, '@', '/' and must be between 4 to 100 characters",
+  },
+  phoneNumber: {
+    required: "Phone number is required",
+    invalid: "Phone number is required (e.g., 01234567890)",
+  },
+  campus: {
+    required: "Campus is required for campus addresses",
+    invalid: "Campus must be a valid enum value",
+  },
+  campusAddress: {
+    required: "Campus address is required if type is 'campus'",
+  },
+  building: {
+    required: "Building name is required for campus addresses",
+    invalid: "Building name must be a string not exceeding 100 characters",
+  },
+  floor: {
+    required: "Floor is required for campus addresses",
+    invalid: "Floor must be a string not exceeding 25 characters",
+  },
+  room: {
+    required: "Room is required for campus addresses",
+    invalid: "Room must be a string not exceeding 25 characters",
+  },
+  personalAddress: {
+    required: "Personal address is required if type is 'personal'",
+  },
+  addressLine1: {
+    required: "Address line 1 is required",
+    invalid: "Address line 1 must be a string not exceeding 150 characters",
+  },
+  addressLine2: {
+    invalid: "Address line 2 must be a string not exceeding 150 characters",
+  },
+  city: {
+    required: "City is required",
+    invalid: "City must be a valid string (max 50 characters, alphabetic only)",
+  },
+  state: {
+    required: "State is required",
+    invalid: "State must be a valid enum value",
+  },
+  postcode: {
+    required: "Postcode is required",
+    invalid: "Postcode must be a 5-digit string",
+  },
+});
+
+// Export individual functions for Mongoose schema validation
+const {
+  isValidAddressType,
+  isValidName,
+  isValidCampusAddress,
+  isValidCampusBuilding,
+  isValidCampusFloor,
+  isValidCampusRoom,
+  isValidPersonalAddress,
+  isValidAddressLine1,
+  isValidAddressLine2,
+  isValidCity,
+  isValidState,
+  isValidPostcode,
+} = AddressValidator;
+
+module.exports = {
+  AddressValidator,
+  isValidAddressType,
+  isValidName,
+  isValidCampusAddress,
+  isValidCampusBuilding,
+  isValidCampusFloor,
+  isValidCampusRoom,
+  isValidPersonalAddress,
+  isValidAddressLine1,
+  isValidAddressLine2,
+  isValidCity,
+  isValidState,
+  isValidPostcode,
+  addressErrorMessages,
+  validateAddressByType: AddressValidator.validateAddressByType,
+};

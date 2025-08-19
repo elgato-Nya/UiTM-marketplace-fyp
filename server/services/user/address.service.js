@@ -1,8 +1,29 @@
-const User = require("../../models/user");
+const { User } = require("../../models/user");
 const { handleServiceError, handleNotFoundError } = require("../base.service");
 const logger = require("../../utils/logger");
 const { createNotFoundError, AppError } = require("../../utils/errors");
-const { sanitizeObject } = require("../../utils/sanitizer");
+const { CampusEnum } = require("../../utils/enums/user.enum");
+
+/**
+ * Convert campus display values to enum keys for storage
+ * @param {Object} addressData - The address data to transform
+ */
+const transformCampusForStorage = (addressData) => {
+  if (addressData.type === "campus" && addressData.campusAddress?.campus) {
+    const campusDisplayValue = addressData.campusAddress.campus;
+
+    // Find matching enum key for the display value
+    const campusKey = Object.keys(CampusEnum).find(
+      (key) => CampusEnum[key] === campusDisplayValue
+    );
+
+    if (campusKey) {
+      addressData.campusAddress.campus = campusKey;
+    }
+    // If no match found, leave as-is for validation to catch
+  }
+  return addressData;
+};
 
 const getUserAddresses = async (userId) => {
   try {
@@ -23,6 +44,11 @@ const getUserAddresses = async (userId) => {
 
 const addUserAddress = async (userId, addressData) => {
   try {
+    console.log(
+      "addUserAddress - Initial addressData:",
+      JSON.stringify(addressData, null, 2)
+    );
+
     const user = await User.findById(userId).select("addresses");
     if (!user) {
       handleNotFoundError("User", "USER_NOT_FOUND", "add_user_address", {
@@ -30,8 +56,17 @@ const addUserAddress = async (userId, addressData) => {
       });
     }
 
-    const type = addressData.type;
-    const maxPerType = 5; // Set your desired limit
+    // Transform campus display values to enum keys before validation
+    const transformedAddressData = transformCampusForStorage({
+      ...addressData,
+    });
+    console.log(
+      "addUserAddress - After transformation:",
+      JSON.stringify(transformedAddressData, null, 2)
+    );
+
+    const type = transformedAddressData.type;
+    const maxPerType = 5;
     const countOfType = user.addresses.filter(
       (addr) => addr.type === type
     ).length;
@@ -43,15 +78,15 @@ const addUserAddress = async (userId, addressData) => {
       );
     }
 
-    if (addressData.isDefault) {
+    if (transformedAddressData.isDefault) {
       user.addresses.forEach((addr) => {
-        if (addr.type === addressData.type) {
+        if (addr.type === transformedAddressData.type) {
           addr.isDefault = false;
         }
       });
     }
 
-    user.addresses.push(addressData);
+    user.addresses.push(transformedAddressData);
     user.lastActive = new Date();
     user.isActive = true;
     await user.save();
@@ -62,7 +97,9 @@ const addUserAddress = async (userId, addressData) => {
       addressId: newAddress._id,
       addressType: newAddress.type,
     });
-    return newAddress;
+
+    // Return the full user object with addresses for consistency
+    return await User.findById(userId).select("addresses");
   } catch (error) {
     handleServiceError(error, "addUserAddress", { userId, addressData });
   }
@@ -80,7 +117,10 @@ const updateUserAddress = async (userId, addressId, updateData) => {
       throw createNotFoundError("Address", "ADDRESS_NOT_FOUND");
     }
 
-    if (updateData.isDefault) {
+    // Transform campus display values to enum keys before validation
+    const transformedUpdateData = transformCampusForStorage({ ...updateData });
+
+    if (transformedUpdateData.isDefault) {
       user.addresses.forEach((addr) => {
         if (addr.type === address.type && addr._id.toString() !== addressId) {
           addr.isDefault = false;
@@ -88,12 +128,14 @@ const updateUserAddress = async (userId, addressId, updateData) => {
       });
     }
 
-    // the updateData will overwrite the existing address fields
-    Object.assign(address, updateData);
+    // the transformedUpdateData will overwrite the existing address fields
+    Object.assign(address, transformedUpdateData);
     await user.save();
 
     logger.info("Address updated", { userId, addressId });
-    return address;
+
+    // Return the full user object with addresses for consistency
+    return await User.findById(userId).select("addresses");
   } catch (error) {
     handleServiceError(error, "updateUserAddress", {
       userId,
@@ -105,7 +147,7 @@ const updateUserAddress = async (userId, addressId, updateData) => {
 
 const deleteUserAddress = async (userId, addressId) => {
   try {
-    const user = User.findById(userId).select("addresses");
+    const user = await User.findById(userId).select("addresses");
     if (!user) {
       throw createNotFoundError("User", "USER_NOT_FOUND");
     }
@@ -121,7 +163,9 @@ const deleteUserAddress = async (userId, addressId) => {
     await user.save({ validateBeforeSave: false });
 
     logger.info("Address deleted", { userId, addressId });
-    return { userId, addressId };
+
+    // Return the full user object with addresses for consistency
+    return await User.findById(userId).select("addresses");
   } catch (error) {
     handleServiceError(error, "deleteUserAddress", { userId, addressId });
   }

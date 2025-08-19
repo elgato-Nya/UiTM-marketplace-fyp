@@ -39,7 +39,7 @@ const addAddress = asyncHandler(async (req, res) => {
 const updateAddress = asyncHandler(async (req, res) => {
   const addressDTO = {
     userId: req.user._id,
-    addressId: req.params?.id,
+    addressId: req.params?.addressId,
     addressData: req.body,
   };
 
@@ -61,7 +61,7 @@ const updateAddress = asyncHandler(async (req, res) => {
 const deleteAddress = asyncHandler(async (req, res) => {
   const addressDTO = {
     userId: req.user._id,
-    addressId: req.params?.id,
+    addressId: req.params?.addressId,
   };
 
   const data = await addressService.deleteUserAddress(

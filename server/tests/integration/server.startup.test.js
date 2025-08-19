@@ -23,6 +23,9 @@ jest.mock("express", () => {
     use: jest.fn(),
     get: jest.fn(),
     post: jest.fn(),
+    patch: jest.fn(), // Add missing patch method
+    put: jest.fn(),
+    delete: jest.fn(),
     listen: jest.fn((port, callback) => {
       // Mock server object
       const mockServer = {
@@ -35,6 +38,9 @@ jest.mock("express", () => {
     route: jest.fn(() => ({
       post: jest.fn(),
       get: jest.fn(),
+      patch: jest.fn(), // Add missing patch method
+      put: jest.fn(),
+      delete: jest.fn(),
     })),
     _router: {
       stack: [1, 2, 3], // Mock middleware stack
@@ -46,9 +52,15 @@ jest.mock("express", () => {
     use: jest.fn(),
     get: jest.fn(),
     post: jest.fn(),
+    patch: jest.fn(), // Add missing patch method
+    put: jest.fn(),
+    delete: jest.fn(),
     route: jest.fn(() => ({
       post: jest.fn(),
       get: jest.fn(),
+      patch: jest.fn(), // Add missing patch method
+      put: jest.fn(),
+      delete: jest.fn(),
     })),
   }));
   express.json = jest.fn();

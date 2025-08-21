@@ -2,15 +2,35 @@ const logger = require("../utils/logger");
 const { AppError, createNotFoundError } = require("../utils/errors");
 
 const handleServiceError = (error, operation, context = {}) => {
-  logger.error(`Service error in ${operation}, ${error.message}`, {
-    ...context,
-    timestamp: new Date().toISOString(),
-  });
-
   if (error instanceof AppError) {
     throw error; // Re-throw known application errors
   }
 
+  // For MongoDB/Mongoose errors, let the global error handler deal with them
+  // This includes duplicate key errors, validation errors, etc.
+  // Don't log here as global error handler will log with full context
+  if (
+    error.name === "MongoError" ||
+    error.name === "MongoServerError" ||
+    error.name === "MongooseError" ||
+    error.name === "ValidationError" ||
+    error.code === 11000 ||
+    (error.message &&
+      (error.message.includes("already exists") ||
+        error.message.includes("E11000")))
+  ) {
+    throw error; // Pass through to global error handler
+  }
+
+  // Log only unexpected errors that won't be handled by global error handler
+  logger.error(`Service error in ${operation}: ${error.message}`, {
+    ...context,
+    errorCode: error.code,
+    errorName: error.name,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Generic service error for unexpected issues
   throw new AppError(
     `${operation} failed: ${error.message}`,
     500,

@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/user");
+const { User } = require("../models/user");
 // TODO: Improve error handling
 const { AppError } = require("../utils/errors");
 
@@ -60,20 +60,14 @@ const verifyAccessToken = (token) => {
 const getTokenPair = async (user) => {
   try {
     const accessToken = user.getAccessToken();
-    const refreshToken = user.getRefreshToken();
+    const refreshToken = await user.getRefreshToken();
 
     if (!refreshToken || !accessToken) {
       throw new Error("Failed to generate tokens");
     }
 
-    user.refreshTokens.push(refreshToken);
-
-    // Clean up old refresh tokens (keep only last 5)
-    if (user.refreshTokens.length > 5) {
-      user.refreshTokens = user.refreshTokens.slice(-5);
-    }
-
-    await user.save({ validateBeforeSave: false });
+    // Note: refreshToken is already saved to user by getRefreshToken method
+    // No need to save again here
 
     return {
       accessToken,

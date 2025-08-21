@@ -1,4 +1,4 @@
-const User = require("../../models/user");
+const { User } = require("../../models/user");
 const logger = require("../../utils/logger");
 const { sanitizeObject, sanitizeInput } = require("../../utils/sanitizer");
 const { createAuthError, createConflictError } = require("../../utils/errors");
@@ -13,19 +13,6 @@ const createUser = async (userData) => {
 
     // Add password back (unmodified)
     sanitizedData.password = password;
-
-    const existingUser = await User.findOne({
-      email: sanitizedData.email.toLowerCase(),
-    });
-    if (existingUser) {
-      logger.warn("Creating user failed: user already exists", {
-        email: sanitizedData.email,
-      });
-      throw createConflictError(
-        "Cannot create user who already exists",
-        "USER_ALREADY_EXISTS"
-      );
-    }
 
     const user = new User(sanitizedData);
     user.lastActive = new Date();

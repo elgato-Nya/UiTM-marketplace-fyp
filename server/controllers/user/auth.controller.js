@@ -66,7 +66,7 @@ const register = asyncHandler(async (req, res) => {
   baseController.logAction("register_user", req, { email: userDTO.email });
   const user = await authService.createUser(userDTO);
 
-  sendStatusToken(user, 201, res);
+  await sendStatusToken(user, 201, res);
 }, "register_user");
 
 const login = asyncHandler(async (req, res) => {
@@ -75,7 +75,7 @@ const login = asyncHandler(async (req, res) => {
   baseController.logAction("login_user", req, { email });
   const user = await authService.authenticateUser(email, password);
 
-  sendStatusToken(user, 200, res);
+  await sendStatusToken(user, 200, res);
 }, "login_user");
 
 const logout = asyncHandler(async (req, res) => {
@@ -92,7 +92,7 @@ const handleTokenRefresh = asyncHandler(async (req, res) => {
 
   const user = await authService.refreshUserTokens(refreshToken);
 
-  sendStatusToken(user, 200, res);
+  await sendStatusToken(user, 200, res);
 }, "refresh_tokens");
 
 const forgotPassword = asyncHandler(async (req, res) => {

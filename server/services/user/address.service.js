@@ -34,7 +34,18 @@ const getUserAddresses = async (userId) => {
       });
     }
 
-    await user.updateLastActive();
+    // Update last active in background without blocking the response
+    setImmediate(() => {
+      User.findByIdAndUpdate(userId, {
+        lastActive: new Date(),
+        isActive: true,
+      }).catch((error) => {
+        logger.error("Failed to update last active in address service", {
+          userId,
+          error: error.message,
+        });
+      });
+    });
 
     return user.addresses || [];
   } catch (error) {

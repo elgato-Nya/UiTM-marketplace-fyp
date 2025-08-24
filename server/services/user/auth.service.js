@@ -26,9 +26,8 @@ const createUser = async (userData) => {
       role: user.role,
     });
 
-    const userWithoutPassword = user.toObject();
-    delete userWithoutPassword.password;
-    return userWithoutPassword;
+    // Return the Mongoose document (not plain object) so methods are available
+    return user;
   } catch (error) {
     handleServiceError(error, "createUser", { userData });
   }
@@ -55,9 +54,8 @@ const authenticateUser = async (email, password) => {
       username: user.username,
     });
 
-    const userWithoutPassword = user.toObject();
-    delete userWithoutPassword.password;
-    return userWithoutPassword;
+    // Return the Mongoose document so methods like getAccessToken are available
+    return user;
   } catch (error) {
     handleServiceError(error, "authenticateUser", { email });
   }

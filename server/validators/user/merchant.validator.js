@@ -11,9 +11,6 @@
  * - Business registration validation
  * - Category validation
  */
-
-const logger = require("../../../utils/logger");
-
 class MerchantValidator {
   /**
    * Validate shop name
@@ -265,31 +262,7 @@ const merchantErrorMessages = () => ({
   },
 });
 
-// Export individual functions for Mongoose schema validation
-const {
-  isValidShopName,
-  isValidShopSlug,
-  isValidShopDescription,
-  isValidBusinessRegistration,
-  isValidTaxId,
-  isValidShopCategories,
-  isValidShopStatus,
-  isValidVerificationStatus,
-  isValidImageUrl,
-  generateSlugFromName,
-  sanitizeShopName,
-} = MerchantValidator;
-
 module.exports = {
   MerchantValidator,
-  isValidShopName,
-  isValidShopSlug,
-  isValidShopDescription,
-  isValidBusinessRegistration,
-  isValidTaxId,
-  isValidShopCategories,
-  isValidShopStatus,
-  isValidVerificationStatus,
-  isValidImageUrl,
   merchantErrorMessages,
 };

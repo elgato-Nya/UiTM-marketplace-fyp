@@ -2,6 +2,12 @@ const { body, param, validationResult } = require("express-validator");
 
 const { CampusEnum, FacultyEnum } = require("../../../utils/enums/user.enum");
 const {
+  UserValidator,
+  userErrorMessages,
+} = require("../../../validators/user");
+const logger = require("../../../utils/logger");
+
+const {
   isValidUiTMEmail,
   isValidPassword,
   isValidUsername,
@@ -11,10 +17,7 @@ const {
   isValidCampus,
   isValidFaculty,
   isValidBio,
-  userErrorMessages,
-} = require("../../../utils/validators/user");
-const logger = require("../../../utils/logger");
-
+} = UserValidator;
 const errorMessages = userErrorMessages();
 
 // TODO: Use AppError for better error handling

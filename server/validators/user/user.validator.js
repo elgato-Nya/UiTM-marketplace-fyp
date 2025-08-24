@@ -205,33 +205,7 @@ const userErrorMessages = () => ({
   },
 });
 
-// Export individual functions for Mongoose schema validation
-const {
-  isValidUiTMEmail,
-  isValidPassword,
-  isValidUsername,
-  isValidAvatar,
-  isValidPhoneNumber,
-  isValidMongoId,
-  isValidRole,
-  isValidRoleArray,
-  isValidCampus,
-  isValidFaculty,
-  isValidBio,
-} = UserValidator;
-
 module.exports = {
   UserValidator,
-  isValidUiTMEmail,
-  isValidPassword,
-  isValidUsername,
-  isValidAvatar,
-  isValidPhoneNumber,
-  isValidMongoId,
-  isValidRole,
-  isValidRoleArray,
-  isValidCampus,
-  isValidFaculty,
-  isValidBio,
   userErrorMessages,
 };

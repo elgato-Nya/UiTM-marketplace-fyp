@@ -1,5 +1,7 @@
-const { isValidCampus, isValidPhoneNumber } = require("./user.validator");
+const { UserValidator } = require("./user.validator");
 const { StateEnum } = require("../../enums/user.enum");
+
+const { isValidCampus, isValidPhoneNumber } = UserValidator;
 
 class AddressValidator {
   static isValidAddressType(type) {
@@ -59,15 +61,6 @@ class AddressValidator {
   }
 
   static isValidPersonalAddress(address) {
-    if (
-      !address ||
-      typeof address !== "object" ||
-      address.type !== "personal" ||
-      !AddressValidator.isValidAddressType(address.type)
-    ) {
-      return false;
-    }
-
     const { personalAddress } = address;
     if (
       !personalAddress ||
@@ -100,16 +93,6 @@ class AddressValidator {
     return true;
   }
 
-  /**
-   * Validates a city name.
-   *
-   * The city name must be a non-empty string, up to 50 characters long,
-   * and may only contain alphabetic characters, spaces, apostrophes, or hyphens.
-   * Numbers and special characters other than space, apostrophe, and hyphen are not allowed.
-   *
-   * @param {string} city - The city name to validate.
-   * @returns {boolean} True if the city name is valid, false otherwise.
-   */
   static isValidCity(city) {
     if (!city || typeof city !== "string") return false;
     if (city.length > 50) return false;
@@ -143,71 +126,17 @@ class AddressValidator {
 
     if (
       !AddressValidator.isValidAddressType(address.type) ||
+      !AddressValidator.isValidName(address.recipientName) ||
+      !isValidPhoneNumber(address.phoneNumber) ||
       (address.type === "campus" &&
         !AddressValidator.isValidCampusAddress(address)) ||
       (address.type === "personal" &&
-        !AddressValidator.isValidPersonalAddress(address)) ||
-      !AddressValidator.isValidName(address.recipientName) ||
-      !isValidPhoneNumber(address.phoneNumber)
+        !AddressValidator.isValidPersonalAddress(address))
     ) {
       return false;
     }
 
     return true;
-  }
-
-  /**
-   * Comprehensive address validation based on type
-   * @param {Object} address - The address object to validate
-   * @returns {boolean} - True if valid, false otherwise
-   */
-  static validateAddressByType(address) {
-    if (!address || typeof address !== "object") {
-      return false;
-    }
-
-    // Basic required fields
-    if (!address.type || !address.recipientName || !address.phoneNumber) {
-      return false;
-    }
-
-    // Validate basic fields
-    if (
-      !AddressValidator.isValidAddressType(address.type) ||
-      !AddressValidator.isValidName(address.recipientName) ||
-      !isValidPhoneNumber(address.phoneNumber)
-    ) {
-      return false;
-    }
-
-    // Type-specific validation
-    if (address.type === "campus") {
-      if (!address.campusAddress) {
-        return false;
-      }
-
-      const { campusAddress } = address;
-      return (
-        isValidCampus(campusAddress.campus) &&
-        AddressValidator.isValidCampusBuilding(campusAddress.building) &&
-        AddressValidator.isValidCampusFloor(campusAddress.floor) &&
-        AddressValidator.isValidCampusRoom(campusAddress.room)
-      );
-    } else if (address.type === "personal") {
-      if (!address.personalAddress) {
-        return false;
-      }
-
-      const { personalAddress } = address;
-      return (
-        AddressValidator.isValidAddressLine1(personalAddress.addressLine1) &&
-        AddressValidator.isValidCity(personalAddress.city) &&
-        AddressValidator.isValidState(personalAddress.state) &&
-        AddressValidator.isValidPostcode(personalAddress.postcode)
-      );
-    }
-
-    return false;
   }
 }
 
@@ -269,38 +198,12 @@ const addressErrorMessages = () => ({
     required: "Postcode is required",
     invalid: "Postcode must be a 5-digit string",
   },
+  address: {
+    invalid: "Address is invalid",
+  },
 });
-
-// Export individual functions for Mongoose schema validation
-const {
-  isValidAddressType,
-  isValidName,
-  isValidCampusAddress,
-  isValidCampusBuilding,
-  isValidCampusFloor,
-  isValidCampusRoom,
-  isValidPersonalAddress,
-  isValidAddressLine1,
-  isValidAddressLine2,
-  isValidCity,
-  isValidState,
-  isValidPostcode,
-} = AddressValidator;
 
 module.exports = {
   AddressValidator,
-  isValidAddressType,
-  isValidName,
-  isValidCampusAddress,
-  isValidCampusBuilding,
-  isValidCampusFloor,
-  isValidCampusRoom,
-  isValidPersonalAddress,
-  isValidAddressLine1,
-  isValidAddressLine2,
-  isValidCity,
-  isValidState,
-  isValidPostcode,
   addressErrorMessages,
-  validateAddressByType: AddressValidator.validateAddressByType,
 };

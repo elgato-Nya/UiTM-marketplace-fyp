@@ -2,6 +2,11 @@ const { body, param, validationResult } = require("express-validator");
 const logger = require("../../../utils/logger");
 
 const {
+  UserValidator,
+  userErrorMessages,
+} = require("../../../validators/user");
+
+const {
   // isValidUiTMEmail, // ? for simplicity, i wont allow for user to update email
   // isValidCampus,  // ? same goes for campus
   // isValidFaculty, // ? and faculty, yet
@@ -10,9 +15,7 @@ const {
   isValidAvatar,
   isValidPhoneNumber,
   isValidBio,
-  userErrorMessages,
-} = require("../../../utils/validators/user");
-
+} = UserValidator;
 const errorMessages = userErrorMessages();
 
 // ================ VALIDATION ERROR MIDDLEWARE ================

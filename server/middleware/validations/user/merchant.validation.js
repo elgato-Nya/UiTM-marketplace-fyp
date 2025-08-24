@@ -1,5 +1,10 @@
 const { body, param, query, validationResult } = require("express-validator");
+
 const logger = require("../../../utils/logger");
+const {
+  MerchantValidator,
+  merchantErrorMessages,
+} = require("../../../validators/user");
 
 const {
   isValidShopName,
@@ -11,9 +16,7 @@ const {
   isValidShopStatus,
   isValidVerificationStatus,
   isValidImageUrl,
-  merchantErrorMessages,
-} = require("../../../utils/validators/user");
-
+} = MerchantValidator;
 const errorMessages = merchantErrorMessages();
 
 // ================ VALIDATION ERROR MIDDLEWARE ================

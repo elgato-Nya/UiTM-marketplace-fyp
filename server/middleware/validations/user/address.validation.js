@@ -2,23 +2,20 @@ const { body, param, validationResult } = require("express-validator");
 const logger = require("../../../utils/logger");
 
 const {
+  addressErrorMessages,
+  AddressValidator,
+  UserValidator,
+} = require("../../../validators/user");
+
+const errorMessages = addressErrorMessages();
+const {
   isValidName,
   isValidAddressType,
   isValidCampusAddress,
-  isValidCampusBuilding,
-  isValidCampusFloor,
-  isValidCampusRoom,
   isValidPersonalAddress,
-  isValidAddressLine1,
-  isValidAddressLine2,
-  isValidCity,
-  isValidState,
-  addressErrorMessages,
-  isValidCampus,
-  isValidPhoneNumber,
-} = require("../../../utils/validators/user");
-
-const errorMessages = addressErrorMessages();
+  isValidAddress,
+} = AddressValidator;
+const { isValidPhoneNumber } = UserValidator;
 
 // ================ VALIDATION ERROR MIDDLEWARE ================
 const handleValidationErrors = (req, res, next) => {
@@ -122,6 +119,18 @@ const personalAddressValidation = (fieldName = "personalAddress") => {
         throw new Error(errorMessages.personalAddress.required);
       }
       return true;
+    });
+};
+
+const addressValidationByType = (address = "address") => {
+  return body(address)
+    .notEmpty()
+    .withMessage("Address is required")
+    .bail()
+    .custom((addr) => {
+      if (!isValidAddress(addr)) {
+        throw new Error(addressErrorMessages().address.invalid);
+      }
     });
 };
 

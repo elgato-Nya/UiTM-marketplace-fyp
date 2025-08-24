@@ -21,6 +21,8 @@
  */
 
 // Import the validator functions instead of the User model for validation tests
+const { UserValidator, userErrorMessages } = require("../../validators/user");
+
 const {
   isValidUiTMEmail,
   isValidPassword,
@@ -33,9 +35,7 @@ const {
   isValidCampus,
   isValidFaculty,
   isValidBio,
-  userErrorMessages,
-} = require("../../utils/validators/user");
-
+} = UserValidator;
 // Mock mongoose to avoid database connections during unit tests
 /**
  * MOCKING EXPLANATION:

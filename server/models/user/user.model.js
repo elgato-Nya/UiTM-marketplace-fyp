@@ -6,6 +6,9 @@ const { CampusEnum, FacultyEnum } = require("../../utils/enums/user.enum");
 const logger = require("../../utils/logger");
 const merchantSchema = require("./merchant.schema");
 const addressSchema = require("./address.schema");
+const { UserValidator, userErrorMessages } = require("../../validators/user");
+const { AppError } = require("../../utils/errors");
+
 const {
   isValidUiTMEmail,
   isValidPassword,
@@ -15,10 +18,7 @@ const {
   isValidCampus,
   isValidFaculty,
   isValidBio,
-  userErrorMessages,
-} = require("../../utils/validators/user");
-const { AppError } = require("../../utils/errors");
-
+} = UserValidator;
 const errorMessages = userErrorMessages();
 
 const UserSchema = new mongoose.Schema(
@@ -190,35 +190,20 @@ UserSchema.pre("save", function (next) {
       (key) => FacultyEnum[key] === this.profile.faculty
     );
   }
+
   // Convert campus value to key if it's a display value
   if (Object.values(CampusEnum).includes(this.profile.campus)) {
     this.profile.campus = Object.keys(CampusEnum).find(
       (key) => CampusEnum[key] === this.profile.campus
     );
   }
+
   next();
 });
 
 // ======================   Instance Methods   ========================
 UserSchema.methods.comparePassword = async function (inputPassword) {
   return await bcrypt.compare(inputPassword, this.password);
-};
-
-UserSchema.methods.updateLastActive = function () {
-  setImmediate(async () => {
-    try {
-      await User.findByIdAndUpdate(this._id, {
-        lastActive: new Date(),
-        isActive: true,
-      });
-    } catch (error) {
-      logger.error("Failed to update last active", { userId: this._id });
-      throw new AppError(
-        "Failed to update last active time",
-        "LAST_ACTIVE_UPDATE_FAILED"
-      );
-    }
-  });
 };
 
 // ======================   JWT related methods   ========================
@@ -248,9 +233,24 @@ UserSchema.methods.getRefreshToken = async function () {
     audience: process.env.JWT_AUDIENCE,
   });
 
+  // Add the new refresh token
   this.refreshTokens.push(refreshToken);
-  await this.save({ validateBeforeSave: false });
-  return refreshToken;
+
+  // Clean up old refresh tokens (keep only last 5)
+  if (this.refreshTokens.length > 5) {
+    this.refreshTokens = this.refreshTokens.slice(-5);
+  }
+
+  try {
+    await this.save({ validateBeforeSave: false });
+    return refreshToken;
+  } catch (error) {
+    logger.error("Failed to save refresh token", {
+      error: error.message,
+      userId: this._id,
+    });
+    throw new Error("Failed to generate refresh token");
+  }
 };
 
 // ======================   Static Methods   ========================

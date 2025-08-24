@@ -1,12 +1,15 @@
 const mongoose = require("mongoose");
 const {
+  MerchantValidator,
+  merchantErrorMessages,
+} = require("../../validators/user");
+
+const {
   isValidShopName,
   isValidShopSlug,
   isValidShopDescription,
   isValidImageUrl,
-  merchantErrorMessages,
-} = require("../../utils/validators/user");
-
+} = MerchantValidator;
 const errorMessages = merchantErrorMessages();
 
 /**

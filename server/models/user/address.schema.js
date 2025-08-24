@@ -1,19 +1,23 @@
 const mongoose = require("mongoose");
 const {
+  AddressValidator,
+  addressErrorMessages,
+  UserValidator,
+} = require("../../validators/user");
+const { CampusEnum, FacultyEnum } = require("../../utils/enums/user.enum");
+
+const { isValidCampus, isValidPhoneNumber } = UserValidator;
+const {
   isValidAddressLine1,
   isValidAddressLine2,
-  isValidCampus,
   isValidCampusBuilding,
   isValidCampusFloor,
   isValidCampusRoom,
   isValidCity,
   isValidName,
-  isValidPhoneNumber,
   isValidPostcode,
   isValidState,
-  addressErrorMessages,
-} = require("../../utils/validators/user");
-const { CampusEnum, FacultyEnum } = require("../../utils/enums/user.enum");
+} = AddressValidator;
 const errorMessages = addressErrorMessages();
 
 const AddressSchema = new mongoose.Schema(

@@ -1,4 +1,4 @@
-const User = require("../../models/user");
+const { User } = require("../../models/user");
 const logger = require("../../utils/logger");
 const { AppError } = require("../../utils/errors");
 const { CampusEnum, FacultyEnum } = require("../../utils/enums/user.enum");

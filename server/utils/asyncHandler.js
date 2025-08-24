@@ -15,13 +15,13 @@
  * USAGE:
  * const asyncHandler = require('../utils/asyncHandler');
  *
- * // Basic usage
+ * Basic usage
  * const myController = asyncHandler(async (req, res, next) => {
  *   const data = await SomeModel.find();
  *   res.json(data);
  * });
  *
- * // With action context (recommended for better error tracking)
+ * With action context (recommended for better error tracking)
  * const myController = asyncHandler(async (req, res, next) => {
  *   const data = await SomeModel.find();
  *   res.json(data);

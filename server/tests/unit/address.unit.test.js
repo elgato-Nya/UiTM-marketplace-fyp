@@ -1,14 +1,17 @@
 const {
+  UserValidator,
+  AddressValidator,
+  addressErrorMessages,
+} = require("../../validators/user");
+
+const { CampusEnum } = require("../../utils/enums/user.enum");
+const { isValidPhoneNumber } = UserValidator;
+const {
   isValidAddressType,
   isValidCampusBuilding,
   isValidAddressLine1,
   isValidPersonalAddress,
-  isValidPhoneNumber,
-  AddressValidator,
-  addressErrorMessages,
-} = require("../../utils/validators");
-
-const { CampusEnum } = require("../../utils/enums/user.enum");
+} = AddressValidator;
 
 describe("Address Schema Unit Tests", () => {
   describe("Address Type Validation", () => {

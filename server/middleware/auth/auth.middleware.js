@@ -1,4 +1,4 @@
-const User = require("../../models/user");
+const { User } = require("../../models/user");
 const logger = require("../../utils/logger");
 const asyncHandler = require("../../utils/asyncHandler");
 const {
@@ -53,7 +53,19 @@ const protect = asyncHandler(async (req, res, next) => {
 
   // Attach user to request object for use in subsequent middleware/routes
   req.user = user;
-  await user.updateLastActive();
+
+  // Update last active directly without causing async issues
+  setImmediate(() => {
+    User.findByIdAndUpdate(user._id, {
+      lastActive: new Date(),
+      isActive: true,
+    }).catch((error) => {
+      logger.error("Failed to update last active in auth middleware", {
+        userId: user._id,
+        error: error.message,
+      });
+    });
+  });
 
   logger.auth("User authenticated successfully", user._id, {
     action: "protect",

@@ -1,4 +1,4 @@
-const User = require("../../models/user");
+const { User } = require("../../models/user");
 const logger = require("../../utils/logger");
 const { AppError } = require("../../utils/errors");
 const {
@@ -6,7 +6,6 @@ const {
   handleNotFoundError,
   sanitizeUserData,
 } = require("../base.service");
-// const { generateSlugFromName, sanitizeShopName } = require("../../utils/validators/user/merchant.validator");
 
 // Simple utility functions for merchant service
 const generateSlugFromName = (name) => {

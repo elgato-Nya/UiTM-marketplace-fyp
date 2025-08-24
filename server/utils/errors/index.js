@@ -64,6 +64,18 @@ const createTooManyRequestsError = (
   return new AppError(message, 429, customCode || "TOO_MANY_REQUESTS");
 };
 
+const createDuplicateError = (
+  message = "Resource already exists",
+  customCode = null,
+  action = null
+) => {
+  const error = new AppError(message, 409, customCode || "DUPLICATE_FIELD");
+  if (action) {
+    error.action = action;
+  }
+  return error;
+};
+
 module.exports = {
   AppError,
   createValidationError,
@@ -74,4 +86,5 @@ module.exports = {
   createServerError,
   createBadRequestError,
   createTooManyRequestsError,
+  createDuplicateError,
 };

@@ -5,6 +5,13 @@ const path = require("path");
 /**
  * Winston Logger Configuration
  * Industrial standard logging with file rotation and structured logging
+ * Features:
+ * - Colored console output with optional JSON format
+ * - JSON object keys with color highlighting
+ * - Daily log rotation with size limits
+ * - Environment variables:
+ *   - CONSOLE_JSON=true: Enable colored JSON format for console
+ *   - ENABLE_FILE_LOGGING=true: Enable file logging in non-production
  */
 
 // Define log levels and colors
@@ -19,13 +26,50 @@ const logLevels = {
 const logColors = {
   error: "red",
   warn: "yellow",
-  info: "cyan",
+  info: "blue",
   http: "magenta",
   debug: "gray",
 };
 
 // Add colors to winston
 winston.addColors(logColors);
+
+// ANSI color codes for terminal output
+const colors = {
+  cyan: "\x1b[36m",
+  magenta: "\x1b[35m",
+  reset: "\x1b[0m",
+};
+
+// Function to colorize JSON object keys
+const colorizeJsonKeys = (obj, indent = 0) => {
+  if (typeof obj !== "object" || obj === null) {
+    return JSON.stringify(obj);
+  }
+
+  const spaces = "  ".repeat(indent);
+  const nextSpaces = "  ".repeat(indent + 1);
+
+  if (Array.isArray(obj)) {
+    const items = obj
+      .map((item) => nextSpaces + colorizeJsonKeys(item, indent + 1))
+      .join(",\n");
+    return `[\n${items}\n${spaces}]`;
+  }
+
+  const entries = Object.entries(obj)
+    .map(([key, value]) => {
+      const coloredKey = `${colors.cyan}"${key}"${colors.reset}`;
+      const coloredValue = `${colors.magenta}${colorizeJsonKeys(
+        value,
+        indent + 1
+      )}${colors.reset}`;
+      return `${nextSpaces}${coloredKey}: ${coloredValue}`;
+    })
+    .join(",\n");
+
+  return `{\n${entries}\n${spaces}}`;
+};
 
 // Create logs directory path with date-based folders
 const createLogPath = (filename) => {
@@ -41,9 +85,9 @@ const consoleFormat = winston.format.combine(
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
     let log = `${timestamp} [${level}]: ${message}`;
 
-    // Add metadata if present
+    // Add metadata if present with colored keys
     if (Object.keys(meta).length > 0) {
-      log += `\n${JSON.stringify(meta, null, 2)}`;
+      log += `\n${colorizeJsonKeys(meta)}`;
     }
 
     return log;

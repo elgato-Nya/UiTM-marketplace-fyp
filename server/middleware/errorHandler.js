@@ -19,7 +19,11 @@
  * 5. Log the error for monitoring
  */
 
-const { AppError, createServerError } = require("../utils/errors");
+const {
+  AppError,
+  createServerError,
+  createDuplicateError,
+} = require("../utils/errors");
 const logger = require("../utils/logger");
 
 // Handle specific MongoDB/Mongoose errors and convert to AppError
@@ -29,10 +33,29 @@ const handleCastErrorDB = (err) => {
 };
 
 const handleDuplicateFieldsDB = (err) => {
-  const field = Object.keys(err.keyValue)[0];
-  const value = err.keyValue[field];
-  const message = `${field} '${value}' already exists`;
-  return new AppError(message, 409, "DUPLICATE_FIELD");
+  // Check if it's a MongooseError with custom message from schema
+  if (err.name === "MongooseError" && err.message) {
+    // Use the custom message from the schema unique constraint
+    return createDuplicateError(err.message, null, err.action);
+  }
+
+  // Handle standard MongoDB E11000 duplicate key error
+  if (err.keyValue) {
+    const field = Object.keys(err.keyValue)[0];
+    const value = err.keyValue[field];
+
+    // Create a generic message for E11000 errors
+    // const message = `${field.replace(/^profile\./,"")} '${value}' already exists`;
+    // ! use a more generic message that handles nested fields
+
+    const message = `${
+      field.includes(".") ? field.split(".")[1] : field
+    } '${value}' already exists`;
+    return createDuplicateError(message, null, err.action);
+  }
+
+  // Fallback for unknown duplicate errors
+  return createDuplicateError("Duplicate value detected", null, err.action);
 };
 
 const handleValidationErrorDB = (err) => {
@@ -59,27 +82,35 @@ const handleJWTExpiredError = () => {
 
 // Send error response in development environment
 const sendErrorDev = (err, req, res) => {
-  // Log comprehensive error details in development
-  logger.errorWithStack(err, {
+  const logContext = {
     action: err.action || "unknown_action",
     originalUrl: req.originalUrl,
     method: req.method,
-    body: req.body,
-    params: req.params,
-    query: req.query,
-    userId: req.user?.id || req.user?._id || "anonymous",
-    headers: req.headers,
+    userId: req.user?.id || req.user?._id || "undefined",
     environment: "development",
-    requestContext: err.requestContext || null,
-  });
+    body: req.body, // Logger will sanitize this automatically
+    ...(Object.keys(req.params).length > 0 && { params: req.params }),
+    ...(Object.keys(req.query).length > 0 && { query: req.query }),
+  };
+
+  logger.errorWithStack(err, logContext);
 
   return res.status(err.statusCode).json({
     success: false,
-    error: err,
-    message: err.message,
-    code: err.code,
-    stack: err.stack,
-    action: err.action || null,
+    error: {
+      statusCode: err.statusCode,
+      status: err.status,
+      code: err.code,
+      isOperational: err.isOperational,
+      action: err.action || null,
+      requestContext: err.requestContext || {
+        method: req.method,
+        url: req.originalUrl,
+        userId: req.user?.id || req.user?._id || "anonymous",
+      },
+      message: err.message,
+      name: err.name,
+    },
     timestamp: new Date().toISOString(),
     request: {
       url: req.originalUrl,
@@ -104,7 +135,7 @@ const sendErrorProd = (err, req, res) => {
       method: req.method,
       userId: req.user?.id || req.user?._id || "anonymous",
       environment: "production",
-      requestContext: err.requestContext || null,
+      requestContext: err.requestContext,
     });
 
     return res.status(err.statusCode).json({
@@ -123,7 +154,7 @@ const sendErrorProd = (err, req, res) => {
       userId: req.user?.id || req.user?._id || "anonymous",
       environment: "production",
       severity: "critical",
-      requestContext: err.requestContext || null,
+      requestContext: err.requestContext,
     });
 
     throw createServerError(
@@ -135,26 +166,29 @@ const sendErrorProd = (err, req, res) => {
 
 // Main error handling middleware - MUST be last middleware in the stack
 const globalErrorHandler = (err, req, res, next) => {
-  // Set default error properties
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
 
+  // Handle specific error types and convert to AppError in ALL environments
+  let error = { ...err };
+  error.message = err.message;
+  error.name = err.name;
+
+  // Process MongoDB/Mongoose errors
+  if (error.name === "CastError") error = handleCastErrorDB(error);
+  if (
+    error.code === 11000 ||
+    (error.name === "MongooseError" && error.message.includes("already exists"))
+  ) {
+    error = handleDuplicateFieldsDB(error);
+  }
+  if (error.name === "ValidationError") error = handleValidationErrorDB(error);
+  if (error.name === "JsonWebTokenError") error = handleJWTError();
+  if (error.name === "TokenExpiredError") error = handleJWTExpiredError();
+
   if (process.env.NODE_ENV === "development") {
-    sendErrorDev(err, req, res);
+    sendErrorDev(error, req, res);
   } else {
-    // Create a copy of the error to avoid modifying the original
-    let error = { ...err };
-    error.message = err.message;
-    error.name = err.name;
-
-    // Handle specific error types and convert to AppError
-    if (error.name === "CastError") error = handleCastErrorDB(error);
-    if (error.code === 11000) error = handleDuplicateFieldsDB(error);
-    if (error.name === "ValidationError")
-      error = handleValidationErrorDB(error);
-    if (error.name === "JsonWebTokenError") error = handleJWTError();
-    if (error.name === "TokenExpiredError") error = handleJWTExpiredError();
-
     sendErrorProd(error, req, res);
   }
 };
@@ -162,7 +196,7 @@ const globalErrorHandler = (err, req, res, next) => {
 // Handle 404 errors for undefined routes
 const handleNotFound = (req, res, next) => {
   const err = new AppError(
-    `Can't find ${req.originalUrl} on this server!`,
+    `It is unfortunate to say that ${req.originalUrl} WAS NOT FOUND on this server!`,
     404,
     "ROUTE_NOT_FOUND"
   );

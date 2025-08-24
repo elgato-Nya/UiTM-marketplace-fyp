@@ -56,7 +56,6 @@ class Logger {
   security(event, details = {}) {
     this.warn(`Security: ${event}`, {
       category: "security",
-      timestamp: new Date().toISOString(),
       ...details,
     });
   }
@@ -98,11 +97,86 @@ class Logger {
 
   // Format metadata for consistent structure
   formatMeta(meta) {
-    return {
-      timestamp: new Date().toISOString(),
+    const baseContext = {
       nodeEnv: process.env.NODE_ENV,
-      ...meta,
     };
+
+    // Clean and standardize the meta object
+    const cleanMeta = this.sanitizeMeta(meta);
+
+    return {
+      ...baseContext,
+      ...cleanMeta,
+    };
+  }
+
+  // Sanitize metadata to prevent sensitive data leakage and ensure consistency
+  sanitizeMeta(meta) {
+    const sanitized = { ...meta };
+
+    // Remove or sanitize sensitive fields
+    if (sanitized.body) {
+      sanitized.body = this.sanitizeRequestBody(sanitized.body);
+    }
+
+    // Remove duplicate timestamp if exists (formatMeta doesn't add timestamp anymore)
+    if (sanitized.timestamp) {
+      delete sanitized.timestamp;
+    }
+
+    // Only standardize userId field if it was explicitly provided
+    // Don't add userId to logs where it wasn't originally intended
+    if (sanitized.hasOwnProperty("userId")) {
+      if (sanitized.userId === "undefined" || sanitized.userId === undefined) {
+        sanitized.userId = "anonymous";
+      }
+    }
+
+    // Remove empty objects and arrays
+    Object.keys(sanitized).forEach((key) => {
+      const value = sanitized[key];
+      if (
+        value &&
+        typeof value === "object" &&
+        Object.keys(value).length === 0
+      ) {
+        delete sanitized[key];
+      }
+      if (Array.isArray(value) && value.length === 0) {
+        delete sanitized[key];
+      }
+    });
+
+    return sanitized;
+  }
+
+  // Sanitize request body to remove sensitive information
+  sanitizeRequestBody(body) {
+    if (!body || typeof body !== "object") return body;
+
+    const sanitized = { ...body };
+
+    // Remove sensitive fields
+    const sensitiveFields = [
+      "password",
+      "confirmPassword",
+      "token",
+      "refreshToken",
+    ];
+    sensitiveFields.forEach((field) => {
+      if (sanitized[field]) {
+        sanitized[field] = "[REDACTED]";
+      }
+    });
+
+    // Sanitize nested objects
+    Object.keys(sanitized).forEach((key) => {
+      if (typeof sanitized[key] === "object" && sanitized[key] !== null) {
+        sanitized[key] = this.sanitizeRequestBody(sanitized[key]);
+      }
+    });
+
+    return sanitized;
   }
 
   // Create child logger with persistent context
@@ -150,15 +224,18 @@ class Logger {
   // Log security events with standardized format
   logSecurityEvent(event, severity, details = {}) {
     const logData = {
+      category: "security",
       event,
       severity,
-      category: "security",
-      timestamp: new Date().toISOString(),
       ip: details.ip,
       userAgent: details.userAgent,
       userId: details.userId || "anonymous",
       ...details,
     };
+
+    // Remove duplicate fields that are passed in details
+    delete logData.event; // Already in the message
+    delete logData.severity; // Already in the message
 
     if (severity === "high") {
       this.error(`Security Alert: ${event}`, logData);

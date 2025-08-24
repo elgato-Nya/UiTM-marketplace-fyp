@@ -8,7 +8,7 @@ module.exports = {
       [
         "auth", // Authentication system
         "user", // User management
-        "product", // Product features
+        "listing", // Listing features
         "api", // API endpoints
         "ui", // User interface changes
         "middleware", // Express middleware
@@ -19,6 +19,7 @@ module.exports = {
         "service", // Service layer
         "utils", // Utility functions
         "cleanup", // Code cleanup
+        "validator", // Input validation
       ],
     ],
     "subject-max-length": [2, "always", 72],

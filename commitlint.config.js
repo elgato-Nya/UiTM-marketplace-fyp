@@ -20,6 +20,7 @@ module.exports = {
         "utils", // Utility functions
         "cleanup", // Code cleanup
         "validator", // Input validation
+        "script", // Scripts
       ],
     ],
     "subject-max-length": [2, "always", 72],

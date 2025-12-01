@@ -52,7 +52,11 @@ class Logger {
     });
   }
 
-  // Security events
+  /**
+   * @param {String} event
+   * @param {Object} details
+   * @note log warn `Security" ${event}` with additional details
+   */
   security(event, details = {}) {
     this.warn(`Security: ${event}`, {
       category: "security",
@@ -67,14 +71,17 @@ class Logger {
       method: req.method,
       url: req.originalUrl,
       ip: req.ip,
-      userAgent: req.get("User-Agent"),
+      userAgent: req.headers?.["user-agent"] || "unknown",
       statusCode: res.statusCode,
       responseTime: `${responseTime}ms`,
-      userId: req.user?.id || "anonymous",
+      userId: req.user?.id || "undefined",
     });
   }
-
-  // Error with stack trace and optional action context
+  /**
+   * Log an error with stack trace and optional action context
+   * @param {Object} error - The error object
+   * @param {Object} context - context.action and additonal context
+   */
   errorWithStack(error, context = {}) {
     const logContext = {
       category: "error",
@@ -128,7 +135,7 @@ class Logger {
     // Don't add userId to logs where it wasn't originally intended
     if (sanitized.hasOwnProperty("userId")) {
       if (sanitized.userId === "undefined" || sanitized.userId === undefined) {
-        sanitized.userId = "anonymous";
+        sanitized.userId = "undefined";
       }
     }
 
@@ -229,7 +236,7 @@ class Logger {
       severity,
       ip: details.ip,
       userAgent: details.userAgent,
-      userId: details.userId || "anonymous",
+      userId: details.userId || "undefined",
       ...details,
     };
 

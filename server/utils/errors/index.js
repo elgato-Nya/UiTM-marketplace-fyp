@@ -3,67 +3,115 @@
 /**
  * Error Utilities and Helper Functions
  *
- * PURPOSE: Centralize error creation with predefined types
- *
- * BENEFITS:
- * - Consistent error messages and codes
- * - Easy error creation with helper functions
- * - Standardized HTTP status codes
- * - Type safety for common error scenarios
+ * PURPOSE: Centralize error creation with predefined types and logging
  */
-
 const AppError = require("./AppError");
 
-// Predefined error creators for common scenarios
+/**
+ * Creates a validation error
+ * @param {String} message - Error message
+ * @param {Array} details - Validation error details (optional)
+ * @param {String} customCode - Custom error code (optional)
+ * @throws {AppError} Throws a 400 Bad Request AppError
+ */
 const createValidationError = (message, details = [], customCode = null) => {
   const error = new AppError(message, 400, customCode || "VALIDATION_ERROR");
   error.details = details;
-  return error;
+  throw error;
 };
 
+/**
+ * Creates an authentication error
+ * @param {String} message - Error message
+ * @param {String} customCode - Custom error code (optional)
+ * @throws {AppError} Throws a 401 Authentication error
+ */
 const createAuthError = (
   message = "Authentication failed",
   customCode = null
 ) => {
-  return new AppError(message, 401, customCode || "AUTH_ERROR");
+  throw new AppError(message, 401, customCode || "AUTH_ERROR");
 };
 
+/**
+ * Creates a forbidden error
+ * @param {String} message - Error message
+ * @param {String} customCode - Custom error code (optional)
+ * @throws {AppError} Throws a 403 Forbidden AppError
+ */
 const createForbiddenError = (
   message = "Access forbidden",
   customCode = null
 ) => {
-  return new AppError(message, 403, customCode || "FORBIDDEN_ERROR");
+  throw new AppError(message, 403, customCode || "FORBIDDEN_ERROR");
 };
 
+/**
+ * Creates a not found error
+ * @param {String} resource - Where the resource was not found
+ * @param {String} customCode - Custom error code (optional)
+ * @throws {AppError} Throws a 404 Not Found AppError
+ */
 const createNotFoundError = (resource = "Resource", customCode = null) => {
-  return new AppError(`${resource} not found`, 404, customCode || "NOT_FOUND");
+  throw new AppError(`${resource} not found`, 404, customCode || "NOT_FOUND");
 };
 
+/**
+ * Creates a conflict error for duplicate resources
+ * @param {String} message - Error message
+ * @param {String} customCode - Custom error code (optional)
+ * @throw {AppError} Throws a 409 Conflict AppError
+ */
 const createConflictError = (
   message = "Resource already exists",
   customCode = null
 ) => {
-  return new AppError(message, 409, customCode || "CONFLICT_ERROR");
+  throw new AppError(message, 409, customCode || "CONFLICT_ERROR");
 };
 
+/**
+ * Creates a server error
+ * @param {String} message - Error message
+ * @param {String} customCode - Custom error code (optional)
+ * @throws {AppError} Throws a 500 Internal Server Error AppError
+ */
 const createServerError = (
   message = "Internal server error",
   customCode = null
 ) => {
-  return new AppError(message, 500, customCode || "SERVER_ERROR");
+  throw new AppError(message, 500, customCode || "SERVER_ERROR");
 };
 
+/**
+ * Creates a bad request error
+ * @param {String} message - Error message
+ * @param {String} customCode - Custom error code (optional)
+ * @throws {AppError} Throws a 400 Bad Request AppError
+ */
 const createBadRequestError = (message = "Bad request", customCode = null) => {
-  return new AppError(message, 400, customCode || "BAD_REQUEST");
+  throw new AppError(message, 400, customCode || "BAD_REQUEST");
 };
 
+/**
+ * Creates a too many requests error
+ * @param {String} message - Error message
+ * @param {String} customCode - Custom error code (optional)
+ * @throws {AppError} Throws a 429 Too Many Requests AppError
+ */
 const createTooManyRequestsError = (
   message = "Too many requests",
   customCode = null
 ) => {
-  return new AppError(message, 429, customCode || "TOO_MANY_REQUESTS");
+  throw new AppError(message, 429, customCode || "TOO_MANY_REQUESTS");
 };
 
+/**
+ * Creates a duplicate error
+ * @param {String} message - Error message
+ * @param {String} customCode - Custom error code (optional)
+ * @param {String} action - Action that the error originated from (optional)
+ * @throws {AppError} Throws a 409 Conflict AppError
+ */
 const createDuplicateError = (
   message = "Resource already exists",
   customCode = null,
@@ -73,7 +121,7 @@ const createDuplicateError = (
   if (action) {
     error.action = action;
   }
-  return error;
+  throw error;
 };
 
 module.exports = {

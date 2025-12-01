@@ -6,7 +6,7 @@
  * PURPOSE: Populate database with sample data for development and testing
  *
  * Usage:
- *   npm run db:seed              # Seed all data
+ *   npm run db:seed             log("blue", `   Roles: ${user.roles.join(", ")}`);)     log("blue", `   Roles: ${user.roles.join(", ")}`);)      # Seed all data
  *   npm run db:seed users        # Seed only users
  *   npm run db:seed products     # Seed only products
  *   npm run db:seed --clear      # Clear all data first
@@ -32,7 +32,7 @@ const sampleUsers = [
       campus: "UiTM Shah Alam",
       faculty: "Fakulti Sains Komputer dan Matematik",
     },
-    role: ["admin", "consumer"],
+    roles: ["admin", "consumer"],
   },
   {
     email: "merchant1@student.uitm.edu.my",
@@ -44,7 +44,7 @@ const sampleUsers = [
       campus: "UiTM Shah Alam",
       faculty: "Fakulti Kejuruteraan Elektrik",
     },
-    role: ["merchant", "consumer"],
+    roles: ["merchant", "consumer"],
     merchantDetails: {
       shopName: "TechHub Store",
       shopDescription: "Your one-stop tech solution",
@@ -64,7 +64,7 @@ const sampleUsers = [
       campus: "UiTM Puncak Alam",
       faculty: "Fakulti Sains Komputer dan Matematik",
     },
-    role: ["consumer"],
+    roles: ["consumer"],
   },
   {
     email: "consumer2@student.uitm.edu.my",
@@ -76,7 +76,7 @@ const sampleUsers = [
       campus: "UiTM Shah Alam",
       faculty: "Fakulti Kejuruteraan Elektrik",
     },
-    role: ["consumer"],
+    roles: ["consumer"],
   },
 ];
 
@@ -133,7 +133,7 @@ const seedUsers = async () => {
       await user.save();
       log(
         "green",
-        `✅ Created user: ${userData.email} (${userData.role.join(", ")})`
+        `✅ Created user: ${userData.email} (${userData.roles.join(", ")})`
       );
     }
 

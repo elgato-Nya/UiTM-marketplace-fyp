@@ -14,7 +14,6 @@ import { Storefront } from "@mui/icons-material";
 
 import { useAuth } from "../../features/auth/hooks/useAuth";
 import { useSnackbar } from "../../hooks/useSnackbar";
-import { useTheme } from "../../hooks/useTheme";
 import DynamicSkeleton from "../../components/ui/Skeleton/DynamicSkeleton";
 import SnackbarContainer from "../../components/ui/SnackbarContainer";
 
@@ -29,13 +28,11 @@ import { useOrderActions } from "../../features/orders/hooks/useOrderActions";
 
 function SalesPage() {
   const { isAuthenticated } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { theme } = useTheme();
+  const [searchParams] = useSearchParams(); // Removed unused setSearchParams
 
   const {
     orders,
     isLoading,
-    error,
     pagination,
     filters,
     loadOrders,
@@ -64,14 +61,14 @@ function SalesPage() {
     if (isAuthenticated) {
       loadOrders();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, loadOrders]); // Added missing dependencies
 
   useEffect(() => {
     const statusParam = searchParams.get("status");
     if (statusParam && statusParam !== filters.status) {
       updateFilters({ ...filters, status: statusParam });
     }
-  }, [searchParams]);
+  }, [searchParams, filters, updateFilters]); // Added missing dependencies
 
   // Calculate status counts from loaded orders
   useEffect(() => {

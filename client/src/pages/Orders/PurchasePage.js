@@ -30,13 +30,11 @@ import { useOrderActions } from "../../features/orders/hooks/useOrderActions";
 
 function PurchasesPage() {
   const { isAuthenticated } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { theme } = useTheme();
+  const [searchParams] = useSearchParams(); // Removed unused setSearchParams
 
   const {
     orders,
     isLoading,
-    error,
     pagination,
     filters,
     loadOrders,
@@ -66,7 +64,7 @@ function PurchasesPage() {
     if (isAuthenticated) {
       loadOrders();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, loadOrders]); // Added missing dependencies
 
   // Handle URL params
   useEffect(() => {
@@ -74,7 +72,7 @@ function PurchasesPage() {
     if (statusParam && statusParam !== filters.status) {
       updateFilters({ ...filters, status: statusParam });
     }
-  }, [searchParams]);
+  }, [searchParams, filters, updateFilters]); // Added missing dependencies
 
   // Handlers
   const handleViewDetails = (order) => {

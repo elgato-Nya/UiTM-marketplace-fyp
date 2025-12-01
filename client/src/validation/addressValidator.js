@@ -83,7 +83,7 @@ const sharedValidation = {
         const trimmedName = value.trim();
         if ((trimmedName.match(/@/g) || []).length > 1) return false;
         if ((trimmedName.match(/\//g) || []).length > 1) return false;
-        return /^[A-Za-z@\/ ]{4,100}$/.test(trimmedName);
+        return /^[A-Za-z@/ ]{4,100}$/.test(trimmedName); // Removed unnecessary escape
       }
     ),
   recipientPhone: yup

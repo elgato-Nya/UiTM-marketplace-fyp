@@ -1,0 +1,111 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "20.x"
+
+jobs:
+  deploy:
+    name: Deploy Full Stack to EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            # Set error handling
+            set -e
+
+            # Define app directory (customize this to your EC2 path)
+            APP_DIR="/home/ubuntu/uitm-marketplace"
+
+            echo "🚀 Starting deployment..."
+
+            # Navigate to app directory
+            cd $APP_DIR
+
+            # Pull latest code from GitHub
+            echo "📥 Pulling latest code from main branch..."
+            git pull origin main
+
+            # ========== BACKEND DEPLOYMENT ==========
+            echo "🔧 Deploying backend..."
+            cd $APP_DIR/server
+
+            # Install production dependencies
+            npm ci --only=production
+
+            # Create/update .env file (optional - if you manage env via GitHub Secrets)
+            # Uncomment if you want to inject .env from GitHub Secrets:
+            # echo "${{ secrets.SERVER_ENV_FILE }}" > .env
+
+            # Restart backend with PM2
+            echo "🔄 Restarting backend service..."
+            if pm2 describe ecommerce-api > /dev/null 2>&1; then
+              pm2 restart ecommerce-api
+            else
+              pm2 start index.js --name ecommerce-api --env production
+            fi
+            pm2 save
+
+            # ========== FRONTEND DEPLOYMENT ==========
+            echo "🎨 Building and deploying frontend..."
+            cd $APP_DIR/client
+
+            # Install dependencies
+            npm ci
+
+            # Build production bundle
+            npm run build
+
+            # Serve via Express (if using server to serve client)
+            # OR copy to Nginx directory (choose one approach)
+
+            # Option 1: If Express serves the React build
+            echo "✅ Frontend build completed. Express will serve it."
+
+            # Option 2: If using Nginx to serve React
+            # Uncomment these lines if you're using Nginx:
+            # echo "📦 Copying build to Nginx directory..."
+            # sudo rm -rf /var/www/ecommerce-frontend/build
+            # sudo cp -r build /var/www/ecommerce-frontend/
+            # sudo systemctl restart nginx
+
+            echo "✅ Deployment completed successfully!"
+
+            # Show PM2 status
+            pm2 status
+
+      - name: Health Check
+        run: |
+          echo "⏳ Waiting for services to start..."
+          sleep 15
+
+          # Check backend health
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.EC2_HOST }}:5000/api/health || echo "000")
+
+          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "404" ]; then
+            echo "✅ Backend is responding (HTTP $HTTP_CODE)"
+          else
+            echo "⚠️ Backend health check failed (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+
+          echo "🎉 Deployment verification passed!"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed! Check the logs above for details."

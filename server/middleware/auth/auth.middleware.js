@@ -1,4 +1,5 @@
 const { User } = require("../../models/user");
+const Listing = require("../../models/listing/listing.model");
 const logger = require("../../utils/logger");
 const asyncHandler = require("../../utils/asyncHandler");
 const {
@@ -19,12 +20,13 @@ const {
  * PROCESS: Extract token -> Verify -> Find user -> Attach to request
  */
 const protect = asyncHandler(async (req, res, next) => {
+  const stringUserId = req.user ? req.user._id.toString() : "anonymous";
   // Extract token from Authorization header
   const token = getTokenFromHeader(req);
   if (!token) {
     logger.warn("Unauthorized access attempt: No token provided from header", {
       action: "protect",
-      userId: req.user ? req.user._id : "anonymous",
+      userId: stringUserId,
     });
     throw createAuthError("Unauthorized access - No token provided");
   }
@@ -34,7 +36,7 @@ const protect = asyncHandler(async (req, res, next) => {
   if (!decoded || !decoded.userId) {
     logger.warn("Unauthorized access attempt: Invalid token", {
       action: "protect",
-      userId: req.user ? req.user._id : "anonymous",
+      userId: stringUserId,
     });
     throw createAuthError("Invalid token");
   }
@@ -46,7 +48,7 @@ const protect = asyncHandler(async (req, res, next) => {
   if (!user) {
     logger.warn("Unauthorized access attempt: User not found", {
       action: "protect",
-      userId: decoded.userId,
+      userId: decoded.userId.toString(),
     });
     throw createNotFoundError("User");
   }
@@ -61,15 +63,10 @@ const protect = asyncHandler(async (req, res, next) => {
       isActive: true,
     }).catch((error) => {
       logger.error("Failed to update last active in auth middleware", {
-        userId: user._id,
+        userId: user._id.toString(),
         error: error.message,
       });
     });
-  });
-
-  logger.auth("User authenticated successfully", user._id, {
-    action: "protect",
-    email: user.email,
   });
 
   next();
@@ -84,17 +81,17 @@ const protect = asyncHandler(async (req, res, next) => {
  */
 const authorize = (...roles) => {
   return (req, res, next) => {
-    if (!req.user || !req.user.role) {
-      logger.warn("Unauthorized access attempt: No user role", {
+    if (!req.user || !req.user.roles) {
+      logger.warn("Unauthorized access attempt: No user roles", {
         action: "authorize",
         userId: req.user ? req.user._id : "anonymous",
       });
-      throw createForbiddenError("No user role found");
+      throw createForbiddenError("No user roles found");
     }
 
-    const userRoles = Array.isArray(req.user.role)
-      ? req.user.role
-      : [req.user.role];
+    const userRoles = Array.isArray(req.user.roles)
+      ? req.user.roles
+      : [req.user.roles];
     const hasPermission = roles.some((role) => userRoles.includes(role));
 
     if (!hasPermission) {
@@ -111,7 +108,138 @@ const authorize = (...roles) => {
   };
 };
 
+/**
+ * Listing Ownership Authorization Middleware
+ *
+ * PURPOSE: Verify user owns the listing or has admin privileges
+ * USAGE: isListingOwner('listingId') - checks ownership of listing in params
+ * WRAPPED: With asyncHandler for automatic error handling
+ * PROCESS: Check admin role -> Find listing -> Verify ownership -> Attach to request
+ */
+const isListingOwner = (paramName = "id") => {
+  return asyncHandler(async (req, res, next) => {
+    const listingId = req.params[paramName];
+    const userId = req.user._id;
+
+    if (!listingId) {
+      logger.warn("Listing ownership check: No listing ID provided", {
+        action: "listing_ownership_check",
+        userId: userId,
+        route: req.originalUrl,
+        paramName: paramName,
+      });
+      throw createForbiddenError("Listing ID is required");
+    }
+
+    // Admins bypass ownership checks (following your role-based pattern)
+    if (req.user.roles && req.user.roles.includes("admin")) {
+      logger.info("Admin accessing listing", {
+        action: "admin_listing_access",
+        userId: userId,
+        listingId: listingId,
+        route: req.originalUrl,
+      });
+      return next();
+    }
+
+    // Find listing and verify ownership
+    const listing = await Listing.findById(listingId).select(
+      "seller.userId name"
+    );
+
+    if (!listing) {
+      logger.warn("Listing ownership check: Listing not found", {
+        action: "listing_ownership_check",
+        userId: userId,
+        listingId: listingId,
+        route: req.originalUrl,
+      });
+      throw createNotFoundError("Listing");
+    }
+
+    // Verify ownership (following your ownership pattern)
+    if (listing.seller.userId.toString() !== userId.toString()) {
+      logger.security("Unauthorized listing access attempt", {
+        listingId: listingId,
+        listingName: listing.name,
+        listingOwnerId: listing.seller.userId,
+        attemptedBy: userId,
+        action: "unauthorized_listing_access",
+        route: req.originalUrl,
+        method: req.method,
+      });
+      throw createForbiddenError("You can only access your own listings");
+    }
+
+    // Attach listing to request for service to use (optimization)
+    req.listing = listing;
+
+    logger.info("Listing ownership verified", {
+      action: "listing_ownership_verified",
+      userId: userId,
+      listingId: listingId,
+      route: req.originalUrl,
+    });
+
+    next();
+  }, "listing_ownership_check");
+};
+
+const isOrderParticipant = asyncHandler(async (req, res, next) => {
+  try {
+    const orderId = req.params.id;
+    const userId = req.user._id;
+    const userRoles = req.user.roles;
+
+    // Admins have access to all orders
+    if (userRoles.includes("admin")) {
+      return next();
+    }
+
+    const { Order } = require("../../models/order");
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+        code: "ORDER_NOT_FOUND",
+      });
+    }
+
+    // Check if user is buyer or seller
+    const isBuyer = order.buyer.userId.toString() === userId.toString();
+    const isSeller = order.seller.userId.toString() === userId.toString();
+
+    if (!isBuyer && !isSeller) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You are not a participant in this order.",
+        code: "ORDER_ACCESS_DENIED",
+      });
+    }
+
+    // Attach order to request for use in controller
+    req.order = order;
+    next();
+  } catch (error) {
+    logger.error("Order participant check failed:", {
+      error: error.message,
+      orderId: req.params.id,
+      userId: req.user._id,
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Order access verification failed",
+      code: "ORDER_AUTH_ERROR",
+    });
+  }
+});
+
 module.exports = {
   protect,
   authorize,
+  isListingOwner,
+  isOrderParticipant,
 };

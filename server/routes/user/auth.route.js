@@ -5,20 +5,23 @@ const {
   login,
   logout,
   handleTokenRefresh,
-  // forgotPassword, // TODO: implement forgot password
+  resendVerificationEmail,
+  verifyEmail,
+  handleForgotPassword,
+  handleValidateResetToken,
+  handleResetPassword,
 } = require("../../controllers/user");
 const {
   validateRegister,
   validateLogin,
-  // validateForgotPassword, // TODO: implement forgot password
 } = require("../../middleware/validations/user/auth.validation");
 const { protect } = require("../../middleware/auth/auth.middleware");
 
 /**
  * Authentication Routes
  *
- * PURPOSE: Handle user authentication and session management
- * SCOPE: User registration, login, logout, token refresh
+ * PURPOSE: Handle user authentication, session management, email verification, and password reset
+ * SCOPE: User registration, login, logout, token refresh, email verification, password reset
  * AUTHENTICATION: Mixed - public registration/login, protected logout
  * VALIDATION: All input data is validated before processing
  *
@@ -27,6 +30,11 @@ const { protect } = require("../../middleware/auth/auth.middleware");
  * - /api/auth/login (public user login)
  * - /api/auth/refresh-token (public token refresh)
  * - /api/auth/logout (protected user logout)
+ * - /api/auth/resend-verification (public resend verification email)
+ * - /api/auth/verify-email (public verify email address)
+ * - /api/auth/forgot-password (public request password reset)
+ * - /api/auth/validate-reset-token (public validate reset token)
+ * - /api/auth/reset-password (public reset password)
  */
 
 const router = express.Router();
@@ -56,8 +64,45 @@ router.post("/login", validateLogin, login);
  */
 router.post("/refresh-token", handleTokenRefresh);
 
-// TODO: Implement forgot password functionality
-// router.post("/forgot-password", validateForgotPassword, forgotPassword);
+/**
+ * @route   POST /api/auth/resend-verification
+ * @desc    Resend email verification link
+ * @access  Public
+ * @body    email
+ */
+router.post("/resend-verification", resendVerificationEmail);
+
+/**
+ * @route   POST /api/auth/verify-email
+ * @desc    Verify email address with token
+ * @access  Public
+ * @body    email, token
+ */
+router.post("/verify-email", verifyEmail);
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    Request password reset email
+ * @access  Public
+ * @body    email
+ */
+router.post("/forgot-password", handleForgotPassword);
+
+/**
+ * @route   POST /api/auth/validate-reset-token
+ * @desc    Validate password reset token
+ * @access  Public
+ * @body    email, token
+ */
+router.post("/validate-reset-token", handleValidateResetToken);
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    Reset password with token
+ * @access  Public
+ * @body    email, token, newPassword
+ */
+router.post("/reset-password", handleResetPassword);
 
 // ==================== AUTHENTICATED ROUTES ====================
 

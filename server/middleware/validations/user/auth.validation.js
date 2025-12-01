@@ -1,11 +1,11 @@
-const { body, param, validationResult } = require("express-validator");
+const { body, param } = require("express-validator");
+const { handleValidationErrors } = require("../validation.error");
 
 const { CampusEnum, FacultyEnum } = require("../../../utils/enums/user.enum");
 const {
   UserValidator,
   userErrorMessages,
 } = require("../../../validators/user");
-const logger = require("../../../utils/logger");
 
 const {
   isValidUiTMEmail,
@@ -18,111 +18,66 @@ const {
   isValidFaculty,
   isValidBio,
 } = UserValidator;
-const errorMessages = userErrorMessages();
-
-// TODO: Use AppError for better error handling
-
-// ================ VALIDATION ERROR MIDDLEWARE =================
-
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const formattedErrors = errors.array().map((error) => ({
-      field: error.path,
-      message: error.msg,
-      value: error.value,
-      location: error.location,
-    }));
-
-    logger.error("Validation errors:", {
-      formattedErrors,
-      request: {
-        method: req.method,
-        url: req.originalUrl,
-        body: req.body,
-        params: req.params,
-        query: req.query,
-      },
-      user: req.user ? { id: req.user._id, email: req.user.email } : null,
-      timestamp: new Date().toISOString(),
-    });
-
-    return res.status(400).json({
-      success: false,
-      message: "Validation failed",
-      errors: formattedErrors,
-      code: "VALIDATION_ERROR",
-    });
-  }
-
-  next();
-};
 
 // ================ REUSABLE VALIDATION RULE CHAINS ================
 
 const emailValidation = (fieldName = "email") => {
   return body(fieldName)
     .notEmpty()
-    .withMessage("Email is required")
+    .withMessage(userErrorMessages.email.required)
     .bail()
     .trim()
     .toLowerCase()
     .isEmail()
     .normalizeEmail()
     .custom((email) => {
-      if (!isValidUiTMEmail(email)) {
-        throw new Error(errorMessages.email);
-      }
-      return true;
-    });
+      return isValidUiTMEmail(email);
+    })
+    .withMessage(userErrorMessages.email.invalid);
 };
 
 const passwordValidation = (fieldName = "password") => {
   return body(fieldName)
     .notEmpty()
-    .withMessage("Password is required")
+    .withMessage(userErrorMessages.password.required)
     .bail()
     .trim()
     .isLength({ min: 8, max: 24 })
-    .withMessage("Password must be between 8 and 24 characters long")
+    .withMessage(userErrorMessages.password.invalid.length)
     .bail()
     .custom((password) => {
-      if (!isValidPassword(password)) {
-        throw new Error(errorMessages.password);
-      }
-      return true;
-    });
+      return isValidPassword(password);
+    })
+    .withMessage(userErrorMessages.password.invalid.format);
 };
 
 const usernameValidation = (fieldName = "profile.username") => {
   return body(fieldName)
     .notEmpty()
-    .withMessage("Username is required")
+    .withMessage(userErrorMessages.username.required)
     .bail()
     .trim()
-    .isLength({ min: 6, max: 16 })
-    .withMessage("Username must be between 6 and 16 characters long")
+    .isLength({ min: 4, max: 15 })
+    .withMessage(userErrorMessages.username.invalid.length)
     .bail()
     .custom((username) => {
-      if (!isValidUsername(username)) {
-        throw new Error(errorMessages.username);
-      }
-      return true;
-    });
+      return isValidUsername(username);
+    })
+    .withMessage(userErrorMessages.username.invalid.format);
 };
 
 const phoneNumberValidation = (fieldName = "profile.phoneNumber") => {
   return body(fieldName)
     .notEmpty()
-    .withMessage("Phone number is required")
+    .withMessage(userErrorMessages.phoneNumber.required)
     .bail()
+    .isLength({ min: 10, max: 11 })
+    .withMessage(userErrorMessages.phoneNumber.invalid.length)
     .trim()
     .custom((phoneNumber) => {
-      if (!isValidPhoneNumber(phoneNumber)) {
-        throw new Error(errorMessages.phoneNumber);
-      }
-      return true;
-    });
+      return isValidPhoneNumber(phoneNumber);
+    })
+    .withMessage(userErrorMessages.phoneNumber.invalid.format);
 };
 
 const bioValidation = (fieldName = "profile.bio") => {
@@ -130,69 +85,55 @@ const bioValidation = (fieldName = "profile.bio") => {
     .optional()
     .trim()
     .isLength({ max: 250 })
-    .withMessage("Bio must be at most 250 characters long")
+    .withMessage(userErrorMessages.bio.invalid)
     .bail()
     .custom((bio) => {
-      if (bio && !isValidBio(bio)) {
-        throw new Error(errorMessages.bio);
+      if (bio) {
+        return isValidBio(bio);
       }
-      return true;
-    });
+      return true; // Allow empty bio since it's optional
+    })
+    .withMessage(userErrorMessages.bio.invalid);
 };
 
 const campusValidation = (fieldName = "profile.campus") => {
   return body(fieldName)
     .notEmpty()
-    .withMessage("Campus is required")
+    .withMessage(userErrorMessages.campus.required)
     .bail()
     .trim()
-    .isIn(Object.values(CampusEnum))
-    .withMessage("Invalid campus value")
+    .isIn(Object.keys(CampusEnum))
+    .withMessage(userErrorMessages.campus.invalid)
     .bail()
     .custom((campus) => {
-      if (!isValidCampus(campus)) {
-        throw new Error(errorMessages.campus);
-      }
-      return true;
-    });
+      return isValidCampus(campus);
+    })
+    .withMessage(userErrorMessages.campus.invalid);
 };
 
 const facultyValidation = (fieldName = "profile.faculty") => {
   return body(fieldName)
     .notEmpty()
-    .withMessage("Faculty is required")
+    .withMessage(userErrorMessages.faculty.required)
     .trim()
-    .isIn(Object.values(FacultyEnum))
-    .withMessage("Invalid faculty value")
+    .isIn(Object.keys(FacultyEnum))
+    .withMessage(userErrorMessages.faculty.invalid)
     .custom((faculty) => {
-      if (!isValidFaculty(faculty)) {
-        throw new Error(errorMessages.faculty);
-      }
-      return true;
-    });
+      return isValidFaculty(faculty);
+    })
+    .withMessage(userErrorMessages.faculty.invalid);
 };
 
-const roleValidation = (fieldName = "role") => {
+const roleValidation = (fieldName = "roles") => {
   return body(fieldName)
     .optional()
     .isArray({ min: 1 })
-    .withMessage("Role must be a non-empty array")
+    .withMessage("Roles must be a non-empty array")
     .bail()
     .custom((roles) => {
-      if (!isValidRoleArray(roles)) {
-        throw new Error(errorMessages.roleArray);
-      }
-      return true;
-    });
-};
-
-const mongoIdValidation = (paramName = "id") => {
-  return param(paramName).custom((value) => {
-    if (!isValidMongoId(value)) {
-      throw new Error(errorMessages.mongoId);
-    }
-    return true;
-  });
+      return isValidRoleArray(roles);
+    })
+    .withMessage(userErrorMessages.rolesArray.invalid);
 };
 
 // ================ COMPLETE VALIDATION MIDDLEWARES ================
@@ -205,7 +146,7 @@ const validateRegister = [
   phoneNumberValidation("profile.phoneNumber"),
   campusValidation("profile.campus"),
   facultyValidation("profile.faculty"),
-  roleValidation("role"),
+  roleValidation("roles"),
 
   handleValidationErrors,
 ];
@@ -222,7 +163,6 @@ module.exports = {
   validateLogin,
 
   handleValidationErrors,
-  mongoIdValidation,
   emailValidation,
   passwordValidation,
   usernameValidation,

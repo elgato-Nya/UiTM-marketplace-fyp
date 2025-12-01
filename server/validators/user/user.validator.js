@@ -1,4 +1,5 @@
-const { CampusEnum, FacultyEnum } = require("../../enums/user.enum");
+const mongoose = require("mongoose");
+const { CampusEnum, FacultyEnum } = require("../../utils/enums/user.enum");
 /**
  * Pure validation functions for user-related data
  * These functions only validate and return boolean results
@@ -68,17 +69,15 @@ class UserValidator {
    * NOTE: id must be a 24-character hexadecimal string (e.g., 507f1f77bcf86cd799439011)
    */
   static isValidMongoId(id) {
-    if (!id || typeof id !== "string") return false;
-    return /^[0-9a-fA-F]{24}$/.test(id);
+    return mongoose.Types.ObjectId.isValid(id);
   }
-
   /**
    * Validates avatar format
    * @param {string} avatar
    * @returns {boolean}
    * NOTE: avatar must be a valid URL (starting with http/https) or a valid base64 image string (e.g., data:image/png;base64,...)
    */
-  static isValidAvatar = (avatar) => {
+  static isValidAvatar(avatar) {
     if (!avatar || typeof avatar !== "string") return false;
 
     // Allow URLs or base64 images
@@ -86,7 +85,7 @@ class UserValidator {
     const base64Pattern = /^data:image\/(jpeg|jpg|png|gif);base64,/;
 
     return urlPattern.test(avatar) || base64Pattern.test(avatar);
-  };
+  }
 
   /**
    * Validates user role array
@@ -112,31 +111,31 @@ class UserValidator {
   }
 
   /**
-   * Validates campus enum value with performance optimization
+   * Validates campus enum value (accepts both keys and display values)
    * @param {string} campus
    * @returns {boolean}
    */
   static isValidCampus(campus) {
     if (!campus || typeof campus !== "string") return false;
-
-    // Performance optimization: Skip validation for already-stored enum keys
-    // This prevents re-validating existing addresses when adding new ones
-    if (Object.keys(CampusEnum).includes(campus)) {
-      return true; // Already a valid stored enum key
-    }
-
-    // Validate display values (for new input)
-    return Object.values(CampusEnum).includes(campus);
+    // Accept both enum keys (SHAH_ALAM) and display values (UiTM Shah Alam)
+    return (
+      Object.keys(CampusEnum).includes(campus) ||
+      Object.values(CampusEnum).includes(campus)
+    );
   }
 
   /**
-   * Validates faculty enum value
+   * Validates faculty enum value (accepts both keys and display values)
    * @param {string} faculty
    * @returns {boolean}
    */
   static isValidFaculty(faculty) {
     if (!faculty || typeof faculty !== "string") return false;
-    return Object.values(FacultyEnum).includes(faculty);
+    // Accept both enum keys and display values
+    return (
+      Object.keys(FacultyEnum).includes(faculty) ||
+      Object.values(FacultyEnum).includes(faculty)
+    );
   }
 
   /**
@@ -147,14 +146,22 @@ class UserValidator {
   static isValidBio(bio) {
     if (!bio) return true; // Bio is optional
     if (typeof bio !== "string") return false;
-    return bio.length <= 200;
+    return bio.length <= 250; // Match auth validation
   }
 }
 
 /**
  * Returns error messages for validation failures
  */
-const userErrorMessages = () => ({
+const userErrorMessages = {
+  mongoId: {
+    invalid: {
+      format: "Invalid ID format",
+      user: "Invalid user ID format",
+      listing: "Invalid listing ID format",
+      order: "Invalid order ID format",
+    },
+  },
   email: {
     required: "Email is required",
     invalid:
@@ -163,47 +170,52 @@ const userErrorMessages = () => ({
   },
   password: {
     required: "Password is required",
-    invalid:
-      "Password must be 8-24 characters long and contain at least one uppercase letter, one lowercase letter, and one number",
-  },
-  username: {
-    required: "Username is required",
-    invalid:
-      "Username must be between 6 and 16 characters, start with a letter or number, and can only contain letters, numbers, underscores, and hyphens. No consecutive special characters or ending with special characters",
-    unique: "Username already exists",
+    invalid: {
+      length: "Password must be between 8 and 24 characters long",
+      format:
+        "Password must be 8-24 characters long and contain at least one uppercase letter, one lowercase letter, and one number",
+    },
   },
   avatar: {
     invalid: "Avatar must be a valid URL or base64 image",
   },
+  username: {
+    required: "Username is required",
+    invalid:
+      "Username must be between 6 and 16 characters, start with a letter or number, and can only contain letters, numbers, underscores, and hyphens",
+    unique: "Username already exists",
+  },
+
   phoneNumber: {
+    required: "Phone number is required",
+    unique: "Phone number already exists",
     invalid: "Phone number must start with 0 and be 10 or 11 digits long",
   },
-  mongoId: {
-    invalid: "Invalid ID format",
+  bio: {
+    invalid: "Bio cannot exceed 250 characters",
   },
-  role: {
-    required: "Role is required",
-    invalid: "Role must be one of: consumer, merchant, admin",
+  roles: {
+    required: "Roles is required",
+    invalid: "Roles must be one of: consumer, merchant, admin",
   },
-  roleArray: {
+  rolesArray: {
     invalid:
-      "Role must be a non-empty array with valid roles (consumer, merchant, admin)",
+      "Roles must be a non-empty array with valid roles (consumer, merchant, admin)",
   },
   campus: {
+    required: "Campus is required",
     invalid: "Invalid campus value",
   },
   faculty: {
+    required: "Faculty is required",
     invalid: "Invalid faculty value",
-  },
-  bio: {
-    invalid: "Bio cannot exceed 200 characters",
   },
   profile: {
     invalid: "Invalid profile fields provided",
     noValidFields: "No valid fields provided for update",
     forbiddenField: "This field cannot be updated through this endpoint",
   },
-});
+};
 
 module.exports = {
   UserValidator,

@@ -1,0 +1,18 @@
+export const STATE_OPTIONS = [
+  { value: "JOHOR", label: "Johor" },
+  { value: "KEDAH", label: "Kedah" },
+  { value: "KELANTAN", label: "Kelantan" },
+  { value: "MELAKA", label: "Melaka" },
+  { value: "NEGERI_SEMBILAN", label: "Negeri Sembilan" },
+  { value: "PAHANG", label: "Pahang" },
+  { value: "PERAK", label: "Perak" },
+  { value: "PERLIS", label: "Perlis" },
+  { value: "PULAU_PINANG", label: "Pulau Pinang" },
+  { value: "SABAH", label: "Sabah" },
+  { value: "SARAWAK", label: "Sarawak" },
+  { value: "SELANGOR", label: "Selangor" },
+  { value: "TERENGGANU", label: "Terengganu" },
+  { value: "KUALA_LUMPUR", label: "Kuala Lumpur" },
+  { value: "LABUAN", label: "Labuan" },
+  { value: "PUTRAJAYA", label: "Putrajaya" },
+];

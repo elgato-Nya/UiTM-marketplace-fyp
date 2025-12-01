@@ -1,12 +1,10 @@
 name: Continuous Integration
 
 on:
-  # Temporarily disabled - fix tests later
-  # push:
-  #   branches: [main, dev]
-  # pull_request:
-  #   branches: [main]
-  workflow_dispatch: # Manual trigger only
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
 
 env:
   NODE_VERSION: "20.x"

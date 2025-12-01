@@ -1,9 +1,9 @@
 name: Deploy to AWS EC2
 
 on:
-  # push:
-  #   branches: [main]
-  workflow_dispatch: # Only manual trigger until EC2 secrets are added
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 env:
   NODE_VERSION: "20.x"
@@ -53,10 +53,10 @@ jobs:
 
             # Restart backend with PM2
             echo "🔄 Restarting backend service..."
-            if pm2 describe ecommerce-api > /dev/null 2>&1; then
-              pm2 restart ecommerce-api
+            if pm2 describe uitm-marketplace-server > /dev/null 2>&1; then
+              pm2 restart uitm-marketplace-server
             else
-              pm2 start index.js --name ecommerce-api --env production
+              pm2 start index.js --name uitm-marketplace-server --env production
             fi
             pm2 save
 

@@ -33,7 +33,7 @@ const merchantSchema = new mongoose.Schema(
       sparse: true, // Allow multiple null values for non-merchants
       trim: true,
       required: function () {
-        return this.parent().role.includes("merchant");
+        return this.parent().roles.includes("merchant");
       },
       validate: {
         validator: isValidShopName,
@@ -102,17 +102,6 @@ const merchantSchema = new mongoose.Schema(
       },
       default: "unverified",
     },
-    shopCategories: {
-      type: [String],
-      default: [],
-      validate: {
-        validator: function (categories) {
-          // Limit to max 5 categories
-          return categories.length <= 5;
-        },
-        message: "Shop can have maximum 5 categories",
-      },
-    },
     shopRating: {
       averageRating: {
         type: Number,
@@ -140,6 +129,11 @@ const merchantSchema = new mongoose.Schema(
       totalRevenue: {
         type: Number,
         min: [0, "Revenue cannot be negative"],
+        default: 0,
+      },
+      totalViews: {
+        type: Number,
+        min: [0, "Views count cannot be negative"],
         default: 0,
       },
     },

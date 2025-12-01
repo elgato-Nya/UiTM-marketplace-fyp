@@ -1,7 +1,7 @@
 const BaseController = require("../base.controller");
-const { merchant: merchantService } = require("../../services/user");
+const { merchantService } = require("../../services/user");
 const asyncHandler = require("../../utils/asyncHandler");
-const { sanitizeObject } = require("../../utils/sanitizer");
+const { sanitizeObject, sanitizeQuery } = require("../../utils/sanitizer");
 
 /**
  * Merchant Controller
@@ -21,18 +21,26 @@ const { sanitizeObject } = require("../../utils/sanitizer");
 const baseController = new BaseController();
 
 /**
- * Get merchant details
+ * Get merchant details (auto-creates shop if doesn't exist)
  * GET /api/merchants/profile
  */
 const getMerchantProfile = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const merchantData = await merchantService.getMerchantDetails(userId);
 
-  baseController.logAction("get_merchant_profile", req, { userId });
+  // Use getOrCreateShop to ensure shop exists
+  const result = await merchantService.getOrCreateShop(userId);
+
+  baseController.logAction("get_merchant_profile", req, {
+    userId,
+    isNewShop: result.isNew,
+  });
+
   return baseController.sendSuccess(
     res,
-    merchantData,
-    "Merchant profile retrieved successfully"
+    result,
+    result.isNew
+      ? "Shop created successfully from your profile"
+      : "Merchant profile retrieved successfully"
   );
 }, "get_merchant_profile");
 
@@ -90,7 +98,7 @@ const searchMerchants = asyncHandler(async (req, res) => {
     minRating,
     page = 1,
     limit = 10,
-  } = req.query;
+  } = sanitizeQuery(req.query);
 
   const filters = {};
   if (category) filters.category = category;
@@ -139,7 +147,7 @@ const updateShopMetrics = asyncHandler(async (req, res) => {
   const metrics = sanitizeObject(req.body);
 
   // Ensure only admins can update other users' metrics
-  if (req.user._id.toString() !== userId && !req.user.role.includes("admin")) {
+  if (req.user._id.toString() !== userId && !req.user.roles.includes("admin")) {
     return res.status(403).json({
       success: false,
       message: "Forbidden: Cannot update other merchant's metrics",
@@ -166,7 +174,7 @@ const updateShopMetrics = asyncHandler(async (req, res) => {
  */
 const updateShopRating = asyncHandler(async (req, res) => {
   const { userId } = req.params;
-  const { rating, isNewReview = true } = req.body;
+  const { rating, isNewReview = true } = sanitizeObject(req.body);
 
   if (!rating || rating < 1 || rating > 5) {
     return res.status(400).json({
@@ -200,10 +208,10 @@ const updateShopRating = asyncHandler(async (req, res) => {
  */
 const updateShopStatus = asyncHandler(async (req, res) => {
   const { userId } = req.params;
-  const { shopStatus, verificationStatus } = req.body;
+  const { shopStatus, verificationStatus } = sanitizeObject(req.body);
 
   // Admin only endpoint
-  if (!req.user.role.includes("admin")) {
+  if (!req.user.roles.includes("admin")) {
     return res.status(403).json({
       success: false,
       message: "Forbidden: Admin access required",
@@ -235,14 +243,19 @@ const updateShopStatus = asyncHandler(async (req, res) => {
  */
 const getAllMerchants = asyncHandler(async (req, res) => {
   // Admin only endpoint
-  if (!req.user.role.includes("admin")) {
+  if (!req.user.roles.includes("admin")) {
     return res.status(403).json({
       success: false,
       message: "Forbidden: Admin access required",
     });
   }
 
-  const { status, verificationStatus, page = 1, limit = 20 } = req.query;
+  const {
+    status,
+    verificationStatus,
+    page = 1,
+    limit = 20,
+  } = sanitizeQuery(req.query);
 
   const filters = {};
   if (status) filters.shopStatus = status;
@@ -267,6 +280,43 @@ const getAllMerchants = asyncHandler(async (req, res) => {
   );
 }, "get_all_merchants");
 
+/**
+ * Track shop view (public)
+ * POST /api/merchants/shop/:shopSlug/view
+ */
+const trackShopView = asyncHandler(async (req, res) => {
+  const { shopSlug } = req.params;
+  const result = await merchantService.trackShopView(shopSlug);
+
+  baseController.logAction("track_shop_view", req, { shopSlug });
+  return baseController.sendSuccess(
+    res,
+    result,
+    "Shop view tracked successfully"
+  );
+}, "track_shop_view");
+
+/**
+ * Manually sync merchant data to listings
+ * POST /api/merchants/sync-listings
+ */
+const syncMerchantListings = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const result = await merchantService.syncMerchantDataToListings(userId, {
+    username: req.user.profile.username,
+    shopName: req.user.merchantDetails?.shopName,
+    shopSlug: req.user.merchantDetails?.shopSlug,
+    isVerified: req.user.merchantDetails?.isVerified || false,
+  });
+
+  baseController.logAction("sync_merchant_listings", req, { userId });
+  return baseController.sendSuccess(
+    res,
+    result,
+    `Successfully synced data to ${result.modifiedCount} listings`
+  );
+}, "sync_merchant_listings");
+
 module.exports = {
   getMerchantProfile,
   createOrUpdateMerchant,
@@ -277,4 +327,6 @@ module.exports = {
   updateShopRating,
   updateShopStatus,
   getAllMerchants,
+  trackShopView,
+  syncMerchantListings,
 };

@@ -1,6 +1,6 @@
-const { body, param, query, validationResult } = require("express-validator");
+const { body, param, query } = require("express-validator");
+const { handleValidationErrors } = require("../validation.error");
 
-const logger = require("../../../utils/logger");
 const {
   MerchantValidator,
   merchantErrorMessages,
@@ -19,30 +19,6 @@ const {
 } = MerchantValidator;
 const errorMessages = merchantErrorMessages();
 
-// ================ VALIDATION ERROR MIDDLEWARE ================
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    logger.warn("Merchant validation failed", {
-      path: req.path,
-      method: req.method,
-      errors: errors.array(),
-      body: req.body,
-    });
-
-    return res.status(400).json({
-      success: false,
-      message: "Validation failed",
-      errors: errors.array().map((error) => ({
-        field: error.path,
-        message: error.msg,
-        value: error.value,
-      })),
-    });
-  }
-  next();
-};
-
 // ================ INDIVIDUAL VALIDATION RULES ================
 
 /**
@@ -54,11 +30,9 @@ const validateShopNameField = () => {
     .notEmpty()
     .withMessage(errorMessages.shopName.required)
     .custom((value) => {
-      if (!isValidShopName(value)) {
-        throw new Error(errorMessages.shopName.invalid);
-      }
-      return true;
-    });
+      return isValidShopName(value);
+    })
+    .withMessage(errorMessages.shopName.invalid);
 };
 
 /**
@@ -70,10 +44,11 @@ const validateShopSlugField = () => {
     .trim()
     .custom((value) => {
       if (value && !isValidShopSlug(value)) {
-        throw new Error(errorMessages.shopSlug.invalid);
+        return false;
       }
       return true;
-    });
+    })
+    .withMessage(errorMessages.shopSlug.invalid);
 };
 
 /**
@@ -85,10 +60,11 @@ const validateShopDescriptionField = () => {
     .trim()
     .custom((value) => {
       if (value && !isValidShopDescription(value)) {
-        throw new Error(errorMessages.shopDescription.invalid);
+        return false;
       }
       return true;
-    });
+    })
+    .withMessage(errorMessages.shopDescription.invalid);
 };
 
 /**
@@ -100,10 +76,11 @@ const validateShopLogoField = () => {
     .trim()
     .custom((value) => {
       if (value && !isValidImageUrl(value)) {
-        throw new Error(errorMessages.shopLogo.invalid);
+        return false;
       }
       return true;
-    });
+    })
+    .withMessage(errorMessages.shopLogo.invalid);
 };
 
 /**
@@ -115,10 +92,11 @@ const validateShopBannerField = () => {
     .trim()
     .custom((value) => {
       if (value && !isValidImageUrl(value)) {
-        throw new Error(errorMessages.shopBanner.invalid);
+        return false;
       }
       return true;
-    });
+    })
+    .withMessage(errorMessages.shopBanner.invalid);
 };
 
 /**
@@ -130,10 +108,11 @@ const validateBusinessRegistrationField = () => {
     .trim()
     .custom((value) => {
       if (value && !isValidBusinessRegistration(value)) {
-        throw new Error(errorMessages.businessRegistration.invalid);
+        return false;
       }
       return true;
-    });
+    })
+    .withMessage(errorMessages.businessRegistration.invalid);
 };
 
 /**
@@ -145,26 +124,11 @@ const validateTaxIdField = () => {
     .trim()
     .custom((value) => {
       if (value && !isValidTaxId(value)) {
-        throw new Error(errorMessages.taxId.invalid);
+        return false;
       }
       return true;
-    });
-};
-
-/**
- * Validate shop categories field
- */
-const validateShopCategoriesField = () => {
-  return body("shopCategories")
-    .optional()
-    .isArray()
-    .withMessage("Shop categories must be an array")
-    .custom((value) => {
-      if (value && !isValidShopCategories(value)) {
-        throw new Error(errorMessages.shopCategories.invalid);
-      }
-      return true;
-    });
+    })
+    .withMessage(errorMessages.taxId.invalid);
 };
 
 // ================ VALIDATION MIDDLEWARE FUNCTIONS ================
@@ -180,7 +144,6 @@ const validateCreateMerchant = [
   validateShopBannerField(),
   validateBusinessRegistrationField(),
   validateTaxIdField(),
-  validateShopCategoriesField(),
   handleValidationErrors,
 ];
 
@@ -193,17 +156,17 @@ const validateUpdateMerchant = [
     .trim()
     .custom((value) => {
       if (value && !isValidShopName(value)) {
-        throw new Error(errorMessages.shopName.invalid);
+        return false;
       }
       return true;
-    }),
+    })
+    .withMessage(errorMessages.shopName.invalid),
   validateShopSlugField(),
   validateShopDescriptionField(),
   validateShopLogoField(),
   validateShopBannerField(),
   validateBusinessRegistrationField(),
   validateTaxIdField(),
-  validateShopCategoriesField(),
   handleValidationErrors,
 ];
 
@@ -217,10 +180,11 @@ const validateShopSlug = [
     .withMessage("Shop slug is required")
     .custom((value) => {
       if (!isValidShopSlug(value)) {
-        throw new Error(errorMessages.shopSlug.invalid);
+        return false;
       }
       return true;
-    }),
+    })
+    .withMessage(errorMessages.shopSlug.invalid),
   handleValidationErrors,
 ];
 
@@ -233,11 +197,6 @@ const validateSearchMerchants = [
     .trim()
     .isLength({ min: 1, max: 100 })
     .withMessage("Search query must be between 1 and 100 characters"),
-  query("category")
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 30 })
-    .withMessage("Category must be between 2 and 30 characters"),
   query("minRating")
     .optional()
     .isFloat({ min: 0, max: 5 })
@@ -297,18 +256,20 @@ const validateUpdateStatus = [
     .optional()
     .custom((value) => {
       if (value && !isValidShopStatus(value)) {
-        throw new Error(errorMessages.shopStatus.invalid);
+        return false;
       }
       return true;
-    }),
+    })
+    .withMessage(errorMessages.shopStatus.invalid),
   body("verificationStatus")
     .optional()
     .custom((value) => {
       if (value && !isValidVerificationStatus(value)) {
-        throw new Error(errorMessages.verificationStatus.invalid);
+        return false;
       }
       return true;
-    }),
+    })
+    .withMessage(errorMessages.verificationStatus.invalid),
   handleValidationErrors,
 ];
 

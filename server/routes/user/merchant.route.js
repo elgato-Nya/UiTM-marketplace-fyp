@@ -9,6 +9,8 @@ const {
   updateShopRating,
   updateShopStatus,
   getAllMerchants,
+  trackShopView,
+  syncMerchantListings,
 } = require("../../controllers/user/merchant.controller");
 
 const { authenticateUser } = require("../../middleware/auth");
@@ -59,6 +61,14 @@ router.get("/search", validateSearchMerchants, searchMerchants);
  */
 router.get("/shop/:shopSlug", validateShopSlug, getMerchantBySlug);
 
+/**
+ * @route   POST /api/merchants/shop/:shopSlug/view
+ * @desc    Track shop view (increment view counter)
+ * @access  Public
+ * @param   shopSlug - URL-safe shop identifier
+ */
+router.post("/shop/:shopSlug/view", validateShopSlug, trackShopView);
+
 // ==================== AUTHENTICATED ROUTES ====================
 
 // Apply authentication middleware to all routes below
@@ -91,6 +101,13 @@ router.put("/profile", validateUpdateMerchant, createOrUpdateMerchant);
  * @access  Private (merchant only)
  */
 router.get("/stats", getMerchantStats);
+
+/**
+ * @route   POST /api/merchants/sync-listings
+ * @desc    Manually sync merchant data to all listings
+ * @access  Private (merchant only)
+ */
+router.post("/sync-listings", syncMerchantListings);
 
 // ==================== ADMIN/SYSTEM ROUTES ====================
 

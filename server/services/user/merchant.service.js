@@ -1,4 +1,5 @@
 const { User } = require("../../models/user");
+const Listing = require("../../models/listing/listing.model");
 const logger = require("../../utils/logger");
 const { AppError } = require("../../utils/errors");
 const {
@@ -15,13 +16,66 @@ const generateSlugFromName = (name) => {
     .trim()
     .replace(/[^a-z0-9\s-]/g, "") // Remove special characters
     .replace(/\s+/g, "-") // Replace spaces with hyphens
-    .replace(/-+/g, "-") // Replace multiple hyphens with single
+    .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
     .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
 };
 
 const sanitizeShopName = (name) => {
   if (!name) return "";
-  return name.trim().replace(/\s+/g, " "); // Remove extra spaces
+  return name.trim().replace(/\s+/g, " "); // Remove extra whitespace
+};
+
+/**
+ * Sync merchant data to all their listings (denormalized fields)
+ * @param {string} userId - Merchant's user ID
+ * @param {Object} merchantData - Updated merchant data
+ * @returns {Promise<Object>} Update result
+ */
+const syncMerchantDataToListings = async (userId, merchantData) => {
+  try {
+    logger.info(`Syncing merchant data to listings for user: ${userId}`);
+
+    const updateData = {};
+
+    if (merchantData.username) {
+      updateData["seller.username"] = merchantData.username;
+    }
+    if (merchantData.shopName !== undefined) {
+      updateData["seller.shopName"] = merchantData.shopName;
+    }
+    if (merchantData.shopSlug !== undefined) {
+      updateData["seller.shopSlug"] = merchantData.shopSlug;
+    }
+    if (merchantData.isVerified !== undefined) {
+      updateData["seller.isVerifiedMerchant"] = merchantData.isVerified;
+    }
+
+    // Only update if there's data to sync
+    if (Object.keys(updateData).length === 0) {
+      logger.info("No merchant data to sync");
+      return { modifiedCount: 0 };
+    }
+
+    const result = await Listing.updateMany(
+      { "seller.userId": userId },
+      { $set: updateData }
+    );
+
+    logger.info(`Synced merchant data to ${result.modifiedCount} listings`, {
+      userId,
+      updatedFields: Object.keys(updateData),
+      listingsModified: result.modifiedCount,
+    });
+
+    return result;
+  } catch (error) {
+    logger.error("Failed to sync merchant data to listings", {
+      userId,
+      error: error.message,
+    });
+    // Don't throw - sync failure shouldn't block merchant update
+    return { modifiedCount: 0, error: error.message };
+  }
 };
 
 /**
@@ -38,6 +92,125 @@ const sanitizeShopName = (name) => {
  */
 
 /**
+ * Auto-create shop from user's existing profile data
+ * Called when merchant first accesses shop features
+ */
+const autoCreateShopFromProfile = async (userId) => {
+  try {
+    logger.info(`Auto-creating shop for user: ${userId}`);
+
+    const user = await User.findById(userId);
+    if (!user) {
+      throw handleNotFoundError("User", userId);
+    }
+
+    // Check if shop already exists
+    if (user.merchantDetails && user.merchantDetails.shopName) {
+      logger.info(`Shop already exists for user: ${userId}`);
+      return {
+        user: sanitizeUserData(user),
+        merchantDetails: user.merchantDetails,
+        isNew: false,
+      };
+    }
+
+    // Ensure user has merchant role
+    if (!user.roles.includes("merchant")) {
+      throw new AppError("User must have merchant role to create shop", 400);
+    }
+
+    // Generate shop data from user profile
+    const username = user.profile.username;
+    const baseShopName = `${username}'s Shop`;
+    const baseSlug = `${username
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "-")}-shop`;
+
+    // Ensure unique shop name and slug
+    let shopName = baseShopName;
+    let shopSlug = baseSlug;
+    let counter = 1;
+
+    // Check uniqueness and add counter if needed
+    while (
+      await User.findOne({
+        "merchantDetails.shopSlug": shopSlug,
+        _id: { $ne: userId },
+      })
+    ) {
+      shopSlug = `${baseSlug}-${counter}`;
+      shopName = `${baseShopName} ${counter}`;
+      counter++;
+    }
+
+    // Create minimal shop with user's data
+    user.merchantDetails = {
+      shopName,
+      shopSlug,
+      shopDescription: user.profile.bio || `Welcome to ${shopName}!`,
+      shopStatus: "active", // Active immediately (soft verification)
+      verificationStatus: "unverified", // Can be verified by admin later
+      shopCategories: [], // Removed as per decision
+      shopRating: {
+        averageRating: 0,
+        totalReviews: 0,
+      },
+      shopMetrics: {
+        totalProducts: 0,
+        totalSales: 0,
+        totalRevenue: 0,
+      },
+    };
+
+    await user.save();
+
+    logger.info(`Shop auto-created for user: ${userId}`, {
+      shopName,
+      shopSlug,
+    });
+
+    return {
+      user: sanitizeUserData(user),
+      merchantDetails: user.merchantDetails,
+      isNew: true,
+    };
+  } catch (error) {
+    return handleServiceError(error, "autoCreateShopFromProfile");
+  }
+};
+
+/**
+ * Get or create shop (ensures shop exists)
+ * Use this before showing shop dashboard
+ */
+const getOrCreateShop = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw handleNotFoundError("User", userId);
+    }
+
+    if (!user.roles.includes("merchant")) {
+      throw new AppError("User must have merchant role", 400);
+    }
+
+    // If shop doesn't exist, auto-create it
+    if (!user.merchantDetails || !user.merchantDetails.shopName) {
+      return await autoCreateShopFromProfile(userId);
+    }
+
+    // Return existing shop
+    return {
+      user: sanitizeUserData(user),
+      merchantDetails: user.merchantDetails,
+      isNew: false,
+    };
+  } catch (error) {
+    return handleServiceError(error, "getOrCreateShop");
+  }
+};
+
+/**
  * Create or update merchant details for a user
  */
 const createOrUpdateMerchantDetails = async (userId, merchantData) => {
@@ -50,7 +223,7 @@ const createOrUpdateMerchantDetails = async (userId, merchantData) => {
     }
 
     // Ensure user has merchant role
-    if (!user.role.includes("merchant")) {
+    if (!user.roles.includes("merchant")) {
       throw new AppError("User must have merchant role to create shop", 400);
     }
 
@@ -63,7 +236,6 @@ const createOrUpdateMerchantDetails = async (userId, merchantData) => {
       businessRegistrationNumber:
         merchantData.businessRegistrationNumber?.trim(),
       taxId: merchantData.taxId?.trim(),
-      shopCategories: merchantData.shopCategories || [],
     };
 
     // Generate slug if not provided
@@ -94,8 +266,12 @@ const createOrUpdateMerchantDetails = async (userId, merchantData) => {
       }
     }
 
-    // Update merchant details
-    user.merchantDetails = { ...user.merchantDetails, ...sanitizedData };
+    // Update merchant details - only update provided fields
+    Object.keys(sanitizedData).forEach((key) => {
+      if (sanitizedData[key] !== undefined) {
+        user.merchantDetails[key] = sanitizedData[key];
+      }
+    });
 
     // Set initial shop status if new merchant
     if (!user.merchantDetails.shopStatus) {
@@ -103,7 +279,22 @@ const createOrUpdateMerchantDetails = async (userId, merchantData) => {
       user.merchantDetails.verificationStatus = "unverified";
     }
 
-    await user.save();
+    // Save with validation only on modified fields
+    await user.save({ validateModifiedOnly: true });
+
+    // Sync updated merchant data to all listings (denormalized fields)
+    if (
+      sanitizedData.shopName ||
+      sanitizedData.shopSlug ||
+      merchantData.username
+    ) {
+      await syncMerchantDataToListings(userId, {
+        username: user.profile.username,
+        shopName: user.merchantDetails.shopName,
+        shopSlug: user.merchantDetails.shopSlug,
+        isVerified: user.merchantDetails.isVerified || false,
+      });
+    }
 
     logger.info(`Merchant details updated for user: ${userId}`);
     return {
@@ -122,12 +313,12 @@ const getMerchantDetails = async (userId) => {
   try {
     logger.info(`Fetching merchant details for user: ${userId}`);
 
-    const user = await User.findById(userId).select("merchantDetails role");
+    const user = await User.findById(userId).select("merchantDetails roles");
     if (!user) {
       throw handleNotFoundError("User", userId);
     }
 
-    if (!user.role.includes("merchant")) {
+    if (!user.roles.includes("merchant")) {
       throw new AppError("User is not a merchant", 400);
     }
 
@@ -151,7 +342,7 @@ const getMerchantBySlug = async (shopSlug) => {
 
     const user = await User.findOne({
       "merchantDetails.shopSlug": shopSlug,
-      role: "merchant",
+      roles: "merchant",
     }).select("merchantDetails profile.username profile.avatar");
 
     if (!user) {
@@ -160,6 +351,7 @@ const getMerchantBySlug = async (shopSlug) => {
 
     return {
       merchant: {
+        _id: user._id, // Include user ID for fetching seller listings
         username: user.profile.username,
         avatar: user.profile.avatar,
       },
@@ -182,7 +374,7 @@ const searchMerchants = async (searchQuery, filters = {}, pagination = {}) => {
 
     // Build search criteria
     const searchCriteria = {
-      role: "merchant",
+      roles: "merchant",
       "merchantDetails.shopStatus": "active",
       "merchantDetails.verificationStatus": "verified",
     };
@@ -197,17 +389,7 @@ const searchMerchants = async (searchQuery, filters = {}, pagination = {}) => {
             $options: "i",
           },
         },
-        {
-          "merchantDetails.shopCategories": {
-            $in: [new RegExp(searchQuery, "i")],
-          },
-        },
       ];
-    }
-
-    // Add filters
-    if (filters.category) {
-      searchCriteria["merchantDetails.shopCategories"] = filters.category;
     }
 
     if (filters.minRating) {
@@ -261,7 +443,7 @@ const updateShopMetrics = async (userId, metrics) => {
       throw handleNotFoundError("User", userId);
     }
 
-    if (!user.role.includes("merchant")) {
+    if (!user.roles.includes("merchant")) {
       throw new AppError("User is not a merchant", 400);
     }
 
@@ -290,7 +472,7 @@ const updateShopRating = async (userId, newRating, isNewReview = true) => {
       throw handleNotFoundError("User", userId);
     }
 
-    if (!user.role.includes("merchant")) {
+    if (!user.roles.includes("merchant")) {
       throw new AppError("User is not a merchant", 400);
     }
 
@@ -319,7 +501,7 @@ const updateShopStatus = async (userId, status, verificationStatus) => {
       throw handleNotFoundError("User", userId);
     }
 
-    if (!user.role.includes("merchant")) {
+    if (!user.roles.includes("merchant")) {
       throw new AppError("User is not a merchant", 400);
     }
 
@@ -350,12 +532,12 @@ const getMerchantStats = async (userId) => {
   try {
     logger.info(`Fetching merchant statistics for user: ${userId}`);
 
-    const user = await User.findById(userId).select("merchantDetails");
+    const user = await User.findById(userId).select("merchantDetails roles");
     if (!user) {
       throw handleNotFoundError("User", userId);
     }
 
-    if (!user.role.includes("merchant")) {
+    if (!user.roles.includes("merchant")) {
       throw new AppError("User is not a merchant", 400);
     }
 
@@ -371,7 +553,45 @@ const getMerchantStats = async (userId) => {
   }
 };
 
+/**
+ * Track shop view (increment view count)
+ * @param {string} shopSlug - Shop slug identifier
+ * @returns {Promise<Object>} Updated view count
+ */
+const trackShopView = async (shopSlug) => {
+  try {
+    logger.info(`Tracking view for shop: ${shopSlug}`);
+
+    const user = await User.findOneAndUpdate(
+      {
+        "merchantDetails.shopSlug": shopSlug,
+        roles: "merchant",
+      },
+      {
+        $inc: { "merchantDetails.shopMetrics.totalViews": 1 },
+      },
+      {
+        new: true,
+        select: "merchantDetails.shopMetrics.totalViews",
+      }
+    );
+
+    if (!user) {
+      throw handleNotFoundError("Shop", shopSlug);
+    }
+
+    return {
+      totalViews: user.merchantDetails.shopMetrics.totalViews,
+      shopSlug,
+    };
+  } catch (error) {
+    return handleServiceError(error, "trackShopView");
+  }
+};
+
 module.exports = {
+  autoCreateShopFromProfile,
+  getOrCreateShop,
   createOrUpdateMerchantDetails,
   getMerchantDetails,
   getMerchantBySlug,
@@ -380,4 +600,6 @@ module.exports = {
   updateShopRating,
   updateShopStatus,
   getMerchantStats,
+  trackShopView,
+  syncMerchantDataToListings,
 };

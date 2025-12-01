@@ -126,10 +126,10 @@ jobs:
             # Restart client with PM2
             echo "🔄 Restarting frontend service..."
             if pm2 describe uitm-marketplace-client > /dev/null 2>&1; then
-              pm2 restart uitm-marketplace-client
-            else
-              pm2 start "serve -s build -l 3000" --name uitm-marketplace-client
+              pm2 delete uitm-marketplace-client
             fi
+            # Force serve to bind to 0.0.0.0 (accept external connections)
+            pm2 start "serve -s build -l tcp://0.0.0.0:3000" --name uitm-marketplace-client
             pm2 save
 
             echo "✅ Deployment completed successfully!"

@@ -26,6 +26,7 @@ jest.mock("express", () => {
     patch: jest.fn(), // Add missing patch method
     put: jest.fn(),
     delete: jest.fn(),
+    disable: jest.fn(), // Add missing disable method
     listen: jest.fn((port, callback) => {
       // Mock server object
       const mockServer = {

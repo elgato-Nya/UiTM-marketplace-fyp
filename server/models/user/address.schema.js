@@ -1,12 +1,14 @@
 const mongoose = require("mongoose");
+
 const {
   AddressValidator,
   addressErrorMessages,
   UserValidator,
 } = require("../../validators/user");
-const { CampusEnum, FacultyEnum } = require("../../utils/enums/user.enum");
+const { CampusEnum, StateEnum } = require("../../utils/enums/user.enum");
+const { AddressType } = require("../../utils/enums/order.enum");
 
-const { isValidCampus, isValidPhoneNumber } = UserValidator;
+const { isValidPhoneNumber } = UserValidator;
 const {
   isValidAddressLine1,
   isValidAddressLine2,
@@ -14,74 +16,90 @@ const {
   isValidCampusFloor,
   isValidCampusRoom,
   isValidCity,
-  isValidName,
+  isValidRecipientName,
   isValidPostcode,
-  isValidState,
 } = AddressValidator;
-const errorMessages = addressErrorMessages();
+
+// Helper function to set required fields based on address type
+function isCampusRequired() {
+  return this.type === "campus";
+}
+
+function isPersonalRequired() {
+  return this.type === "personal";
+}
 
 const AddressSchema = new mongoose.Schema(
   {
+    label: {
+      type: String,
+      trim: true,
+      minlength: [2, addressErrorMessages.label.invalid],
+      maxlength: [50, addressErrorMessages.label.invalid],
+    },
     type: {
       type: String,
-      required: [true, "Address type is required"],
+      required: [true, addressErrorMessages.type.required],
+      trim: true,
       enum: {
-        values: ["campus", "personal"],
-        message: "Address type must be one of 'campus', 'personal'",
+        values: Object.values(AddressType),
+        message: addressErrorMessages.type.invalid,
       },
     },
     recipientName: {
       type: String,
-      required: [true, "Receipant name is required"],
+      required: [true, addressErrorMessages.recipientName.required],
       trim: true,
       validate: {
-        validator: isValidName,
-        message:
-          "Recipient name contains only alphabet, '@', '/' and must be between 4 to 100 characters",
+        validator: isValidRecipientName,
+        message: addressErrorMessages.recipientName.invalid,
       },
     },
-    phoneNumber: {
+    recipientPhone: {
       type: String,
-      required: [true, "Phone number is required"],
+      required: [true, addressErrorMessages.recipientPhone.required],
       trim: true,
       validate: {
         validator: isValidPhoneNumber,
-        message: "Phone number must start with 0 and be 10 or 11 digits long",
+        message: addressErrorMessages.recipientPhone.invalid,
       },
     },
 
     campusAddress: {
       campus: {
         type: String,
+        required: [isCampusRequired, addressErrorMessages.campus.required],
         trim: true,
-        validate: {
-          validator: isValidCampus,
-          message: "Campus must be a valid enum value",
+        enum: {
+          values: Object.keys(CampusEnum),
+          message: addressErrorMessages.campus.invalid,
         },
       },
       building: {
         type: String,
+        required: [isCampusRequired, addressErrorMessages.building.required],
         trim: true,
         validate: {
           validator: isValidCampusBuilding,
-          message:
-            "Building name must be a string not exceeding 100 characters",
+          message: addressErrorMessages.building.invalid,
         },
       },
       floor: {
         type: String,
+        required: [isCampusRequired, addressErrorMessages.floor.required],
         trim: true,
         validate: {
           validator: isValidCampusFloor,
-          message: "Floor must be a string not exceeding 25 characters",
+          message: addressErrorMessages.floor.invalid,
         },
       },
       room: {
         type: String,
+        required: [isCampusRequired, addressErrorMessages.room.required],
         trim: true,
         validate: {
           validator: isValidCampusRoom,
-          message: "Room number is required for campus address",
+          message: addressErrorMessages.room.invalid,
         },
       },
     },
@@ -89,43 +107,87 @@ const AddressSchema = new mongoose.Schema(
     personalAddress: {
       addressLine1: {
         type: String,
+        required: [
+          isPersonalRequired,
+          addressErrorMessages.addressLine1.required,
+        ],
         trim: true,
         validate: {
           validator: isValidAddressLine1,
-          message: "Address line 1 is required for personal address",
+          message: addressErrorMessages.addressLine1.invalid,
         },
       },
       addressLine2: {
         type: String,
+        required: false,
         trim: true,
         validate: {
           validator: isValidAddressLine2,
-          message:
-            "Address line 2 must be a string not exceeding 150 characters",
+          message: addressErrorMessages.addressLine2.invalid,
         },
       },
       city: {
         type: String,
+        required: [isPersonalRequired, addressErrorMessages.city.required],
         trim: true,
         validate: {
           validator: isValidCity,
-          message: "City is required for personal address",
+          message: addressErrorMessages.city.invalid,
         },
       },
       state: {
         type: String,
+        required: [isPersonalRequired, addressErrorMessages.state.required],
         trim: true,
-        validate: {
-          validator: isValidState,
-          message: "State is required for personal address",
+        enum: {
+          values: Object.keys(StateEnum),
+          message: addressErrorMessages.state.invalid,
         },
       },
       postcode: {
         type: String,
+        required: [isPersonalRequired, addressErrorMessages.postcode.required],
         trim: true,
         validate: {
           validator: isValidPostcode,
-          message: "Postcode is required for personal address",
+          message: addressErrorMessages.postcode.invalid,
+        },
+      },
+    },
+
+    // Pickup/Meetup Point Details
+    pickupDetails: {
+      location: {
+        type: String,
+        required: [
+          function () {
+            return this.type === "pickup";
+          },
+          addressErrorMessages.pickupLocation.required,
+        ],
+        trim: true,
+        validate: {
+          validator: function (value) {
+            if (this.type !== "pickup") return true;
+            return AddressValidator.isValidPickupLocation(value);
+          },
+          message: addressErrorMessages.pickupLocation.invalid,
+        },
+      },
+      pickupTime: {
+        type: Date,
+        required: [
+          function () {
+            return this.type === "pickup";
+          },
+          addressErrorMessages.pickupTime.required,
+        ],
+        validate: {
+          validator: function (value) {
+            if (this.type !== "pickup") return true;
+            return AddressValidator.isValidPickupTime(value);
+          },
+          message: addressErrorMessages.pickupTime.invalid,
         },
       },
     },
@@ -133,17 +195,16 @@ const AddressSchema = new mongoose.Schema(
     specialInstructions: {
       type: String,
       trim: true,
-      maxlength: [500, "Special instructions cannot exceed 500 characters"],
+      maxlength: [250, addressErrorMessages.specialInstructions.maxLength],
     },
 
     isDefault: {
       type: Boolean,
       default: false,
-      required: [true, "Default address flag is required"],
     },
   },
   {
-    _id: true, // Keep _id for embedded documents
+    _id: true, // keep this for explicitness, addresses will have their own _id
     timestamps: true,
     toJSON: {
       virtuals: true,
@@ -193,25 +254,24 @@ AddressSchema.pre("save", function (next) {
     return next(error);
   }
 
+  // Validate that pickup addresses have pickupDetails
+  if (
+    this.type === "pickup" &&
+    (!this.pickupDetails || !this.pickupDetails.location)
+  ) {
+    const error = new Error(
+      "Pickup details are required for pickup type addresses"
+    );
+    error.name = "ValidationError";
+    return next(error);
+  }
+
   // Campus enum conversion is now handled in the service layer
   // for better separation of concerns and easier testing
   next();
 });
 
-AddressSchema.pre("save", async function (next) {
-  if (this.isDefault && this.isModified("isDefault")) {
-    // Remove default flag from other addresses of the same type
-    await this.constructor.updateMany(
-      {
-        userId: this.userId,
-        type: this.type,
-        _id: { $ne: this._id },
-      },
-      { isDefault: false }
-    );
-  }
-  next();
-});
+// ======================   Virtuals   ========================
 
 AddressSchema.virtual("formattedAddress").get(function () {
   if (this.type === "campus" && this.campusAddress) {
@@ -225,6 +285,16 @@ AddressSchema.virtual("formattedAddress").get(function () {
     return `${addressLine1},${
       addressLine2 ? `, ${addressLine2}` : ""
     }, ${postcode}, ${city}, ${state}`;
+  } else if (this.type === "pickup" && this.pickupDetails) {
+    const { location, pickupTime } = this.pickupDetails;
+    const formattedTime = pickupTime
+      ? new Date(pickupTime).toLocaleString("en-MY", {
+          dateStyle: "short",
+          timeStyle: "short",
+        })
+      : "";
+
+    return `${location}${formattedTime ? ` (${formattedTime})` : ""}`;
   }
   return "";
 });

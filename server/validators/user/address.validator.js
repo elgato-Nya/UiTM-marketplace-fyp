@@ -1,18 +1,54 @@
 const { UserValidator } = require("./user.validator");
-const { StateEnum } = require("../../enums/user.enum");
+const { StateEnum } = require("../../utils/enums/user.enum");
 
 const { isValidCampus, isValidPhoneNumber } = UserValidator;
+const { AddressType } = require("../../utils/enums/order.enum");
 
 class AddressValidator {
+  static isValidLabel(label) {
+    if (!label) return true; // Optional field
+    if (typeof label !== "string") return false;
+    if (label.trim().length < 2) return false;
+    if (label.trim().length > 50) return false;
+    return true;
+  }
+
   static isValidAddressType(type) {
-    const AddressTypeEnum = Object.freeze({
-      CAMPUS: "campus",
-      PERSONAL: "personal",
-      // ? consider add "temporary" address type in the future
-    });
-    return (
-      typeof type === "string" && Object.values(AddressTypeEnum).includes(type)
-    );
+    if (typeof type !== "string") return false;
+
+    const validTypes = [
+      ...Object.keys(AddressType),
+      ...Object.values(AddressType),
+    ];
+    return validTypes.includes(type);
+  }
+
+  static isValidRecipientName(recipientName) {
+    if (!recipientName || typeof recipientName !== "string") return false;
+    const trimmedName = recipientName.trim();
+    // Accepts only alphabet (lower/uppercase), only one "@" symbol, and only one "/" symbol, and max length 100
+    if ((trimmedName.match(/@/g) || []).length > 1) return false;
+    if ((trimmedName.match(/\//g) || []).length > 1) return false;
+    return /^[A-Za-z@\/ ]{4,100}$/.test(trimmedName);
+  }
+
+  static isValidCampusAddress(address) {
+    if (!address || typeof address !== "object") {
+      return false;
+    }
+
+    const { campusAddress } = address;
+    return AddressValidator.isValidCampusDetails(campusAddress);
+  }
+
+  static isValidCampusDetails(campusAddress) {
+    if (!campusAddress || typeof campusAddress !== "object") return false;
+    if (!isValidCampus(campusAddress.campus)) return false;
+    if (!AddressValidator.isValidCampusBuilding(campusAddress.building))
+      return false;
+    if (!AddressValidator.isValidCampusFloor(campusAddress.floor)) return false;
+    if (!AddressValidator.isValidCampusRoom(campusAddress.room)) return false;
+    return true;
   }
 
   static isValidCampusBuilding(building) {
@@ -35,45 +71,23 @@ class AddressValidator {
     return true;
   }
 
-  static isValidCampusAddress(address) {
-    if (
-      !address ||
-      typeof address !== "object" ||
-      address.type !== "campus" ||
-      !AddressValidator.isValidAddressType(address.type)
-    ) {
-      return false;
-    }
+  static isValidPersonalAddress(address) {
+    if (!address || typeof address !== "object") return false;
 
-    const { campusAddress } = address;
-    if (
-      !campusAddress ||
-      typeof campusAddress !== "object" ||
-      !isValidCampus(campusAddress.campus) ||
-      !AddressValidator.isValidCampusBuilding(campusAddress.building) ||
-      !AddressValidator.isValidCampusFloor(campusAddress.floor) ||
-      !AddressValidator.isValidCampusRoom(campusAddress.room)
-    ) {
-      return false;
-    }
-
-    return true;
+    const { personalAddress } = address;
+    return AddressValidator.isValidPersonalDetails(personalAddress);
   }
 
-  static isValidPersonalAddress(address) {
-    const { personalAddress } = address;
-    if (
-      !personalAddress ||
-      typeof personalAddress !== "object" ||
-      !AddressValidator.isValidAddressLine1(personalAddress.addressLine1) ||
-      !AddressValidator.isValidAddressLine2(personalAddress.addressLine2) ||
-      !AddressValidator.isValidCity(personalAddress.city) ||
-      !AddressValidator.isValidState(personalAddress.state) ||
-      !AddressValidator.isValidPostcode(personalAddress.postcode)
-    ) {
+  static isValidPersonalDetails(personalAddress) {
+    if (!personalAddress || typeof personalAddress !== "object") return false;
+    if (!AddressValidator.isValidAddressLine1(personalAddress.addressLine1))
       return false;
-    }
-
+    if (!AddressValidator.isValidAddressLine2(personalAddress.addressLine2))
+      return false;
+    if (!AddressValidator.isValidCity(personalAddress.city)) return false;
+    if (!AddressValidator.isValidState(personalAddress.state)) return false;
+    if (!AddressValidator.isValidPostcode(personalAddress.postcode))
+      return false;
     return true;
   }
 
@@ -103,7 +117,11 @@ class AddressValidator {
   static isValidState(state) {
     if (!state || typeof state !== "string") return false;
 
-    return Object.values(StateEnum).includes(state);
+    const validValues = [
+      ...Object.values(StateEnum),
+      ...Object.keys(StateEnum),
+    ];
+    return validValues.includes(state);
   }
 
   static isValidPostcode(postcode) {
@@ -113,12 +131,36 @@ class AddressValidator {
     return /^\d{5}$/.test(postcode);
   }
 
-  static isValidName(name) {
-    if (!name || typeof name !== "string") return false;
-    // Accepts only alphabet (lower/uppercase), only one "@" symbol, and only one "/" symbol, and max length 100
-    if ((name.match(/@/g) || []).length > 1) return false;
-    if ((name.match(/\//g) || []).length > 1) return false;
-    return /^[A-Za-z@\/ ]{4,100}$/.test(name);
+  static isValidPickupDetails(pickupDetails) {
+    if (!pickupDetails || typeof pickupDetails !== "object") return false;
+
+    const { location, pickupTime } = pickupDetails;
+
+    return (
+      AddressValidator.isValidPickupLocation(location) &&
+      AddressValidator.isValidPickupTime(pickupTime)
+    );
+  }
+
+  static isValidPickupLocation(location) {
+    if (!location || typeof location !== "string") return false;
+    if (location.trim().length < 5) return false;
+    if (location.length > 200) return false;
+    return true;
+  }
+
+  static isValidSpecialInstructions(instructions) {
+    if (!instructions) return true;
+    if (instructions && typeof instructions !== "string") return false;
+    if (instructions && instructions.length > 250) return false;
+    return true;
+  }
+
+  static isValidPickupTime(time) {
+    if (!time) return false;
+    const date = new Date(time);
+    if (date < new Date()) return false; // Must be a future date
+    return !isNaN(date.getTime());
   }
 
   static isValidAddress(address) {
@@ -126,14 +168,24 @@ class AddressValidator {
 
     if (
       !AddressValidator.isValidAddressType(address.type) ||
-      !AddressValidator.isValidName(address.recipientName) ||
-      !isValidPhoneNumber(address.phoneNumber) ||
-      (address.type === "campus" &&
-        !AddressValidator.isValidCampusAddress(address)) ||
-      (address.type === "personal" &&
-        !AddressValidator.isValidPersonalAddress(address))
+      !AddressValidator.isValidRecipientName(address.recipientName) ||
+      !isValidPhoneNumber(address.recipientPhone)
     ) {
       return false;
+    }
+
+    switch (address.type) {
+      case "campus":
+        if (!AddressValidator.isValidCampusAddress(address)) return false;
+        break;
+      case "personal":
+        if (!AddressValidator.isValidPersonalAddress(address)) return false;
+        break;
+      case "pickup":
+        // No further validation for pickup type
+        break;
+      default:
+        return false;
     }
 
     return true;
@@ -143,7 +195,10 @@ class AddressValidator {
 /**
  * Centralized error messages for address validation
  */
-const addressErrorMessages = () => ({
+const addressErrorMessages = {
+  label: {
+    invalid: "Label must be a string between 2 to 50 characters",
+  },
   type: {
     required: "Address type is required",
     invalid: "Address type must be one of 'campus', 'personal'",
@@ -153,16 +208,17 @@ const addressErrorMessages = () => ({
     invalid:
       "Recipient name contains only alphabet, '@', '/' and must be between 4 to 100 characters",
   },
-  phoneNumber: {
+  recipientPhone: {
     required: "Phone number is required",
     invalid: "Phone number is required (e.g., 01234567890)",
+  },
+  campusAddress: {
+    required: "Campus address is required if type is 'campus'",
+    invalid: "Campus address is invalid",
   },
   campus: {
     required: "Campus is required for campus addresses",
     invalid: "Campus must be a valid enum value",
-  },
-  campusAddress: {
-    required: "Campus address is required if type is 'campus'",
   },
   building: {
     required: "Building name is required for campus addresses",
@@ -178,6 +234,7 @@ const addressErrorMessages = () => ({
   },
   personalAddress: {
     required: "Personal address is required if type is 'personal'",
+    invalid: "Personal address is invalid",
   },
   addressLine1: {
     required: "Address line 1 is required",
@@ -198,10 +255,43 @@ const addressErrorMessages = () => ({
     required: "Postcode is required",
     invalid: "Postcode must be a 5-digit string",
   },
+  pickupDetails: {
+    required: "Pickup details are required for pickup type addresses",
+    invalid: "Pickup details are invalid",
+  },
+  pickupLocation: {
+    required: "Pickup location is required in pickup details",
+    invalid: "Pickup location must be a string between 5 to 200 characters",
+  },
+  specialInstructions: {
+    invalid:
+      "Special instructions must be a string not exceeding 250 characters",
+  },
+  pickupTime: {
+    required: "Pickup time is required in pickup details",
+    invalid: "Pickup time must be a valid future date",
+  },
   address: {
     invalid: "Address is invalid",
+    required: "Address is required",
   },
-});
+  addressId: {
+    required: "Address ID is required",
+    invalid: "Address ID must be a valid MongoDB ObjectId",
+  },
+  recipientName: {
+    required: "Recipient name is required",
+    invalid:
+      "Recipient name must be between 4 to 100 characters and contain only letters, '@' and '/' symbols",
+  },
+  recipientPhone: {
+    required: "Phone number is required",
+    invalid: "Phone number must start with 0 and be 10 or 11 digits long",
+  },
+  isDefault: {
+    required: "isDefault must be a boolean value",
+  },
+};
 
 module.exports = {
   AddressValidator,

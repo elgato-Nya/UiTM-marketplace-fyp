@@ -1,5 +1,5 @@
-const { body, param, validationResult } = require("express-validator");
-const logger = require("../../../utils/logger");
+const { body, param } = require("express-validator");
+const { handleValidationErrors } = require("../validation.error");
 
 const {
   addressErrorMessages,
@@ -7,165 +7,130 @@ const {
   UserValidator,
 } = require("../../../validators/user");
 
-const errorMessages = addressErrorMessages();
 const {
-  isValidName,
+  isValidLabel,
+  isValidRecipientName,
   isValidAddressType,
-  isValidCampusAddress,
-  isValidPersonalAddress,
+  isValidCampusDetails,
+  isValidPersonalDetails,
   isValidAddress,
 } = AddressValidator;
 const { isValidPhoneNumber } = UserValidator;
 
-// ================ VALIDATION ERROR MIDDLEWARE ================
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const formattedErrors = errors.array().map((error) => ({
-      field: error.path,
-      message: error.msg,
-      value: error.value,
-      location: error.location,
-    }));
-
-    logger.error("Validation errors:", {
-      formattedErrors,
-      request: {
-        method: req.method,
-        url: req.originalUrl,
-        body: req.body,
-        params: req.params,
-        query: req.query,
-      },
-      user: req.user ? { id: req.user._id, email: req.user.email } : null,
-      timestamp: new Date().toISOString(),
-    });
-
-    return res.status(400).json({
-      success: false,
-      message: "Validation failed",
-      errors: formattedErrors,
-      code: "VALIDATION_ERROR",
-    });
-  }
-
-  next();
-};
-
 // ================ REUSABLE VALIDATION RULE CHAINS ================
-const nameValidation = (fieldName = "name") => {
-  return body(fieldName)
-    .notEmpty()
-    .withMessage("Recipient name is required")
-    .bail()
-    .isString()
-    .withMessage("Recipient name must be a string")
-    .bail()
-    .custom((name) => {
-      if (!isValidName(name)) {
-        throw new Error(errorMessages.recipientName.invalid);
-      }
-      return true;
-    });
-};
 
-const phoneNumberValidation = (fieldName = "phoneNumber") => {
+const addressLabelValidation = (fieldName = "label") => {
   return body(fieldName)
-    .notEmpty()
-    .withMessage("Phone number is required")
+    .optional()
+    .isString()
+    .withMessage(addressErrorMessages.label.invalid)
     .bail()
-    .trim()
-    .custom((phoneNumber) => {
-      if (!isValidPhoneNumber(phoneNumber)) {
-        throw new Error(errorMessages.phoneNumber.invalid);
-      }
-      return true;
-    });
+    .custom((label) => {
+      return isValidLabel(label);
+    })
+    .withMessage(addressErrorMessages.label.invalid);
 };
 
 const addressTypeValidation = (fieldName = "type") => {
   return body(fieldName)
     .notEmpty()
-    .withMessage("Address type is required")
+    .withMessage(addressErrorMessages.type.required)
     .bail()
     .custom((type) => {
-      if (!isValidAddressType(type)) {
-        throw new Error(errorMessages.type.invalid);
-      }
-      return true;
-    });
+      return isValidAddressType(type);
+    })
+    .withMessage(addressErrorMessages.type.invalid);
+};
+
+const recipientNameValidation = (fieldName = "recipientName") => {
+  return body(fieldName)
+    .notEmpty()
+    .withMessage(addressErrorMessages.recipientName.required)
+    .bail()
+    .isString()
+    .withMessage(addressErrorMessages.recipientName.invalid)
+    .bail()
+    .custom((name) => {
+      return isValidRecipientName(name);
+    })
+    .withMessage(addressErrorMessages.recipientName.invalid);
+};
+
+const recipientPhoneValidation = (fieldName = "recipientPhone") => {
+  return body(fieldName)
+    .notEmpty()
+    .withMessage(addressErrorMessages.recipientPhone.required)
+    .bail()
+    .trim()
+    .custom((recipientPhone) => {
+      return isValidPhoneNumber(recipientPhone);
+    })
+    .withMessage(addressErrorMessages.recipientPhone.invalid);
 };
 
 const campusAddressValidation = (fieldName = "campusAddress") => {
   return body(fieldName)
     .if(body("type").equals("campus"))
-    .notEmpty()
-    .withMessage("Campus address is required")
-    .custom((campusAddress, { req }) => {
-      if (!isValidCampusAddress({ type: "campus", campusAddress })) {
-        throw new Error(errorMessages.campusAddress.required);
-      }
-      return true;
-    });
+    .custom((address) => {
+      return isValidCampusDetails(address);
+    })
+    .withMessage(addressErrorMessages.campusAddress.invalid);
 };
 
 const personalAddressValidation = (fieldName = "personalAddress") => {
   return body(fieldName)
     .if(body("type").equals("personal"))
-    .notEmpty()
-    .withMessage("Personal address is required")
-    .custom((personalAddress, { req }) => {
-      if (!isValidPersonalAddress({ type: "personal", personalAddress })) {
-        throw new Error(errorMessages.personalAddress.required);
-      }
-      return true;
-    });
+    .custom((address) => {
+      return isValidPersonalDetails(address);
+    })
+    .withMessage(addressErrorMessages.personalAddress.invalid);
 };
 
+// !! might delete later if not used
 const addressValidationByType = (address = "address") => {
   return body(address)
     .notEmpty()
-    .withMessage("Address is required")
+    .withMessage(addressErrorMessages.address.required)
     .bail()
-    .custom((addr) => {
-      if (!isValidAddress(addr)) {
-        throw new Error(addressErrorMessages().address.invalid);
-      }
-    });
+    .custom((address) => {
+      return isValidAddress(address);
+    })
+    .withMessage(addressErrorMessages.address.invalid);
+};
+
+const paramIdValidation = (fieldName = "addressId") => {
+  return param(fieldName)
+    .notEmpty()
+    .withMessage(addressErrorMessages.addressId.required)
+    .bail()
+    .isMongoId()
+    .withMessage(addressErrorMessages.addressId.invalid);
 };
 
 // ================ COMPLETE VALIDATION MIDDLEWARES ================
 const validateCreateAddress = [
-  nameValidation(),
-  phoneNumberValidation(),
-  addressTypeValidation(),
-  campusAddressValidation(),
-  personalAddressValidation(),
+  addressLabelValidation("label"),
+  addressTypeValidation("type"),
+  recipientNameValidation("recipientName"),
+  recipientPhoneValidation("recipientPhone"),
+  campusAddressValidation("campusAddress"),
+  personalAddressValidation("personalAddress"),
   handleValidationErrors,
 ];
 
 const validateUpdateAddress = [
-  param("addressId")
-    .notEmpty()
-    .withMessage("Address ID is required")
-    .bail()
-    .isMongoId()
-    .withMessage("Invalid address ID format"),
-  nameValidation(),
-  phoneNumberValidation(),
-  addressTypeValidation(),
-  campusAddressValidation(),
-  personalAddressValidation(),
+  addressLabelValidation("label"),
+  addressTypeValidation("type"),
+  paramIdValidation("addressId"),
+  recipientNameValidation("recipientName"),
+  recipientPhoneValidation("recipientPhone"),
+  campusAddressValidation("campusAddress"),
+  personalAddressValidation("personalAddress"),
   handleValidationErrors,
 ];
 
 const validateDeleteAddress = [
-  param("addressId")
-    .notEmpty()
-    .withMessage("Address ID is required")
-    .bail()
-    .isMongoId()
-    .withMessage("Invalid address ID format"),
+  paramIdValidation("addressId"),
   handleValidationErrors,
 ];
 
@@ -173,5 +138,6 @@ module.exports = {
   validateCreateAddress,
   validateUpdateAddress,
   validateDeleteAddress,
-  handleValidationErrors,
+
+  addressValidationByType,
 };

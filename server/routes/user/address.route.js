@@ -5,6 +5,7 @@ const {
   addAddress,
   updateAddress,
   deleteAddress,
+  setDefaultAddress,
   getDefaultAddress,
 } = require("../../controllers/user");
 const {
@@ -45,7 +46,7 @@ const router = express.Router();
 router.use(protect);
 
 /**
- * @route   GET /api/addresses
+ * @route   GET /api/addresses?type=campus|personal
  * @desc    Get all addresses for current user
  * @access  Private
  * @returns Array of user addresses (campus and personal)
@@ -80,9 +81,17 @@ router.patch("/:addressId", validateUpdateAddress, updateAddress);
 router.delete("/:addressId", validateDeleteAddress, deleteAddress);
 
 /**
+ * @route   PATCH /api/addresses/:addressId/default
+ * @desc    Set specific address as default for current user
+ * @access  Private
+ */
+router.patch("/:addressId/default", setDefaultAddress);
+
+/**
  * @route   GET /api/addresses/default
  * @desc    Get current user's default address
  * @access  Private
+ * @query   type - Optional address type filter (campus or personal)
  * @returns Default address object or null if none set
  */
 router.get("/default", getDefaultAddress);

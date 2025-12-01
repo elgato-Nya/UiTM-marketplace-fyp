@@ -17,6 +17,33 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: client/package-lock.json
+
+      - name: Build React App
+        working-directory: client
+        run: |
+          npm ci
+          npm run build
+        env:
+          REACT_APP_ENVIRONMENT: production
+          REACT_APP_API_URL: http://${{ secrets.EC2_HOST }}:5000
+          REACT_APP_STRIPE_PUBLISHABLE_KEY: pk_test_51S8W3mJg56CMs4rbFNQy9iOSCDP91SLVMvJwWKIsHULGvp9r6ebVbjQ7vpa5Wn1ru0ZNlwEIkws92kk5Fhdn7fWH0086zCsjgI
+
+      - name: Upload Build to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "client/build"
+          target: "/home/ubuntu/uitm-marketplace"
+          strip_components: 1
+
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@master
         with:
@@ -61,27 +88,23 @@ jobs:
             pm2 save
 
             # ========== FRONTEND DEPLOYMENT ==========
-            echo "🎨 Building and deploying frontend..."
+            echo "🎨 Deploying pre-built frontend..."
             cd $APP_DIR/client
 
-            # Install dependencies
-            npm ci
+            # Client is already built by GitHub Actions
+            # Just install serve if not present
+            if ! command -v serve &> /dev/null; then
+              sudo npm install -g serve
+            fi
 
-            # Build production bundle
-            npm run build
-
-            # Serve via Express (if using server to serve client)
-            # OR copy to Nginx directory (choose one approach)
-
-            # Option 1: If Express serves the React build
-            echo "✅ Frontend build completed. Express will serve it."
-
-            # Option 2: If using Nginx to serve React
-            # Uncomment these lines if you're using Nginx:
-            # echo "📦 Copying build to Nginx directory..."
-            # sudo rm -rf /var/www/ecommerce-frontend/build
-            # sudo cp -r build /var/www/ecommerce-frontend/
-            # sudo systemctl restart nginx
+            # Restart client with PM2
+            echo "🔄 Restarting frontend service..."
+            if pm2 describe uitm-marketplace-client > /dev/null 2>&1; then
+              pm2 restart uitm-marketplace-client
+            else
+              pm2 start "serve -s build -l 3000" --name uitm-marketplace-client
+            fi
+            pm2 save
 
             echo "✅ Deployment completed successfully!"
 

@@ -14,7 +14,6 @@ import { ShoppingBag } from "@mui/icons-material";
 
 import { useAuth } from "../../features/auth/hooks/useAuth";
 import { useSnackbar } from "../../hooks/useSnackbar";
-import { useTheme } from "../../hooks/useTheme";
 import DynamicSkeleton from "../../components/ui/Skeleton/DynamicSkeleton";
 import SnackbarContainer from "../../components/ui/SnackbarContainer";
 

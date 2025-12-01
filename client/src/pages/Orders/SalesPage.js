@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Container,
   Box,
@@ -28,7 +28,7 @@ import { useOrderActions } from "../../features/orders/hooks/useOrderActions";
 
 function SalesPage() {
   const { isAuthenticated } = useAuth();
-  const [searchParams] = useSearchParams(); // Removed unused setSearchParams
+  const [searchParams, setSearchParams] = useSearchParams(); // Keep setSearchParams - it's used later
 
   const {
     orders,

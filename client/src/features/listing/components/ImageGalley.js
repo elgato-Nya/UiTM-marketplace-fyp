@@ -140,7 +140,7 @@ const ImageGallery = ({ images = [], altText = "Listing Images" }) => {
                 height: 80,
                 cursor: "pointer",
                 overflow: "hidden",
-                border: selectedIndex === index ? 2 : 0,
+                border: currentIndex === index ? 2 : 0,
                 borderColor: "primary.main",
                 transition: "all 0.2s",
                 "&:hover": {

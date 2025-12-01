@@ -1,3 +1,19 @@
+# UiTM Marketplace - SEO Configuration
 # https://www.robotstxt.org/robotstxt.html
+
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /checkout/
+Disallow: /cart/
+Disallow: /profile/
+Disallow: /dashboard/
+Disallow: /orders/
+
+# Allow search engines to index public pages
+Allow: /listings/
+Allow: /products/
+Allow: /services/
+Allow: /shops/
+
+# Sitemap location (update with your actual domain)
+Sitemap: https://yourdomain.com/sitemap.xml

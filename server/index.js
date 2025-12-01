@@ -1,11 +1,14 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const morgan = require("morgan");
 const compression = require("compression");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
-const mongoSanitize = require("express-mongo-sanitize");
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
+
+// Import centralized config (validates environment variables on startup)
+const config = require("./config/env.config");
 
 const corsOptions = require("./config/cors.config");
 const helmetConfig = require("./config/helmet.config");
@@ -23,8 +26,33 @@ const authRoutes = require("./routes/user/auth.route");
 const userRoutes = require("./routes/user/user.route");
 const addressRoutes = require("./routes/user/address.route");
 const merchantRoutes = require("./routes/user/merchant.route");
+const listingRoutes = require("./routes/listing/listing.route");
+const orderRoutes = require("./routes/order/order.route");
+const uploadRoutes = require("./routes/upload/upload.route");
+const cartRoutes = require("./routes/cart/cart.route");
+const wishlistRoutes = require("./routes/wishlist/wishlist.route");
+const checkoutRoutes = require("./routes/checkout/checkout.route");
+const analyticsRoutes = require("./routes/analytic/analytics.route");
+
+logger.info("All route modules loaded successfully", {
+  routes: [
+    "auth",
+    "user",
+    "address",
+    "merchant",
+    "listing",
+    "order",
+    "upload",
+    "cart",
+    "wishlist",
+    "checkout",
+    "analytics",
+  ],
+});
 
 const app = express();
+
+app.disable("x-powered-by"); // Explicitly remove X-Powered-By header
 
 // ================== SECURITY MIDDLEWARE ========================
 app.use(helmetConfig);
@@ -40,12 +68,8 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb", strict: true })); // Increase body size limit for large requests
 app.use(express.urlencoded({ extended: true, limit: "10mb" })); // Increase body size limit for form data
-app.use(
-  mongoSanitize({
-    replaceWith: "_", // Replace with underscore to prevent MongoDB injection
-    allowDots: true, // Allow dots in keys
-  })
-);
+// Note: NoSQL injection prevention is handled via enhanced sanitizeObject() in utils/sanitizer.js
+// This approach is more reliable and compatible with Express v5
 
 // Compress response bodies for better performance
 app.use(
@@ -70,6 +94,13 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/addresses", addressRoutes);
 app.use("/api/merchants", merchantRoutes);
+app.use("/api/listings", listingRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/upload", uploadRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/checkout", checkoutRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -83,14 +114,15 @@ app.get("/api/health", (req, res) => {
 
 // ================== ERROR HANDLING ========================
 // Handle undefined routes (404) - must come before global error handler
-app.use((req, res, next) => {
-  handleNotFound(req, res, next);
-});
+app.use(handleNotFound);
 
 // Global error handling middleware - MUST be last middleware in the stack
 app.use(globalErrorHandler);
 
 // ================== START SERVER ========================
+// Move scheduler functions to module scope for graceful shutdown
+let startAnalyticsScheduler, stopAnalyticsScheduler;
+
 const startServer = async () => {
   try {
     logger.info("Starting e-commerce server...", {
@@ -101,6 +133,19 @@ const startServer = async () => {
     // Try to connect to database, but don't fail if it's not available in development
     try {
       await database.connect();
+
+      // Import scheduler functions after database connection
+      const analyticsJob = require("./jobs/analytics.job");
+      startAnalyticsScheduler = analyticsJob.startAnalyticsScheduler;
+      stopAnalyticsScheduler = analyticsJob.stopAnalyticsScheduler;
+
+      // Start scheduler when MongoDB is ready
+      mongoose.connection.once("open", () => {
+        logger.info("MongoDB connected successfully");
+
+        // Start analytics scheduler
+        startAnalyticsScheduler();
+      });
     } catch (dbError) {
       if (process.env.NODE_ENV === "development") {
         logger.warn(
@@ -128,6 +173,9 @@ const startServer = async () => {
     // Graceful shutdown handling
     process.on("SIGTERM", () => {
       logger.info("SIGTERM received, shutting down gracefully");
+      if (stopAnalyticsScheduler) {
+        stopAnalyticsScheduler();
+      }
       server.close(() => {
         logger.info("Process terminated");
       });
@@ -135,6 +183,9 @@ const startServer = async () => {
 
     process.on("SIGINT", () => {
       logger.info("SIGINT received, shutting down gracefully");
+      if (stopAnalyticsScheduler) {
+        stopAnalyticsScheduler();
+      }
       server.close(() => {
         logger.info("Process terminated");
       });

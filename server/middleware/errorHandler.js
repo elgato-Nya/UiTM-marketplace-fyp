@@ -110,6 +110,7 @@ const sendErrorDev = (err, req, res) => {
       },
       message: err.message,
       name: err.name,
+      ...(err.details && { details: err.details }), // Include validation details
     },
     timestamp: new Date().toISOString(),
     request: {
@@ -142,6 +143,7 @@ const sendErrorProd = (err, req, res) => {
       success: false,
       message: err.message,
       code: err.code,
+      ...(err.details && { details: err.details }), // Include validation details in production too
       timestamp: new Date().toISOString(),
     });
   } else {

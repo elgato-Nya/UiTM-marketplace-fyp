@@ -24,6 +24,7 @@ class BaseController {
   constructor() {
     // Bind methods to ensure 'this' context is maintained
     this.sendSuccess = this.sendSuccess.bind(this);
+    this.sendError = this.sendError.bind(this);
     this.logAction = this.logAction.bind(this);
 
     // Make logger available to all child controllers
@@ -31,11 +32,13 @@ class BaseController {
   }
 
   /**
-   * Standard Success Response
-   *
-   * PURPOSE: Send consistent success responses
-   *
-   * FORMAT: Always includes success flag, message, and data
+   * PURPOSE: Standardize successful API responses
+   * @param {Response} res - Express response object
+   * @param {*} data - the main response data (payload, by default null)
+   * @param {String} message - a descriptive message for the response (default "Operation successful")
+   * @param {Number} statusCode - HTTP status code for the response (default 200)
+   * @param {Object} meta - additional metadata to include in the response (default {})
+   * @returns res.status(statusCode).json(response);
    */
   sendSuccess(
     res,
@@ -47,10 +50,68 @@ class BaseController {
     const response = {
       success: true,
       message,
-      ...(data && { data }),
+      // Spread the data directly into the response instead of nesting it
+      ...(data && typeof data === "object" && data !== null ? data : { data }),
       ...(Object.keys(meta).length > 0 && { meta }),
       timestamp: new Date().toISOString(),
     };
+
+    return res.status(statusCode).json(response);
+  }
+
+  /**
+   * PURPOSE: Send structured response with data nested in 'data' field
+   * USE: For consistent client-side data access patterns
+   */
+  sendStructuredSuccess(
+    res,
+    data = null,
+    message = "Operation successful",
+    statusCode = 200,
+    meta = {}
+  ) {
+    const response = {
+      success: true,
+      message,
+      data,
+      ...(Object.keys(meta).length > 0 && { meta }),
+      timestamp: new Date().toISOString(),
+    };
+
+    return res.status(statusCode).json(response);
+  }
+
+  /**
+   * PURPOSE: Standardize error API responses
+   * @param {Response} res - Express response object
+   * @param {String} message - Error message
+   * @param {Number} statusCode - HTTP status code (default 400)
+   * @param {String} code - Error code for client handling (default "VALIDATION_ERROR")
+   * @param {Array|Object} errors - Additional error details (default null)
+   * @returns res.status(statusCode).json(response);
+   */
+  sendError(
+    res,
+    message = "An error occurred",
+    statusCode = 400,
+    code = "VALIDATION_ERROR",
+    errors = null
+  ) {
+    const response = {
+      success: false,
+      message,
+      code,
+      ...(errors && { errors }),
+      timestamp: new Date().toISOString(),
+    };
+
+    // Log the error for monitoring
+    this.logger.warn("Controller error response", {
+      message,
+      code,
+      statusCode,
+      category: "controller_error",
+    });
 
     return res.status(statusCode).json(response);
   }
@@ -127,13 +188,16 @@ class BaseController {
    * USAGE: this.logAction('get_users', req, { additional: 'context' });
    */
   logAction(action, req, additionalContext = {}) {
+    const userId =
+      req.user?._id?.toString?.() || req.user?.id?.toString?.() || "undefined";
+
     this.logger.info(`Controller action: ${action}`, {
       action,
       method: req.method,
       url: req.originalUrl,
-      userId: req.user?._id || req.user?.id || "undefined",
+      userId,
       ip: req.ip,
-      userAgent: req.get("User-Agent"),
+      userAgent: req.headers?.["user-agent"] || "unknown",
       ...additionalContext,
       category: "controller_action",
     });

@@ -1,4 +1,5 @@
-const { ListingCategory } = require("../../enums/listing.enum");
+const { ListingCategory } = require("../../utils/enums/listing.enum");
+const { UploadValidator } = require("../upload/upload.validator");
 
 /**
  * Pure validation functions for listing-related data
@@ -33,12 +34,12 @@ class ListingValidator {
   /** Validates listing name
    * @param {string} name
    * @returns {boolean}
-   * NOTE: Name must be a non-empty string with max length 100 and cannot contain / \ : * ? " < > |
+   * NOTE: Name must be a non-empty string with min length of 5, max length 100 and cannot contain / \ : * ? " < > |
    */
-  static isValidListigName(name) {
+  static isValidListingName(name) {
     if (!name || typeof name !== "string") return false;
     const trimmed = name.trim();
-    if (trimmed.length === 0 || trimmed.length > 100) return false;
+    if (trimmed.length < 5 || trimmed.length > 100) return false;
     // Disallow / \ : * ? " < > |
     return /^[^\/\\:*?"<>|]+$/.test(trimmed);
   }
@@ -46,7 +47,7 @@ class ListingValidator {
   /** Validates listing description
    * @param {string} description
    * @returns {boolean}
-   * NOTE: Description is optional but if provided must be a string with max length 1000
+   * NOTE: Description is OPTIONAL but if provided must be a string with max length 1000
    */
   static isValidListingDescription(description) {
     if (!description) return true; // Description is optional
@@ -74,23 +75,34 @@ class ListingValidator {
     return stock >= 0 && Number.isInteger(stock);
   }
 
-  /** Validates image URL
+  /**
+   * Validates array of image URLs
+   * @param {Array} images
+   * @returns {boolean}
+   * NOTE: Uses shared UploadValidator for consistency
+   * NOTE: Allows 0-10 images (empty array is valid for optional images)
+   */
+  static isValidImagesArray(images) {
+    if (!Array.isArray(images)) return false;
+    // Allow empty array (images optional) or up to 10 images
+    if (images.length === 0) return true;
+    if (images.length > 10) return false;
+    return images.every((url) => UploadValidator.isValidImageUrl(url));
+  }
+
+  /**
+   * Validates single image URL
    * @param {string} imageUrl
    * @returns {boolean}
-   * NOTE: Image URL must be a valid URL (starting with http/https) or a valid base64 image string (e.g., data:image/png;base64,...)
+   * NOTE: Delegates to shared UploadValidator for consistency
    */
   static isValidImageUrl(imageUrl) {
-    if (!imageUrl || typeof imageUrl !== "string") return false;
-
-    // Allow URLs or base64 images
-    const urlPattern = /^https?:\/\/.+/;
-    const base64Pattern = /^data:image\/(jpeg|jpg|png|gif);base64,/;
-
-    return urlPattern.test(imageUrl) || base64Pattern.test(imageUrl);
+    return UploadValidator.isValidImageUrl(imageUrl);
   }
 }
 
-const listingErrorMessages = () => ({
+const listingErrorMessages = {
+  boolean: "must be either true or false",
   type: {
     required: "Listing type is required",
     invalid: 'Listing type must be either "product" or "service"',
@@ -101,24 +113,51 @@ const listingErrorMessages = () => ({
   },
   name: {
     required: "Listing name is required",
-    invalid:
-      'Listing name must be a non-empty string (max 100 chars) and cannot contain / \\ : * ? " < > |',
+    invalid: {
+      length: "Listing name must be between 5 and 100 characters",
+      format: 'Listing name cannot contain / \\ : * ? " < > |',
+    },
   },
   description: {
     invalid: "Listing description must be a string with max length 1000",
   },
   price: {
     required: "Listing price is required",
-    invalid: "Listing price must be a number >= 0",
+    invalid: "Listing price cannot be negative",
+  },
+  images: {
+    invalid: {
+      length: "Images must be an array with at most 10 URLs",
+      format:
+        "Images must be an array of valid S3 URLs, HTTPS URLs, or base64 strings. Empty array is allowed.",
+    },
   },
   stock: {
     required: "Stock quantity is required",
-    invalid: "Stock quantity must be an integer >= 0",
+    invalid: "Stock quantity cannot be negative",
   },
-  imageUrl: {
-    invalid:
-      "Image URL must be a valid URL (starting with http/https) or a valid base64 image string",
+  fields: {
+    invalid: "Fields parameter must be between 1 and 200 characters",
   },
-});
+  search: {
+    invalid: "Search parameter must be between 1 and 100 characters",
+  },
+  page: {
+    negative: "Page number cannot be negative",
+  },
+  limit: {
+    invalid: {
+      format: "Limit must be a number between 1 and 100",
+      length: "Limit must be between 1 and 100",
+    },
+  },
+  sort: {
+    invalid: {
+      format:
+        'Sort must be either "price_asc", "price_desc", "newest", or "oldest"',
+      length: "Sort parameter must be between 1 and 100 characters",
+    },
+  },
+};
 
 module.exports = { ListingValidator, listingErrorMessages };

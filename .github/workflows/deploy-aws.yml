@@ -43,7 +43,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "client/build"
           target: "/home/ubuntu/uitm-marketplace"
-          strip_components: 1
+          strip_components: 0
 
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@master

@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "lint": "echo 'No linter configured for server'",
     "test": "jest",
     "test:integration": "jest tests/integration",
     "test:unit": "jest tests/unit",

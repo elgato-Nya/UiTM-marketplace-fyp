@@ -43,6 +43,7 @@ jobs:
         run: npm test --if-present
         env:
           CI: true
+          DISABLE_ESLINT_PLUGIN: false
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -79,6 +80,8 @@ jobs:
         run: |
           npm ci
           npm run build
+        env:
+          CI: false
 
       - name: Verify server setup
         working-directory: server

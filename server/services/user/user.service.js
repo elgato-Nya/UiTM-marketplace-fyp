@@ -9,6 +9,7 @@ const {
   getEnumValueByKey,
 } = require("../base.service");
 const { sanitizeInput, sanitizeObject } = require("../../utils/sanitizer");
+const { syncMerchantDataToListings } = require("./merchant.service");
 
 const findUserById = async (userId, options = {}) => {
   try {
@@ -16,7 +17,6 @@ const findUserById = async (userId, options = {}) => {
       ? "+password"
       : "-password -refreshTokens -__v";
     const user = await User.findById(userId).select(selectedOptions);
-
     if (!user) {
       handleNotFoundError("User", "USER_NOT_FOUND", "find_user_by_id", {
         userId,
@@ -32,16 +32,22 @@ const findUserById = async (userId, options = {}) => {
       _id: user._id,
       email: user.email,
       profile,
-      role: user.role,
+      roles: user.roles,
     };
-    return options.includeSensitiveData
-      ? userData.toObject()
-      : sanitizeUserData(userData);
+    return options.includeSensitiveData ? userData : sanitizeUserData(userData);
   } catch (error) {
-    handleServiceError(error, "findUserById", { userId });
+    handleServiceError(error, "findUserById", { userId: userId.toString() });
   }
 };
 
+/**
+ * Find a user by their email address.
+ * @param {String} email - The email address of the user.
+ * @param {Object} options - Options for the query.
+ * @param {Boolean} options.includePassword - Whether to include the password field.
+ * @param {Boolean} options.includeSensitiveData - Whether to include sensitive fields in the returned user object.
+ * @returns {Promise<User>|AppError} - The user object if found or throws an error.
+ */
 const findUserByEmail = async (email, options = {}) => {
   try {
     const selectedOptions = options.includePassword
@@ -65,7 +71,7 @@ const findUserByEmail = async (email, options = {}) => {
       _id: user._id,
       email: user.email,
       profile,
-      role: user.role,
+      roles: user.roles,
     };
     return options.includeSensitiveData ? userData : sanitizeUserData(userData);
   } catch (error) {
@@ -73,45 +79,58 @@ const findUserByEmail = async (email, options = {}) => {
   }
 };
 
-const updateUserProfile = async (userId, updateData) => {
-  // Prevent password updates here (use separate endpoint for password changes)
-  if (updateData.password || updateData.passwordConfirm) {
-    logger.warn("Password update attempted in profile update", {
-      action: "update_me",
-      userId,
-    });
-    throw new AppError(
-      "Password updates are not allowed here. Use the change password endpoint.",
-      400,
-      { action: "update_me", userId }
-    );
-  }
-
+// TODO: try to understand all of this
+const updateUserProfile = async (userId, { sanitizedData }) => {
   try {
-    // Sanitize input data
-    const sanitizedData = sanitizeObject(updateData);
-    const allowedProfileFields = ["avatar", "bio", "phoneNumber"];
-    const allowedDirectFields = ["username"];
+    const allowedFields = ["avatar", "bio", "phoneNumber", "username"];
     const updates = {};
+    const changedProfileFields = {};
 
-    // Handle direct fields
-    allowedDirectFields.forEach((field) => {
-      if (sanitizedData[field] !== undefined) {
-        updates[field] = sanitizedData[field];
-      }
-    });
-
-    // Handle profile fields
-    if (sanitizedData.profile) {
-      const profileUpdates = {};
-      allowedProfileFields.forEach((field) => {
-        if (sanitizedData.profile[field] !== undefined) {
-          profileUpdates[field] = sanitizedData.profile[field];
+    // Handle nested profile object (preferred format)
+    if (sanitizedData.profile && typeof sanitizedData.profile === "object") {
+      for (const [key, value] of Object.entries(sanitizedData.profile)) {
+        if (allowedFields.includes(key) && value !== undefined) {
+          updates[`profile.${key}`] = value;
+          changedProfileFields[key] = value;
         }
-      });
-      if (Object.keys(profileUpdates).length > 0) {
-        updates.profile = profileUpdates;
       }
+    }
+
+    // Handle direct field formats (for backward compatibility)
+    for (const [key, value] of Object.entries(sanitizedData)) {
+      if (
+        key !== "profile" &&
+        allowedFields.includes(key) &&
+        value !== undefined
+      ) {
+        updates[`profile.${key}`] = value;
+        changedProfileFields[key] = value;
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      // Still return current user data if no updates
+      const currentUser = await User.findById(userId).select(
+        "-password -refreshTokens -__v"
+      );
+
+      const profile = {
+        ...currentUser.profile,
+        campus: getEnumValueByKey(CampusEnum, currentUser.profile.campus),
+        faculty: getEnumValueByKey(FacultyEnum, currentUser.profile.faculty),
+      };
+
+      const formattedUser = {
+        _id: currentUser._id,
+        email: currentUser.email,
+        profile,
+        roles: currentUser.roles,
+      };
+
+      return {
+        updatedUser: sanitizeUserData(formattedUser),
+        changedProfileFields,
+      };
     }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updates, {
@@ -121,15 +140,58 @@ const updateUserProfile = async (userId, updateData) => {
 
     if (!updatedUser) {
       handleNotFoundError("User", "USER_NOT_FOUND", "update_user_profile", {
-        userId,
+        userId: userId.toString(),
       });
     }
 
-    return updatedUser.toObject();
+    // If username changed and user is a merchant, sync to listings
+    if (
+      changedProfileFields.username &&
+      updatedUser.roles.includes("merchant") &&
+      updatedUser.merchantDetails?.shopName
+    ) {
+      logger.info(
+        `Username changed for merchant ${userId}, syncing to listings...`
+      );
+      try {
+        await syncMerchantDataToListings(userId, {
+          username: updatedUser.profile.username,
+          shopName: updatedUser.merchantDetails.shopName,
+          shopSlug: updatedUser.merchantDetails.shopSlug,
+          isVerified: updatedUser.merchantDetails.isVerified || false,
+        });
+        logger.info(`Listings synced successfully for merchant ${userId}`);
+      } catch (syncError) {
+        // Log error but don't fail the profile update
+        logger.error(
+          `Failed to sync listings for merchant ${userId}:`,
+          syncError
+        );
+      }
+    }
+
+    // Format the response to match expected structure
+    const profile = {
+      ...updatedUser.profile,
+      campus: getEnumValueByKey(CampusEnum, updatedUser.profile.campus),
+      faculty: getEnumValueByKey(FacultyEnum, updatedUser.profile.faculty),
+    };
+
+    const formattedUser = {
+      _id: updatedUser._id,
+      email: updatedUser.email,
+      profile,
+      roles: updatedUser.roles,
+    };
+
+    return {
+      updatedUser: sanitizeUserData(formattedUser),
+      changedProfileFields,
+    };
   } catch (error) {
     handleServiceError(error, "updateUserProfile", {
-      userId,
-      updateData,
+      userId: userId.toString(),
+      sanitizedData,
     });
   }
 };

@@ -1,5 +1,5 @@
-const { body, param, validationResult } = require("express-validator");
-const logger = require("../../../utils/logger");
+const { body, param } = require("express-validator");
+const { handleValidationErrors } = require("../validation.error");
 
 const {
   UserValidator,
@@ -16,54 +16,18 @@ const {
   isValidPhoneNumber,
   isValidBio,
 } = UserValidator;
-const errorMessages = userErrorMessages();
-
-// ================ VALIDATION ERROR MIDDLEWARE ================
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const formattedErrors = errors.array().map((error) => ({
-      field: error.path,
-      message: error.msg,
-      value: error.value,
-      location: error.location,
-    }));
-
-    logger.error("Validation errors:", {
-      formattedErrors,
-      request: {
-        method: req.method,
-        url: req.originalUrl,
-        body: req.body,
-        params: req.params,
-        query: req.query,
-      },
-      user: req.user ? { id: req.user._id, email: req.user.email } : null,
-      timestamp: new Date().toISOString(),
-    });
-
-    return res.status(400).json({
-      success: false,
-      message: "Validation failed",
-      errors: formattedErrors,
-      code: "VALIDATION_ERROR",
-    });
-  }
-
-  next();
-};
 
 // ================ REUSABLE VALIDATION RULE CHAINS ================
-const avatarValidation = (fieldName = "avatar") => {
+const avatarValidation = (fieldName = "profile.avatar") => {
   return body(fieldName)
     .optional()
     .trim()
     .custom((avatar) => {
-      if (!isValidAvatar(avatar)) {
-        throw new Error(errorMessages.avatar.invalid);
+      if (avatar) {
+        return isValidAvatar(avatar);
       }
-      return true;
-    });
+    })
+    .withMessage(userErrorMessages.avatar.invalid);
 };
 
 // ================ COMPLETE VALIDATION MIDDLEWARES ================
@@ -72,44 +36,47 @@ const validateUpdateProfile = [
   body("profile.username")
     .optional()
     .trim()
-    .isLength({ min: 6, max: 16 })
+    .isLength({ min: 4, max: 15 })
     .custom((username) => {
-      if (username && !isValidUsername(username)) {
-        throw new Error(errorMessages.username.invalid);
+      if (username) {
+        return isValidUsername(username);
       }
       return true;
-    }),
+    })
+    .withMessage(userErrorMessages.username.invalid),
 
-  avatarValidation(),
+  avatarValidation("profile.avatar"),
 
   body("profile.bio")
     .optional()
     .trim()
-    .isLength({ max: 200 })
+    .isLength({ max: 250 })
     .custom((bio) => {
-      if (bio && !isValidBio(bio)) {
-        throw new Error(errorMessages.bio.invalid);
+      if (bio) {
+        return isValidBio(bio);
       }
-      return true;
-    }),
+      return true; // Allow empty bio
+    })
+    .withMessage(userErrorMessages.bio.invalid),
 
   body("profile.phoneNumber")
     .optional()
     .trim()
     .custom((phoneNumber) => {
-      if (phoneNumber && !isValidPhoneNumber(phoneNumber)) {
-        throw new Error(errorMessages.phoneNumber.invalid);
+      if (phoneNumber) {
+        return isValidPhoneNumber(phoneNumber);
       }
       return true;
-    }),
+    })
+    .withMessage(userErrorMessages.phoneNumber.invalid),
 
-  // Security: Prevent updating campus/faculty/role in regular profile updates
+  // Security: Prevent updating campus/faculty/roles in regular profile updates
   body("profile.campus").not().exists().withMessage("Campus cannot be updated"),
   body("profile.faculty")
     .not()
     .exists()
     .withMessage("Faculty cannot be updated"),
-  body("role").not().exists().withMessage("Role cannot be updated"),
+  body("roles").not().exists().withMessage("Roles cannot be updated"),
 
   // Security: Prevent forbidden fields
   body("password")

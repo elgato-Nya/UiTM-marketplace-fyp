@@ -1,5 +1,6 @@
 const BaseController = require("../base.controller");
-const { user: userService } = require("../../services/user");
+const { userService } = require("../../services/user");
+const { sanitizeObject } = require("../../utils/sanitizer");
 const asyncHandler = require("../../utils/asyncHandler");
 /**
  * User Controller - Function-based approach with BaseController utilities
@@ -23,7 +24,6 @@ const getMe = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
   const user = await userService.findUserById(userId);
-
   return baseController.sendSuccess(
     res,
     user,
@@ -39,34 +39,28 @@ const getMe = asyncHandler(async (req, res) => {
  * SECURITY: Sanitizes input and prevents password updates
  */
 const updateMe = asyncHandler(async (req, res) => {
-  // Build userDTO from req.body, falling back to req.user for unchanged fields
-  const userDTO = {
-    _id: req.user._id,
-    email: req.user.email,
-    profile: {
-      avatar: req.body.profile?.avatar,
-      username: req.body.profile?.username,
-      bio: req.body.profile?.bio,
-      phoneNumber: req.body.profile?.phoneNumber,
-    },
-    role: req.user.role,
-  };
+  // Prevent password updates
+  if ("password" in req.body) {
+    delete req.body.password;
+    logger.warn("Password update attempted in profile update", {
+      action: "update_me",
+      userId,
+    });
+  }
+  const sanitizedData = sanitizeObject(req.body);
 
-  const updatedUser = await userService.updateUserProfile(userDTO._id, userDTO);
-
-  // Only include defined profile fields in updatedFields
-  const changedProfileFields = Object.fromEntries(
-    Object.entries(userDTO.profile).filter(([_, v]) => v !== undefined)
-  );
+  const { updatedUser, changedProfileFields } =
+    await userService.updateUserProfile(req.user._id, {
+      sanitizedData,
+    });
 
   baseController.logAction("update_user_profile", req, {
     updatedFields: {
-      ...userDTO,
+      userId: req.user._id.toString(),
       profile: changedProfileFields,
     },
   });
 
-  // Use BaseController's sendSuccess method for consistent response
   return baseController.sendSuccess(
     res,
     updatedUser,

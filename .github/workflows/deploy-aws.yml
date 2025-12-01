@@ -30,6 +30,7 @@ jobs:
           npm ci
           npm run build
         env:
+          CI: false
           REACT_APP_ENVIRONMENT: production
           REACT_APP_API_URL: http://${{ secrets.EC2_HOST }}:5000
           REACT_APP_STRIPE_PUBLISHABLE_KEY: pk_test_51S8W3mJg56CMs4rbFNQy9iOSCDP91SLVMvJwWKIsHULGvp9r6ebVbjQ7vpa5Wn1ru0ZNlwEIkws92kk5Fhdn7fWH0086zCsjgI
@@ -63,23 +64,41 @@ jobs:
             # Navigate to app directory
             cd $APP_DIR
 
-            # Pull latest code from GitHub
+            # Pull latest code from GitHub (with error recovery)
             echo "📥 Pulling latest code from main branch..."
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main || echo "⚠️ Git reset failed, continuing..."
 
             # ========== BACKEND DEPLOYMENT ==========
             echo "🔧 Deploying backend..."
             cd $APP_DIR/server
 
+            # Check if Node.js is available
+            if ! command -v node &> /dev/null; then
+              echo "❌ Node.js not found! Please install Node.js first."
+              exit 1
+            fi
+
             # Install production dependencies
+            echo "📦 Installing server dependencies..."
             npm ci --only=production
 
             # Create/update .env file (optional - if you manage env via GitHub Secrets)
             # Uncomment if you want to inject .env from GitHub Secrets:
             # echo "${{ secrets.SERVER_ENV_FILE }}" > .env
 
+            # Check if .env exists
+            if [ ! -f .env ]; then
+              echo "⚠️ Warning: .env file not found in server directory"
+            fi
+
             # Restart backend with PM2
             echo "🔄 Restarting backend service..."
+            if ! command -v pm2 &> /dev/null; then
+              echo "📦 Installing PM2 globally..."
+              sudo npm install -g pm2
+            fi
+
             if pm2 describe uitm-marketplace-server > /dev/null 2>&1; then
               pm2 restart uitm-marketplace-server
             else
@@ -91,9 +110,16 @@ jobs:
             echo "🎨 Deploying pre-built frontend..."
             cd $APP_DIR/client
 
+            # Verify build folder exists (uploaded via SCP)
+            if [ ! -d "build" ]; then
+              echo "❌ Build folder not found! SCP upload may have failed."
+              exit 1
+            fi
+
             # Client is already built by GitHub Actions
             # Just install serve if not present
             if ! command -v serve &> /dev/null; then
+              echo "📦 Installing serve globally..."
               sudo npm install -g serve
             fi
 

@@ -1,0 +1,151 @@
+name: Test Deployment (Manual Trigger Only)
+
+# This workflow is for TESTING deployment steps safely
+# It will NOT actually deploy anything unless you uncomment the deploy steps
+# Use this to verify GitHub secrets and SSH connectivity
+
+on:
+  workflow_dispatch: # Manual trigger only - prevents accidental deployment on push
+    inputs:
+      test_type:
+        description: "Test to run"
+        required: true
+        default: "connection"
+        type: choice
+        options:
+          - connection # Test SSH connection only
+          - secrets # Verify all secrets are set
+          - full-dry-run # Run deployment script in dry-run mode
+
+env:
+  NODE_VERSION: "20.x"
+
+jobs:
+  test-connection:
+    name: Test SSH Connection
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_type == 'connection' || github.event.inputs.test_type == 'full-dry-run'
+
+    steps:
+      - name: Test SSH Connection
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            echo "✅ SSH Connection successful!"
+            echo "Server: $(hostname)"
+            echo "User: $(whoami)"
+            echo "Date: $(date)"
+            echo "Node version: $(node --version || echo 'Node not installed')"
+            echo "NPM version: $(npm --version || echo 'NPM not installed')"
+            echo "PM2 version: $(pm2 --version || echo 'PM2 not installed')"
+
+  test-secrets:
+    name: Verify GitHub Secrets
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_type == 'secrets' || github.event.inputs.test_type == 'full-dry-run'
+
+    steps:
+      - name: Check Required Secrets
+        run: |
+          echo "Checking required GitHub Secrets..."
+
+          # Check EC2 secrets
+          if [ -z "${{ secrets.EC2_HOST }}" ]; then
+            echo "❌ EC2_HOST is not set"
+            exit 1
+          else
+            echo "✅ EC2_HOST is set"
+          fi
+
+          if [ -z "${{ secrets.EC2_USER }}" ]; then
+            echo "❌ EC2_USER is not set"
+            exit 1
+          else
+            echo "✅ EC2_USER is set"
+          fi
+
+          if [ -z "${{ secrets.EC2_SSH_KEY }}" ]; then
+            echo "❌ EC2_SSH_KEY is not set"
+            exit 1
+          else
+            echo "✅ EC2_SSH_KEY is set"
+          fi
+
+          # Optional: Check if server env file secret is set
+          if [ -n "${{ secrets.SERVER_ENV_FILE }}" ]; then
+            echo "✅ SERVER_ENV_FILE is set (optional)"
+          else
+            echo "⚠️  SERVER_ENV_FILE is not set (optional - you can manage .env manually on server)"
+          fi
+
+          echo ""
+          echo "🎉 All required secrets are configured!"
+
+  dry-run-deployment:
+    name: Dry Run Deployment
+    runs-on: ubuntu-latest
+    needs: [test-connection, test-secrets]
+    if: github.event.inputs.test_type == 'full-dry-run'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Dry Run - Show what would be deployed
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            echo "🔍 DRY RUN MODE - No actual changes will be made"
+            echo ""
+            echo "Would deploy to: /home/ubuntu/uitm-marketplace"
+            echo ""
+            echo "Current repository status:"
+            cd /home/ubuntu/uitm-marketplace || echo "❌ App directory does not exist yet"
+
+            if [ -d "/home/ubuntu/uitm-marketplace" ]; then
+              echo "📂 Directory exists"
+              echo "Current branch: $(git branch --show-current 2>/dev/null || echo 'Not a git repo')"
+              echo "Last commit: $(git log -1 --oneline 2>/dev/null || echo 'No commits')"
+              echo ""
+              echo "PM2 processes:"
+              pm2 list || echo "PM2 not running any processes"
+            else
+              echo "📂 Directory does not exist - would be created on first deploy"
+            fi
+
+            echo ""
+            echo "✅ Dry run completed successfully"
+            echo "💡 To enable actual deployment, update the deploy-aws.yml workflow"
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [test-connection, test-secrets]
+    if: always()
+
+    steps:
+      - name: Show Summary
+        run: |
+          echo "=========================================="
+          echo "🧪 GitHub Actions Deployment Test Summary"
+          echo "=========================================="
+          echo ""
+          echo "Test Type: ${{ github.event.inputs.test_type }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Triggered by: ${{ github.actor }}"
+          echo ""
+          echo "Next Steps:"
+          echo "1. ✅ If all tests passed, your deployment setup is ready"
+          echo "2. 📝 Update deploy-aws.yml to enable automatic deployment"
+          echo "3. 🚀 Push to main branch to trigger actual deployment"
+          echo ""
+          echo "=========================================="

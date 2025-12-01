@@ -1,6 +1,15 @@
 const logger = require("../utils/logger");
 const { AppError, createNotFoundError } = require("../utils/errors");
 
+/**
+ * Handle service errors
+ * @param {*} error - The error object caught
+ * @param {*} operation - Name of the operation where the error occurred
+ * @param {*} context - Additional optional context for logging
+ * @throws {AppError} Throws an AppError for known issues or unexpected errors
+ *
+ * PURPOSE: Catch, then log and throw unexpected errors in service layer
+ */
 const handleServiceError = (error, operation, context = {}) => {
   if (error instanceof AppError) {
     throw error; // Re-throw known application errors
@@ -38,34 +47,51 @@ const handleServiceError = (error, operation, context = {}) => {
   );
 };
 
-// Helper function to handle common service errors
+/**
+ * Handle Not Found Errors with Logging
+ * @param {String} resource - The resource that was not found
+ * @param {String} customCode - Custom error code (optional)
+ * @param {String} action - The action being performed
+ * @param {Object} context - Additional context for logging (optional)
+ * @throws {AppError} Throws a createNotFoundError
+ *
+ * PURPOSE: Standardize not found error handling and logging
+ */
 const handleNotFoundError = (resource, customCode, action, context = {}) => {
   logger.warn(`${resource} not found`, {
     action,
     ...context,
     timestamp: new Date().toISOString(),
   });
-  throw createNotFoundError(resource, customCode);
+  createNotFoundError(resource, customCode);
 };
 
-// This removes sensitive fields from user object
+/**
+ * Sanitize user data by removing sensitive fields
+ * @param {*} user - The user object to sanitize
+ * @returns {Object} - The sanitized user object
+ *
+ * PURPOSE: Remove sensitive fields from user object before returning AND set toObject
+ */
 const sanitizeUserData = (user) => {
-  const { password, refreshTokens, __v, ...sanitizedUser } = user.toObject();
+  const { password, refreshTokens, __v, ...sanitizedUser } = user;
   return sanitizedUser;
 };
 
 /**
- * Sort Helper
- *
- * PURPOSE: Build MongoDB sort object from query parameters
- * USAGE: const sort = this.buildSort(req.query, ['name', 'createdAt']);
+ * PURPOSE: Build a Mongoose sort object from query parameters with 5 limit sort fields
+ * @param {Object} query - The query object containing sort parameters
+ * @param {String} query.sort - Comma-separated fields with optional '-' prefix for descending
+ * @param {Array<String>} allowedFields - List of fields allowed for sorting
+ * @returns {Object} Mongoose sort object - e.g., { field1: 1, field2: -1 }
  */
-const buildSort = (query, allowedFields = []) => {
-  if (!query.sort) {
+const buildSort = (query = {}, allowedFields = []) => {
+  const MAX_SORT_FIELDS = 5; // Limit to prevent abuse
+  if (!query || !query.sort) {
     return { createdAt: -1 }; // Default: newest first
   }
 
-  const sortFields = query.sort.split(",");
+  const sortFields = query.sort.split(",").slice(0, MAX_SORT_FIELDS); // Limit number of fields
   const sort = {};
 
   sortFields.forEach((field) => {
@@ -77,7 +103,8 @@ const buildSort = (query, allowedFields = []) => {
       sortField = sortField.substring(1);
     }
 
-    if (allowedFields.includes(sortField)) {
+    // Ensure allowedFields is an array before using includes
+    if (Array.isArray(allowedFields) && allowedFields.includes(sortField)) {
       sort[sortField] = sortOrder;
     }
   });
@@ -87,9 +114,11 @@ const buildSort = (query, allowedFields = []) => {
 
 /**
  * Cache Key Generator
+ * @param {String} prefix
+ * @param {Object} params
+ * @returns {String} Unique cache key
  *
- * PURPOSE: Generate consistent cache keys for controller actions
- * USAGE: const cacheKey = this.generateCacheKey('users', req.query);
+ * PURPOSE: Generate a unique cache key based on parameters
  */
 const generateCacheKey = (prefix, params = {}) => {
   const sortedParams = Object.keys(params)
@@ -103,18 +132,19 @@ const generateCacheKey = (prefix, params = {}) => {
 };
 /**
  * Field Selection Helper
- *
- * PURPOSE: Handle field selection from query parameters
- * USAGE: const select = this.buildSelect(req.query.fields, defaultFields);
+ * @param {String} fieldsQuery - comma-separated string fields to include
+ * @param {Array<String>} excludeFields - selected fields to exclude (optional)
+ * @returns {String} Space-separated fields for Mongoose select
+ * PURPOSE: Build a select string for Mongoose queries, excluding sensitive fields
  */
-const buildSelect = (fieldsQuery, defaultFields = "") => {
-  if (!fieldsQuery) return defaultFields;
-
+const buildSelect = (fieldsQuery, excludeFields = []) => {
   const fields = fieldsQuery.split(",").map((field) => field.trim());
 
-  const excludeFields = ["-password", "-refreshTokens", "-__v"];
+  const forbiddenFields = ["-password", "-refreshTokens", "-__v"];
 
-  return [...fields, ...excludeFields].join(" ");
+  const exclude =
+    excludeFields && excludeFields.length > 0 ? excludeFields : forbiddenFields;
+  return [...fields, ...exclude].join(" ");
 };
 
 /**

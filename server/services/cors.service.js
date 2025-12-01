@@ -28,16 +28,20 @@ class CorsService {
     const defaultOrigins = {
       development: [
         "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002", // In case it goes to 3002
         "http://localhost:5173",
         "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
         "http://127.0.0.1:5173",
       ],
       staging: [
         "https://staging.yourdomain.com",
         "http://localhost:3000", // For testing
+        "http://localhost:3001", // For testing
       ],
       production: ["https://yourdomain.com", "https://www.yourdomain.com"],
-      test: ["http://localhost:3000"],
+      test: ["http://localhost:3000", "http://localhost:3001"],
     };
 
     const origins = defaultOrigins[nodeEnv] || defaultOrigins.development;

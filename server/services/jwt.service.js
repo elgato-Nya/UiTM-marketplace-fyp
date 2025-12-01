@@ -1,5 +1,4 @@
 const jwt = require("jsonwebtoken");
-const { User } = require("../models/user");
 // TODO: Improve error handling
 const { AppError } = require("../utils/errors");
 
@@ -63,7 +62,7 @@ const getTokenPair = async (user) => {
     const refreshToken = await user.getRefreshToken();
 
     if (!refreshToken || !accessToken) {
-      throw new Error("Failed to generate tokens");
+      throw new AppError("Failed to generate tokens");
     }
 
     // Note: refreshToken is already saved to user by getRefreshToken method
@@ -73,14 +72,14 @@ const getTokenPair = async (user) => {
       accessToken,
       refreshToken,
       user: {
-        id: user._id,
+        _id: user._id,
         email: user.email,
-        role: user.role,
+        roles: user.roles, // Now using the correct roles field
         profile: user.profile,
       },
     };
   } catch (error) {
-    throw new Error(`Token generation failed: ${error.message}`);
+    throw new AppError(`Token generation failed: ${error.message}`);
   }
 };
 

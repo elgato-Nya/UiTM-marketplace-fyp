@@ -4,8 +4,8 @@ const addressService = require("./address.service");
 const merchantService = require("./merchant.service");
 
 module.exports = {
-  user: userService,
-  auth: authService,
-  address: addressService,
-  merchant: merchantService,
+  userService,
+  authService,
+  addressService,
+  merchantService,
 };

@@ -15,8 +15,10 @@ process.env.AWS_REGION = "ap-southeast-1";
 process.env.AWS_S3_BUCKET_NAME = "test-bucket";
 
 // Mock JWT secrets for tests
-process.env.JWT_ACCESS_SECRET = "test-jwt-access-secret-min-64-chars-for-testing-purposes-only";
-process.env.JWT_REFRESH_SECRET = "test-jwt-refresh-secret-min-64-chars-for-testing-purposes-only";
+process.env.JWT_ACCESS_SECRET =
+  "test-jwt-access-secret-min-64-chars-for-testing-purposes-only";
+process.env.JWT_REFRESH_SECRET =
+  "test-jwt-refresh-secret-min-64-chars-for-testing-purposes-only";
 
 // Suppress console.log during tests unless debugging
 if (!process.env.DEBUG_TESTS) {

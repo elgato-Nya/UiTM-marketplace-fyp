@@ -13,8 +13,19 @@ describe("Environment Configuration Validation", () => {
   });
 
   describe(".env file validation", () => {
-    test("should have .env file present", () => {
-      expect(fs.existsSync(envPath)).toBe(true);
+    test("should have .env file present or required env vars set", () => {
+      // Accept either a .env file or the required variables already present in process.env
+      const hasEnvFile = fs.existsSync(envPath);
+      const requiredVars = [
+        "NODE_ENV",
+        "PORT",
+        "MONGO_URI",
+        "JWT_ACCESS_SECRET",
+        "JWT_REFRESH_SECRET",
+      ];
+      const hasVarsInEnv = requiredVars.every((v) => !!process.env[v]);
+
+      expect(hasEnvFile || hasVarsInEnv).toBe(true);
     });
 
     test("should not contain JavaScript expressions in values", () => {
@@ -57,10 +68,17 @@ describe("Environment Configuration Validation", () => {
         "JWT_REFRESH_SECRET",
       ];
 
+      // Check either in .env file content or in process.env
       if (envContent) {
         requiredVars.forEach((varName) => {
           const regex = new RegExp(`^${varName}=.+`, "m");
           expect(envContent).toMatch(regex);
+        });
+      } else {
+        // In CI, check process.env directly
+        requiredVars.forEach((varName) => {
+          expect(process.env[varName]).toBeDefined();
+          expect(process.env[varName]).not.toBe("");
         });
       }
     });

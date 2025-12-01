@@ -14,7 +14,7 @@ const createLimiterResponse = (message, code) => ({
 const handleLimitReached = (req, res, next, options) => {
   const clientInfo = {
     ip: req.ip,
-    userAgent: req.get("User-Agent"),
+    userAgent: req.headers?.["user-agent"] || "unknown",
     path: req.path,
     timestamp: new Date().toISOString(),
   };

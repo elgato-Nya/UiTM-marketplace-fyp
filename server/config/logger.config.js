@@ -94,11 +94,32 @@ const consoleFormat = winston.format.combine(
   })
 );
 
+const prettyFileFormat = winston.format.combine(
+  winston.format.timestamp({ format: "HH:mm:ss DD-MM-YYYY" }),
+  winston.format.printf(({ timestamp, level, message, ...meta }) => {
+    let log = `${timestamp} [${level}]: ${message}`;
+    if (Object.keys(meta).length > 0) {
+      // Use regular JSON.stringify for metadata
+      log += `\n${JSON.stringify(meta, null, 2)}`;
+    }
+    return log;
+  })
+);
+
 // Custom format for file output
-const fileFormat = winston.format.combine(
-  winston.format.timestamp(),
-  winston.format.errors({ stack: true }),
-  winston.format.json()
+const plainFileFormat = winston.format.combine(
+  winston.format.timestamp({ format: "HH:mm:ss DD-MM-YYYY" }),
+  winston.format.printf(({ timestamp, level, message, ...meta }) => {
+    // Combine all log properties into a single object
+    const logObject = {
+      timestamp,
+      level,
+      message,
+      ...meta,
+    };
+    // Return as a JSON string for machine readability
+    return JSON.stringify(logObject);
+  })
 );
 
 // Create transports array
@@ -122,7 +143,7 @@ if (
       datePattern: "YYYY-MM-DD",
       maxSize: "20m",
       maxFiles: "14d",
-      format: fileFormat,
+      format: plainFileFormat,
       level: "info",
       createSymlink: true,
       symlinkName: "application-current.log",
@@ -136,7 +157,7 @@ if (
       datePattern: "YYYY-MM-DD",
       maxSize: "20m",
       maxFiles: "30d",
-      format: fileFormat,
+      format: plainFileFormat,
       level: "error",
       createSymlink: true,
       symlinkName: "error-current.log",
@@ -150,7 +171,7 @@ if (
       datePattern: "YYYY-MM-DD",
       maxSize: "20m",
       maxFiles: "7d",
-      format: fileFormat,
+      format: plainFileFormat,
       level: "http",
       createSymlink: true,
       symlinkName: "http-current.log",
@@ -164,7 +185,7 @@ if (
       datePattern: "YYYY-MM-DD",
       maxSize: "10m",
       maxFiles: "90d",
-      format: fileFormat,
+      format: plainFileFormat,
       level: "warn",
     })
   );
@@ -182,7 +203,7 @@ const logger = winston.createLogger({
       ? [
           new winston.transports.File({
             filename: createLogPath("exceptions.log"),
-            format: fileFormat,
+            format: plainFileFormat,
           }),
         ]
       : [],
@@ -192,7 +213,7 @@ const logger = winston.createLogger({
       ? [
           new winston.transports.File({
             filename: createLogPath("rejections.log"),
-            format: fileFormat,
+            format: plainFileFormat,
           }),
         ]
       : [],

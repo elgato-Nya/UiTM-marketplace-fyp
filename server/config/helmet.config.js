@@ -1,3 +1,4 @@
+// TODO: do a csp evaluation (one day)
 const helmet = require("helmet");
 
 const isDevelopment = process.env.NODE_ENV === "development";
@@ -8,6 +9,7 @@ const getSecurityPolicy = () => {
     styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
     fontSrc: ["'self'", "https://fonts.gstatic.com"],
     imgSrc: ["'self'", "data:", "https:"],
+    // TODO: scriptSrc: ["'self'", (req, res) => `'nonce-${res.locals.cspNonce}'`, "https://js.stripe.com"],
     scriptSrc: ["'self'", "https://js.stripe.com"],
     frameSrc: ["'self'", "https://js.stripe.com"],
     connectSrc: ["'self'", "https://api.stripe.com"],

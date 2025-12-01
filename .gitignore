@@ -91,3 +91,6 @@ temp/
 # Security audit files
 npm-debug.log*
 .npm-audit.json
+
+# Github Copilot Instructions
+.github/instructions

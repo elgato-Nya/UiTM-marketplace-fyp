@@ -25,6 +25,7 @@ const {
   createDuplicateError,
 } = require("../utils/errors");
 const logger = require("../utils/logger");
+const { toMalaysianISO } = require("../utils/datetime");
 
 // Handle specific MongoDB/Mongoose errors and convert to AppError
 const handleCastErrorDB = (err) => {
@@ -112,7 +113,7 @@ const sendErrorDev = (err, req, res) => {
       name: err.name,
       ...(err.details && { details: err.details }), // Include validation details
     },
-    timestamp: new Date().toISOString(),
+    timestamp: toMalaysianISO(),
     request: {
       url: req.originalUrl,
       method: req.method,
@@ -144,7 +145,7 @@ const sendErrorProd = (err, req, res) => {
       message: err.message,
       code: err.code,
       ...(err.details && { details: err.details }), // Include validation details in production too
-      timestamp: new Date().toISOString(),
+      timestamp: toMalaysianISO(),
     });
   } else {
     // Programming errors - don't leak details to client

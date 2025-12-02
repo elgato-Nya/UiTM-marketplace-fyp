@@ -15,6 +15,7 @@ const helmetConfig = require("./config/helmet.config");
 const { generalLimiter, authLimiter } = require("./config/limiter.config");
 const database = require("./config/database.config");
 const logger = require("./utils/logger");
+const { toMalaysianISO } = require("./utils/datetime");
 const {
   globalErrorHandler,
   handleNotFound,
@@ -107,7 +108,7 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
     message: "Server is running",
-    timestamp: new Date().toISOString(),
+    timestamp: toMalaysianISO(),
     environment: process.env.NODE_ENV,
   });
 });

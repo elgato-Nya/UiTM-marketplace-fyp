@@ -71,16 +71,35 @@ const colorizeJsonKeys = (obj, indent = 0) => {
   return `{\n${entries}\n${spaces}}`;
 };
 
-// Create logs directory path with date-based folders
+// Create logs directory path with date-based folders (Malaysia timezone)
 const createLogPath = (filename) => {
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const today = new Date().toLocaleString("en-CA", {
+    timeZone: "Asia/Kuala_Lumpur",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).split(",")[0]; // YYYY-MM-DD in Malaysia timezone
   const dailyDir = path.join(__dirname, "../logs", today);
   return path.join(dailyDir, filename);
 };
 
+// Malaysian timestamp formatter
+const malaysianTimestamp = () => {
+  return new Date().toLocaleString("en-MY", {
+    timeZone: "Asia/Kuala_Lumpur",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+};
+
 // Custom format for console output
 const consoleFormat = winston.format.combine(
-  winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+  winston.format.timestamp({ format: malaysianTimestamp }),
   winston.format.colorize({ all: true }),
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
     let log = `${timestamp} [${level}]: ${message}`;
@@ -95,7 +114,7 @@ const consoleFormat = winston.format.combine(
 );
 
 const prettyFileFormat = winston.format.combine(
-  winston.format.timestamp({ format: "HH:mm:ss DD-MM-YYYY" }),
+  winston.format.timestamp({ format: malaysianTimestamp }),
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
     let log = `${timestamp} [${level}]: ${message}`;
     if (Object.keys(meta).length > 0) {
@@ -108,7 +127,7 @@ const prettyFileFormat = winston.format.combine(
 
 // Custom format for file output
 const plainFileFormat = winston.format.combine(
-  winston.format.timestamp({ format: "HH:mm:ss DD-MM-YYYY" }),
+  winston.format.timestamp({ format: malaysianTimestamp }),
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
     // Combine all log properties into a single object
     const logObject = {

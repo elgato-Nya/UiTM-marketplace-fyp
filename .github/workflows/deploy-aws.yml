@@ -32,7 +32,7 @@ jobs:
         env:
           CI: false
           REACT_APP_ENVIRONMENT: production
-          REACT_APP_API_URL: http://${{ secrets.EC2_HOST }}:5000/api
+          REACT_APP_API_URL: http://nekodez.com:5000/api
           REACT_APP_STRIPE_PUBLISHABLE_KEY: pk_test_51S8W3mJg56CMs4rbFNQy9iOSCDP91SLVMvJwWKIsHULGvp9r6ebVbjQ7vpa5Wn1ru0ZNlwEIkws92kk5Fhdn7fWH0086zCsjgI
 
       - name: Upload Build to EC2

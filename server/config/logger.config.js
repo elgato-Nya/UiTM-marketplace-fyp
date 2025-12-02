@@ -73,12 +73,14 @@ const colorizeJsonKeys = (obj, indent = 0) => {
 
 // Create logs directory path with date-based folders (Malaysia timezone)
 const createLogPath = (filename) => {
-  const today = new Date().toLocaleString("en-CA", {
-    timeZone: "Asia/Kuala_Lumpur",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).split(",")[0]; // YYYY-MM-DD in Malaysia timezone
+  const today = new Date()
+    .toLocaleString("en-CA", {
+      timeZone: "Asia/Kuala_Lumpur",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+    .split(",")[0]; // YYYY-MM-DD in Malaysia timezone
   const dailyDir = path.join(__dirname, "../logs", today);
   return path.join(dailyDir, filename);
 };

@@ -32,7 +32,7 @@ jobs:
         env:
           CI: false
           REACT_APP_ENVIRONMENT: production
-          REACT_APP_API_URL: http://nekodez.com:5000/api
+          REACT_APP_API_URL: https://nekodez.com/api
           REACT_APP_STRIPE_PUBLISHABLE_KEY: pk_test_51S8W3mJg56CMs4rbFNQy9iOSCDP91SLVMvJwWKIsHULGvp9r6ebVbjQ7vpa5Wn1ru0ZNlwEIkws92kk5Fhdn7fWH0086zCsjgI
 
       - name: Upload Build to EC2
@@ -142,8 +142,8 @@ jobs:
           echo "⏳ Waiting for services to start..."
           sleep 15
 
-          # Check backend health
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.EC2_HOST }}:5000/api/health || echo "000")
+          # Check backend health via domain (works with HTTP or HTTPS)
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --insecure https://nekodez.com/api/health || curl -s -o /dev/null -w "%{http_code}" http://nekodez.com/api/health || echo "000")
 
           if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "404" ]; then
             echo "✅ Backend is responding (HTTP $HTTP_CODE)"

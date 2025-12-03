@@ -46,11 +46,13 @@ function MobileDrawer({ open, onClose }) {
       anchor="right"
       open={open}
       onClose={onClose}
-      PaperProps={{
-        sx: {
-          width: 300,
-          backgroundColor: theme.palette.background.paper,
-          backgroundImage: "none",
+      slotProps={{
+        paper: {
+          sx: {
+            width: 300,
+            backgroundColor: theme.palette.background.paper,
+            backgroundImage: "none",
+          },
         },
       }}
     >
@@ -63,160 +65,172 @@ function MobileDrawer({ open, onClose }) {
       />
 
       {/* Menu Items */}
-      <List sx={{ pt: 0, pb: 2 }}>
-        {!isAuthenticated ? (
-          <>
-            {/* Guest Menu */}
-            {guestMenuItems.map((item, index) => (
-              <ListItem key={index} disablePadding>
-                <ListItemButton
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          height: "calc(100% - 120px)",
+        }}
+      >
+        <List sx={{ pt: 0, pb: 2, flex: 1, overflow: "auto" }}>
+          {!isAuthenticated ? (
+            <>
+              {/* Guest Menu */}
+              {guestMenuItems.map((item, index) => (
+                <ListItem key={index} disablePadding>
+                  <ListItemButton
+                    component={Link}
+                    to={item.link}
+                    onClick={handleItemClick}
+                    sx={{
+                      py: 1.5,
+                      "&:hover": {
+                        backgroundColor: alpha(
+                          theme.palette.primary.main,
+                          0.08
+                        ),
+                      },
+                    }}
+                  >
+                    <ListItemIcon
+                      sx={{
+                        color: theme.palette.primary.main,
+                        minWidth: 40,
+                      }}
+                    >
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={item.text}
+                      slotProps={{
+                        primary: { fontWeight: 500 },
+                      }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+
+              {/* Auth Buttons */}
+              <Box
+                sx={{
+                  p: 2,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1.5,
+                }}
+              >
+                <Button
                   component={Link}
-                  to={item.link}
+                  to={ROUTES.AUTH.LOGIN}
                   onClick={handleItemClick}
+                  startIcon={<Login />}
+                  variant="outlined"
+                  fullWidth
+                  size="large"
                   sx={{
-                    py: 1.5,
+                    textTransform: "none",
+                    py: 1.2,
+                    borderWidth: 2,
+                    fontWeight: 600,
                     "&:hover": {
-                      backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                      borderWidth: 2,
                     },
                   }}
                 >
-                  <ListItemIcon
-                    sx={{
-                      color: theme.palette.primary.main,
-                      minWidth: 40,
-                    }}
-                  >
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.text}
-                    primaryTypographyProps={{
-                      fontWeight: 500,
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
+                  Login
+                </Button>
+                <Button
+                  component={Link}
+                  to={ROUTES.AUTH.REGISTER}
+                  onClick={handleItemClick}
+                  startIcon={<PersonAdd />}
+                  variant="contained"
+                  fullWidth
+                  size="large"
+                  sx={{
+                    textTransform: "none",
+                    py: 1.2,
+                    fontWeight: 600,
+                    boxShadow: 2,
+                    "&:hover": {
+                      boxShadow: 4,
+                    },
+                  }}
+                >
+                  Sign Up
+                </Button>
+              </Box>
+            </>
+          ) : (
+            <>
+              {/* Browse Section */}
+              <DrawerSection
+                title={authMenuSections.browse.title}
+                items={authMenuSections.browse.items}
+                onItemClick={handleItemClick}
+                theme={theme}
+                collapsible={authMenuSections.browse.collapsible}
+              />
 
-            <Divider sx={{ my: 2 }} />
+              {/* Account Section */}
+              <DrawerSection
+                title={authMenuSections.account.title}
+                items={authMenuSections.account.items}
+                onItemClick={handleItemClick}
+                theme={theme}
+                collapsible={authMenuSections.account.collapsible}
+              />
 
-            {/* Auth Buttons */}
-            <Box
-              sx={{
-                p: 2,
-                display: "flex",
-                flexDirection: "column",
-                gap: 1.5,
-              }}
-            >
-              <Button
-                component={Link}
-                to={ROUTES.AUTH.LOGIN}
-                onClick={handleItemClick}
-                startIcon={<Login />}
-                variant="outlined"
-                fullWidth
-                size="large"
-                sx={{
-                  textTransform: "none",
-                  py: 1.2,
-                  borderWidth: 2,
-                  fontWeight: 600,
-                  "&:hover": {
-                    borderWidth: 2,
-                  },
-                }}
-              >
-                Login
-              </Button>
-              <Button
-                component={Link}
-                to={ROUTES.AUTH.REGISTER}
-                onClick={handleItemClick}
-                startIcon={<PersonAdd />}
-                variant="contained"
-                fullWidth
-                size="large"
-                sx={{
-                  textTransform: "none",
-                  py: 1.2,
-                  fontWeight: 600,
-                  boxShadow: 2,
-                  "&:hover": {
-                    boxShadow: 4,
-                  },
-                }}
-              >
-                Sign Up
-              </Button>
-            </Box>
-          </>
-        ) : (
+              {/* Merchant Section */}
+              {authMenuSections.merchant.show && (
+                <DrawerSection
+                  title={authMenuSections.merchant.title}
+                  items={authMenuSections.merchant.items}
+                  onItemClick={handleItemClick}
+                  theme={theme}
+                  color={theme.palette.secondary.main}
+                  collapsible={authMenuSections.merchant.collapsible}
+                />
+              )}
+
+              {/* Admin Section */}
+              {authMenuSections.admin.show && (
+                <DrawerSection
+                  title={authMenuSections.admin.title}
+                  items={authMenuSections.admin.items}
+                  onItemClick={handleItemClick}
+                  theme={theme}
+                  color={theme.palette.error.main}
+                  collapsible={authMenuSections.admin.collapsible}
+                />
+              )}
+
+              {/* About Section */}
+              <DrawerSection
+                title={authMenuSections.about.title}
+                items={authMenuSections.about.items}
+                onItemClick={handleItemClick}
+                theme={theme}
+                collapsible={authMenuSections.about.collapsible}
+              />
+
+              {/* Settings & Help Section */}
+              <DrawerSection
+                title={authMenuSections.settings.title}
+                items={authMenuSections.settings.items}
+                onItemClick={handleItemClick}
+                theme={theme}
+                collapsible={authMenuSections.settings.collapsible}
+              />
+            </>
+          )}
+        </List>
+
+        {/* Logout Button - Fixed at Bottom */}
+        {isAuthenticated && (
           <>
-            {/* Browse Section */}
-            <DrawerSection
-              title={authMenuSections.browse.title}
-              items={authMenuSections.browse.items}
-              onItemClick={handleItemClick}
-              theme={theme}
-              collapsible={authMenuSections.browse.collapsible}
-            />
-
-            {/* Account Section */}
-            <DrawerSection
-              title={authMenuSections.account.title}
-              items={authMenuSections.account.items}
-              onItemClick={handleItemClick}
-              theme={theme}
-              collapsible={authMenuSections.account.collapsible}
-            />
-
-            {/* Merchant Section */}
-            {authMenuSections.merchant.show && (
-              <DrawerSection
-                title={authMenuSections.merchant.title}
-                items={authMenuSections.merchant.items}
-                onItemClick={handleItemClick}
-                theme={theme}
-                color={theme.palette.secondary.main}
-                collapsible={authMenuSections.merchant.collapsible}
-              />
-            )}
-
-            {/* Admin Section */}
-            {authMenuSections.admin.show && (
-              <DrawerSection
-                title={authMenuSections.admin.title}
-                items={authMenuSections.admin.items}
-                onItemClick={handleItemClick}
-                theme={theme}
-                color={theme.palette.error.main}
-                collapsible={authMenuSections.admin.collapsible}
-              />
-            )}
-
-            {/* About Section */}
-            <DrawerSection
-              title={authMenuSections.about.title}
-              items={authMenuSections.about.items}
-              onItemClick={handleItemClick}
-              theme={theme}
-              collapsible={authMenuSections.about.collapsible}
-            />
-
-            {/* Settings & Help Section */}
-            <DrawerSection
-              title={authMenuSections.settings.title}
-              items={authMenuSections.settings.items}
-              onItemClick={handleItemClick}
-              theme={theme}
-              collapsible={authMenuSections.settings.collapsible}
-            />
-
-            <Divider sx={{ my: 2 }} />
-
-            {/* Logout Button */}
-            <Box sx={{ p: 2 }}>
+            <Divider />
+            <Box sx={{ p: 2, mt: "auto" }}>
               <Button
                 onClick={handleLogout}
                 variant="outlined"
@@ -239,7 +253,7 @@ function MobileDrawer({ open, onClose }) {
             </Box>
           </>
         )}
-      </List>
+      </Box>
     </Drawer>
   );
 }

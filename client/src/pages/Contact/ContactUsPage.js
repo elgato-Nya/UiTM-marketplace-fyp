@@ -169,7 +169,7 @@ function ContactUsPage() {
       type: formData.type,
       name: formData.name,
       email: formData.email,
-      phoneNumber: formData.phoneNumber,
+      phoneNumber: formData.phoneNumber || undefined, // Don't send empty string
       subject: formData.subject,
       message: formData.message,
     };

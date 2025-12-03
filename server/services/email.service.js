@@ -132,14 +132,27 @@ const sendVerificationEmail = async (user, token) => {
       html: getVerificationTemplate(user, verificationUrl),
     };
 
-    await emailTransporter.sendMail(mailOptions);
-    logger.info(`Verification email sent successfully to ${user.email}`);
+    const result = await emailTransporter.sendMail(mailOptions);
+    logger.info(`Verification email sent successfully to ${user.email}`, {
+      messageId: result.messageId,
+      response: result.response,
+      accepted: result.accepted,
+      rejected: result.rejected,
+    });
   } catch (error) {
     logger.error(
       `Failed to send verification email to ${user?.email || "unknown"}: ${
         error.message
       }`
     );
+
+    // Check for SES sandbox restriction errors
+    if (error.message && error.message.includes("MessageRejected")) {
+      logger.error(
+        "SES Sandbox Restriction: Email address not verified. Please verify the recipient email in AWS SES Console or request production access.",
+        { recipientEmail: user?.email }
+      );
+    }
 
     // If it's already an AppError, re-throw it
     if (error.isOperational) {
@@ -199,14 +212,27 @@ const sendPasswordResetEmail = async (user, token) => {
       html: getPasswordResetTemplate(user, resetUrl),
     };
 
-    await emailTransporter.sendMail(mailOptions);
-    logger.info(`Password reset email sent successfully to ${user.email}`);
+    const result = await emailTransporter.sendMail(mailOptions);
+    logger.info(`Password reset email sent successfully to ${user.email}`, {
+      messageId: result.messageId,
+      response: result.response,
+      accepted: result.accepted,
+      rejected: result.rejected,
+    });
   } catch (error) {
     logger.error(
       `Failed to send password reset email to ${user?.email || "unknown"}: ${
         error.message
       }`
     );
+
+    // Check for SES sandbox restriction errors
+    if (error.message && error.message.includes("MessageRejected")) {
+      logger.error(
+        "SES Sandbox Restriction: Email address not verified. Please verify the recipient email in AWS SES Console or request production access.",
+        { recipientEmail: user?.email }
+      );
+    }
 
     // If it's already an AppError, re-throw it
     if (error.isOperational) {

@@ -57,6 +57,7 @@ const s3Config = {
     reviews: "reviews/", // User reviews
     reports: "reports/", // User reports
     documents: "documents/", // Verification documents
+    contact: "contact/", // Contact form images (bug screenshots, feedback images)
   },
 
   // Image constraints

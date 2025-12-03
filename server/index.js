@@ -34,6 +34,7 @@ const cartRoutes = require("./routes/cart/cart.route");
 const wishlistRoutes = require("./routes/wishlist/wishlist.route");
 const checkoutRoutes = require("./routes/checkout/checkout.route");
 const analyticsRoutes = require("./routes/analytic/analytics.route");
+const contactRoutes = require("./routes/contact/contact.route");
 
 logger.info("All route modules loaded successfully", {
   routes: [
@@ -48,6 +49,7 @@ logger.info("All route modules loaded successfully", {
     "wishlist",
     "checkout",
     "analytics",
+    "contact",
   ],
 });
 
@@ -102,6 +104,7 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/checkout", checkoutRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/contact", contactRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

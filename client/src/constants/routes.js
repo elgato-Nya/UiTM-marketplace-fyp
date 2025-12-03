@@ -8,6 +8,7 @@ export const ROUTES = {
   // Home & Landing
   HOME: "/",
   ABOUT: "/about",
+  CONTACT: "/contact",
 
   // Auth Routes
   AUTH: {

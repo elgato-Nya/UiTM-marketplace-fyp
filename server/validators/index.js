@@ -28,6 +28,10 @@ const {
   CheckoutValidator,
   checkoutErrorMessages,
 } = require("./checkout/checkout.validator");
+const {
+  ContactValidator,
+  contactValidatorMessages,
+} = require("./contact/contact.validator");
 
 module.exports = {
   // User-related validators
@@ -61,4 +65,8 @@ module.exports = {
   // Checkout validators
   CheckoutValidator,
   checkoutErrorMessages,
+
+  // Contact validators
+  ContactValidator,
+  contactValidatorMessages,
 };

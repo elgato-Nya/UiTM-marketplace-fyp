@@ -107,11 +107,11 @@ jobs:
               echo "✅ Backend started"
             fi
             pm2 save
-            
+
             # Wait for backend to be ready
             echo "⏳ Waiting for backend to start..."
             sleep 5
-            
+
             # Check backend is running
             if pm2 describe uitm-marketplace-server | grep -q "online"; then
               echo "✅ Backend is online"
@@ -145,7 +145,7 @@ jobs:
             # Force serve to bind to 0.0.0.0 (accept external connections)
             pm2 start "serve -s build -l tcp://0.0.0.0:3000" --name uitm-marketplace-client
             pm2 save
-            
+
             # Wait for frontend to be ready
             echo "⏳ Waiting for frontend to start..."
             sleep 5
@@ -154,7 +154,7 @@ jobs:
 
             # Show PM2 status
             pm2 status
-            
+
             # Show last few log lines
             echo ""
             echo "📋 Recent backend logs:"
@@ -168,7 +168,7 @@ jobs:
           # Check backend health via HTTPS (you have SSL cert)
           echo "🔍 Checking backend at https://nekodez.com/api/health"
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://nekodez.com/api/health 2>/dev/null || echo "000")
-          
+
           echo "📊 Health check response: HTTP $HTTP_CODE"
 
           if [ "$HTTP_CODE" = "200" ]; then

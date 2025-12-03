@@ -48,16 +48,14 @@ import CheckoutSuccessPage from "./pages/Checkout/CheckoutSuccessPage";
 import MerchantAnalyticsPage from "./pages/Dashboard/MerchantAnalyticsPage";
 import MyStorePage from "./pages/Merchant/MyStorePage";
 import ShopProfilePage from "./pages/Merchant/ShopProfilePage";
+import AboutPage from "./pages/About/AboutPage";
+import ContactUsPage from "./pages/Contact/ContactUsPage";
 // import NotFoundPage from "./pages/NotFound/NotFoundPage";
 
 import { ROUTES } from "./constants/routes";
 // Temporary placeholder components (you'll create these later)
 function NotFoundPage() {
   return <div>404 - Page Not Found</div>;
-}
-
-function AboutPage() {
-  return <div>About Page - Coming Soon!</div>;
 }
 
 // App content with theme integration
@@ -174,7 +172,10 @@ function AppContent() {
                   <Route path=":orderId" element={<OrderDetailPage />} />
                 </Route>
 
+                {/* Public Pages */}
                 <Route path={ROUTES.ABOUT} element={<AboutPage />} />
+                <Route path="/contact" element={<ContactUsPage />} />
+
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
 

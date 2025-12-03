@@ -220,6 +220,15 @@ const authSlice = createSlice({
     setAccessToken: (state, action) => {
       state.token = action.payload.token;
     },
+    updateUser: (state, action) => {
+      // Update user data in auth state (e.g., after profile update)
+      if (action.payload) {
+        state.user = {
+          ...state.user,
+          ...action.payload,
+        };
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -366,6 +375,7 @@ export const {
   setSessionExpiry,
   restoreSession,
   setAccessToken,
+  updateUser,
 } = authSlice.actions;
 
 // Selectors for complex state derivation

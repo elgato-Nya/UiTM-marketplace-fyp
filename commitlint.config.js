@@ -17,6 +17,7 @@ module.exports = {
         "wishlist", // Wishlist functionality
         "analytics", // Analytics & reporting
         "upload", // File/image uploads
+        "contact", // Contact & support
 
         // Backend - Infrastructure
         "api", // API endpoints/routes

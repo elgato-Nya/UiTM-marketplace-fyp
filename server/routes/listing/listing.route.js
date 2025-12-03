@@ -71,6 +71,18 @@ router.get(
   handleGetSellerListings
 );
 
+/**
+ * @route   GET /api/listings/:id
+ * @desc    Get listing by ID with optional seller details
+ * @access  Public (Available for guest users to browse)
+ * @params  id - Listing ID
+ * @query   includeSeller (boolean), fields (comma-separated)
+ * @returns Listing data with optional seller information
+ * @note    Must come AFTER specific routes like /my-listings and /seller/:sellerId
+ * @note    Public access allows guest browsing, but owners see enhanced details
+ */
+router.get("/:id", validateGetListing, handleGetListing);
+
 // ==================== AUTHENTICATED ROUTES ====================
 
 // Apply authentication middleware to all routes below
@@ -106,20 +118,6 @@ router.get(
   validatePagination,
   handleGetMyListings
 );
-
-// ==================== PUBLIC/AUTHENTICATED ROUTES ====================
-
-/**
- * @route   GET /api/listings/:id
- * @desc    Get listing by ID with optional seller details
- * @access  Public/Private (Enhanced details for owner)
- * @params  id - Listing ID
- * @query   includeSeller (boolean), fields (comma-separated)
- * @returns Listing data with optional seller information
- * @note    Must come AFTER specific routes like /my-listings and /seller/:sellerId
- * @note    Placed after auth middleware so owners can see unavailable listings
- */
-router.get("/:id", validateGetListing, handleGetListing);
 
 // ==================== OWNERSHIP-PROTECTED ROUTES ====================
 

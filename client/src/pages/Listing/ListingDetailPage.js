@@ -29,6 +29,7 @@ import {
 
 import { useTheme } from "../../hooks/useTheme";
 import { useSnackbar } from "../../hooks/useSnackbar";
+import { useAuth } from "../../features/auth/hooks/useAuth";
 import useListings from "../../features/listing/hooks/useListings";
 import useWishlist from "../../features/wishlist/hook/useWishlist";
 import { CATEGORY_LABELS } from "../../constants/listingConstant";
@@ -45,6 +46,7 @@ const ListingDetailPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { success, error: showError } = useSnackbar();
+  const { isAuthenticated } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
 
@@ -199,6 +201,9 @@ const ListingDetailPage = () => {
           aria-labelledby="listing-title"
           sx={{
             order: { xs: 2, md: 2 },
+            minWidth: 0,
+            width: "100%",
+            overflow: "hidden",
           }}
         >
           {/* Listing Name */}
@@ -206,7 +211,12 @@ const ListingDetailPage = () => {
             variant="h4"
             component="h1"
             fontWeight="700"
-            sx={{ mb: 3 }}
+            sx={{
+              mb: 3,
+              wordWrap: "break-word",
+              overflowWrap: "anywhere",
+              hyphens: "auto",
+            }}
             id="listing-title"
           >
             {name}
@@ -230,8 +240,10 @@ const ListingDetailPage = () => {
               variant="body1"
               color="text.secondary"
               sx={{
-                whiteSpace: "pre-wrap",
                 lineHeight: 1.7,
+                wordWrap: "break-word",
+                overflowWrap: "anywhere",
+                whiteSpace: "normal",
               }}
             >
               {description}
@@ -353,84 +365,95 @@ const ListingDetailPage = () => {
                 alignItems: "center",
               }}
             >
-              {/* Buy Now Button */}
-              <Button
-                variant="contained"
-                size="large"
-                startIcon={!isBuyingNow && <BuyNowIcon />}
-                onClick={handleBuyNow}
-                disabled={!canAddToCart || isBuyingNow}
-                color="secondary"
-                sx={{
-                  flex: 1,
-                  minWidth: "200px",
-                  py: 1.5,
-                  fontWeight: 700,
-                  textTransform: "none",
-                  fontSize: "1rem",
-                }}
-              >
-                {isBuyingNow ? (
-                  <>
-                    <CircularProgress size={20} sx={{ mr: 1 }} />
-                    Processing...
-                  </>
-                ) : !isAvailable ? (
-                  "Unavailable"
-                ) : type === "product" && stock <= 0 ? (
-                  "Out of Stock"
-                ) : (
-                  "Buy Now"
-                )}
-              </Button>
+              {isAuthenticated ? (
+                <>
+                  {/* Buy Now Button */}
+                  <Button
+                    variant="contained"
+                    size="large"
+                    startIcon={!isBuyingNow && <BuyNowIcon />}
+                    onClick={handleBuyNow}
+                    disabled={!canAddToCart || isBuyingNow}
+                    color="secondary"
+                    sx={{
+                      flex: 1,
+                      minWidth: "200px",
+                      py: 1.5,
+                      fontWeight: 700,
+                      textTransform: "none",
+                      fontSize: "1rem",
+                    }}
+                  >
+                    {isBuyingNow ? (
+                      <>
+                        <CircularProgress size={20} sx={{ mr: 1 }} />
+                        Processing...
+                      </>
+                    ) : !isAvailable ? (
+                      "Unavailable"
+                    ) : type === "product" && stock <= 0 ? (
+                      "Out of Stock"
+                    ) : (
+                      "Buy Now"
+                    )}
+                  </Button>
 
-              {/* Add to Cart Button */}
-              <Button
-                variant="outlined"
-                size="large"
-                startIcon={<CartIcon />}
-                onClick={handleAddToCartClick}
-                disabled={!canAddToCart}
-                sx={{
-                  flex: 1,
-                  minWidth: "200px",
-                  py: 1.5,
-                  fontWeight: 700,
-                  textTransform: "none",
-                  fontSize: "1rem",
-                }}
-              >
-                {!isAvailable
-                  ? "Unavailable"
-                  : type === "product" && stock <= 0
-                    ? "Out of Stock"
-                    : "Add to Cart"}
-              </Button>
+                  {/* Add to Cart Button */}
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    startIcon={<CartIcon />}
+                    onClick={handleAddToCartClick}
+                    disabled={!canAddToCart}
+                    sx={{
+                      flex: 1,
+                      minWidth: "200px",
+                      py: 1.5,
+                      fontWeight: 700,
+                      textTransform: "none",
+                      fontSize: "1rem",
+                    }}
+                  >
+                    {!isAvailable
+                      ? "Unavailable"
+                      : type === "product" && stock <= 0
+                        ? "Out of Stock"
+                        : "Add to Cart"}
+                  </Button>
 
-              {/* Wishlist Toggle Button */}
-              <Tooltip
-                title={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
-              >
-                <IconButton
-                  onClick={handleToggleWishlist}
-                  size="large"
-                  sx={{
-                    border: "2px solid",
-                    borderColor: inWishlist ? "error.main" : "divider",
-                    color: inWishlist ? "error.main" : "text.secondary",
-                    "&:hover": {
-                      borderColor: "error.main",
-                      color: "error.main",
-                      backgroundColor: "action.hover",
-                    },
-                  }}
-                  aria-label={
-                    inWishlist ? "Remove from wishlist" : "Add to wishlist"
-                  }
-                >
-                  {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-                </IconButton>
-              </Tooltip>
+                  {/* Wishlist Toggle Button */}
+                  <Tooltip
+                    title={
+                      inWishlist ? "Remove from wishlist" : "Add to wishlist"
+                    }
+                  >
+                    <IconButton
+                      onClick={handleToggleWishlist}
+                      size="large"
+                      sx={{
+                        border: "2px solid",
+                        borderColor: inWishlist ? "error.main" : "divider",
+                        color: inWishlist ? "error.main" : "text.secondary",
+                        "&:hover": {
+                          borderColor: "error.main",
+                          color: "error.main",
+                          backgroundColor: "action.hover",
+                        },
+                      }}
+                      aria-label={
+                        inWishlist ? "Remove from wishlist" : "Add to wishlist"
+                      }
+                    >
+                      {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                    </IconButton>
+                  </Tooltip>
+                </>
+              ) : (
+                <Alert severity="info" sx={{ width: "100%" }}>
+                  Please log in to purchase this item or add it to your cart and
+                  wishlist.
+                </Alert>
+              )}
             </Box>
           </Box>
         </Box>

@@ -20,11 +20,13 @@ import {
   Favorite as FavoriteIcon,
   FavoriteBorder as FavoriteBorderIcon,
   ShoppingCart as ShoppingCartIcon,
+  ImageNotSupported as NoImageIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 
 import { useTheme } from "../../../hooks/useTheme";
 import { useSnackbarContext as useSnackbar } from "../../../contexts/SnackbarContext";
+import { useAuth } from "../../auth/hooks/useAuth";
 import { CATEGORY_LABELS } from "../../../constants/listingConstant";
 import { ROUTES } from "../../../constants/routes";
 import AddToCartDialog from "../../cart/components/AddToCartDialog";
@@ -42,6 +44,7 @@ const ListingCard = ({
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { success, error: showError } = useSnackbar();
+  const { isAuthenticated } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -119,12 +122,12 @@ const ListingCard = ({
     navigate(ROUTES.CART);
   };
 
-  const imageUrl =
-    images && images.length > 0
-      ? typeof images[0] === "string"
-        ? images[0]
-        : images[0]?.url || "https://via.placeholder.com/320x180?text=No+Image"
-      : "https://via.placeholder.com/320x180?text=No+Image";
+  const hasImages = images && images.length > 0;
+  const imageUrl = hasImages
+    ? typeof images[0] === "string"
+      ? images[0]
+      : images[0]?.url
+    : null;
 
   const isService = type === "service";
   const isProduct = type === "product";
@@ -169,19 +172,41 @@ const ListingCard = ({
             height: isMobile ? 160 : 210,
             overflow: "hidden",
             flexShrink: 0,
+            bgcolor: hasImages ? "transparent" : "background.default",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          <CardMedia
-            component="img"
-            height={isMobile ? "160" : "210"}
-            image={imageUrl}
-            alt={name}
-            sx={{
-              objectFit: "cover",
-              width: "100%",
-              height: "100%",
-            }}
-          />
+          {hasImages ? (
+            <CardMedia
+              component="img"
+              height={isMobile ? "160" : "210"}
+              image={imageUrl}
+              alt={name}
+              sx={{
+                objectFit: "cover",
+                width: "100%",
+                height: "100%",
+              }}
+            />
+          ) : (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 1,
+                color: "text.disabled",
+              }}
+            >
+              <NoImageIcon sx={{ fontSize: 48 }} />
+              <Typography variant="caption" color="text.disabled">
+                No Image
+              </Typography>
+            </Box>
+          )}
 
           {/* Badges Overlay */}
           <Box
@@ -432,40 +457,46 @@ const ListingCard = ({
               flexShrink: 0,
             }}
           >
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={!isMobile && <ShoppingCartIcon />}
-              onClick={handleAddToCartClick}
-              disabled={!canAddToCart}
-              fullWidth
-              sx={{
-                flex: 1,
-                textTransform: "none",
-                fontWeight: 600,
-                fontSize: isMobile ? "0.8rem" : undefined,
-                py: isMobile ? 0.75 : undefined,
-              }}
-            >
-              {isMobile ? "Add" : "Add to Cart"}
-            </Button>
+            {isAuthenticated && (
+              <>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={!isMobile && <ShoppingCartIcon />}
+                  onClick={handleAddToCartClick}
+                  disabled={!canAddToCart}
+                  fullWidth
+                  sx={{
+                    flex: 1,
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: isMobile ? "0.8rem" : undefined,
+                    py: isMobile ? 0.75 : undefined,
+                  }}
+                >
+                  {isMobile ? "Add" : "Add to Cart"}
+                </Button>
 
-            <Tooltip
-              title={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
-            >
-              <IconButton
-                onClick={handleToggleWishlist}
-                size={isMobile ? "small" : "medium"}
-                sx={{
-                  color: inWishlist ? "error.main" : "text.secondary",
-                  "&:hover": {
-                    color: "error.main",
-                  },
-                }}
-              >
-                {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-              </IconButton>
-            </Tooltip>
+                <Tooltip
+                  title={
+                    inWishlist ? "Remove from wishlist" : "Add to wishlist"
+                  }
+                >
+                  <IconButton
+                    onClick={handleToggleWishlist}
+                    size={isMobile ? "small" : "medium"}
+                    sx={{
+                      color: inWishlist ? "error.main" : "text.secondary",
+                      "&:hover": {
+                        color: "error.main",
+                      },
+                    }}
+                  >
+                    {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                  </IconButton>
+                </Tooltip>
+              </>
+            )}
           </CardActions>
         )}
       </Card>

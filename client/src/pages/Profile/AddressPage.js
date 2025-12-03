@@ -287,7 +287,7 @@ function AddressesPage() {
         component="section"
         aria-label="Address management"
       >
-        <Grid item size={{ xs: 12 }} sx={{ width: "100%" }}>
+        <Grid size={{ xs: 12 }} sx={{ width: "100%" }}>
           <AddressListSection
             addressType={addressType}
             currentAddresses={currentAddresses}

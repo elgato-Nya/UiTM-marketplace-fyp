@@ -49,7 +49,7 @@ function RecentlyViewed() {
 
       <Grid container spacing={2}>
         {recentItems.map((item) => (
-          <Grid item size={{ xs: 6, sm: 3 }} key={item.id}>
+          <Grid size={{ xs: 6, sm: 3 }} key={item.id}>
             <Card
               onClick={() => navigate(`/listings/${item.id}`)}
               sx={{

@@ -35,7 +35,7 @@ function ActionGrid({
   return (
     <Grid container spacing={spacing} sx={sx} {...props}>
       {items.map((item, index) => (
-        <Grid item key={item.id || item.key || index} size={breakpoints}>
+        <Grid key={item.id || item.key || index} size={breakpoints}>
           {renderItem(item, index)}
         </Grid>
       ))}

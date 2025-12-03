@@ -320,7 +320,7 @@ function OrderDetailPage() {
         {/* Main Content Grid */}
         <Grid container spacing={3}>
           {/* Left Column - Order Details */}
-          <Grid item sizes={{ xs: 12, md: 8 }}>
+          <Grid sizes={{ xs: 12, md: 8 }}>
             {/* Items List */}
             <Paper
               elevation={0}
@@ -394,7 +394,7 @@ function OrderDetailPage() {
           </Grid>
 
           {/* Right Column - Additional Info */}
-          <Grid item size={{ xs: 12, md: 4 }}>
+          <Grid size={{ xs: 12, md: 4 }}>
             {/* Order Summary */}
             <Card
               elevation={0}

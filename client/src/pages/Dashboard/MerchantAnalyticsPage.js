@@ -276,7 +276,7 @@ const MerchantAnalyticsPage = () => {
           </Typography>
           <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: 3 }}>
             {/* Shop Rating */}
-            <Grid item size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
               <StatCard
                 title="Shop Rating"
                 value={`${shop?.shopRating?.averageRating?.toFixed(1) || "0.0"} ⭐`}
@@ -288,7 +288,7 @@ const MerchantAnalyticsPage = () => {
             </Grid>
 
             {/* Total Views */}
-            <Grid item size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
               <StatCard
                 title="Shop Views"
                 value={formatNumber(shop?.shopMetrics?.totalViews || 0)}
@@ -300,7 +300,7 @@ const MerchantAnalyticsPage = () => {
             </Grid>
 
             {/* Total Products */}
-            <Grid item size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
               <StatCard
                 title="Total Products"
                 value={formatNumber(shop?.shopMetrics?.totalProducts || 0)}
@@ -312,7 +312,7 @@ const MerchantAnalyticsPage = () => {
             </Grid>
 
             {/* Total Sales (from shop metrics) */}
-            <Grid item size={{ xs: 12, sm: 6, md: 6, lg: 2.4 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 6, lg: 2.4 }}>
               <StatCard
                 title="All-Time Sales"
                 value={formatNumber(shop?.shopMetrics?.totalSales || 0)}
@@ -324,7 +324,7 @@ const MerchantAnalyticsPage = () => {
             </Grid>
 
             {/* Total Revenue (from shop metrics) */}
-            <Grid item size={{ xs: 12, sm: 6, md: 6, lg: 2.4 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 6, lg: 2.4 }}>
               <StatCard
                 title="All-Time Revenue"
                 value={formatCurrency(shop?.shopMetrics?.totalRevenue || 0)}
@@ -351,7 +351,7 @@ const MerchantAnalyticsPage = () => {
           </Typography>
           <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: 3 }}>
             {/* Period Revenue */}
-            <Grid item size={{ xs: 12, md: 6, lg: 3 }}>
+            <Grid size={{ xs: 12, md: 6, lg: 3 }}>
               <StatCard
                 title="Revenue"
                 value={formatCurrency(analytics?.revenue?.total || 0)}
@@ -364,7 +364,7 @@ const MerchantAnalyticsPage = () => {
             </Grid>
 
             {/* Period Orders */}
-            <Grid item size={{ xs: 12, md: 6, lg: 3 }}>
+            <Grid size={{ xs: 12, md: 6, lg: 3 }}>
               <StatCard
                 title="Orders"
                 value={formatNumber(analytics?.orders?.total || 0)}
@@ -376,7 +376,7 @@ const MerchantAnalyticsPage = () => {
             </Grid>
 
             {/* Period Sales */}
-            <Grid item size={{ xs: 12, md: 6, lg: 3 }}>
+            <Grid size={{ xs: 12, md: 6, lg: 3 }}>
               <StatCard
                 title="Items Sold"
                 value={formatNumber(analytics?.sales?.count || 0)}
@@ -388,7 +388,7 @@ const MerchantAnalyticsPage = () => {
             </Grid>
 
             {/* Average Order Value */}
-            <Grid item size={{ xs: 12, md: 6, lg: 3 }}>
+            <Grid size={{ xs: 12, md: 6, lg: 3 }}>
               <StatCard
                 title="Avg Order Value"
                 value={formatCurrency(analytics?.orders?.averageValue || 0)}
@@ -437,7 +437,7 @@ const MerchantAnalyticsPage = () => {
           <Collapse in={showCharts}>
             <Grid container spacing={3}>
               {/* Revenue Chart - Full width on mobile */}
-              <Grid item size={{ xs: 12, md: 6 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <RevenueChart
                   data={analytics?.sales?.trend || []}
                   isLoading={isLoading}
@@ -447,7 +447,7 @@ const MerchantAnalyticsPage = () => {
               </Grid>
 
               {/* Orders Chart */}
-              <Grid item size={{ xs: 12, md: 6 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <OrdersChart
                   data={analytics?.orders}
                   isLoading={isLoading}
@@ -499,7 +499,7 @@ const MerchantAnalyticsPage = () => {
           <Collapse in={showAdditionalMetrics}>
             <Grid container spacing={{ xs: 2, md: 3 }}>
               {/* Pending Orders */}
-              <Grid item size={{ xs: 12, md: 6, lg: 3 }}>
+              <Grid size={{ xs: 12, md: 6, lg: 3 }}>
                 <StatCard
                   title="Pending Orders"
                   value={formatNumber(analytics?.orders?.pending || 0)}
@@ -511,7 +511,7 @@ const MerchantAnalyticsPage = () => {
               </Grid>
 
               {/* Active Listings */}
-              <Grid item size={{ xs: 12, md: 6, lg: 3 }}>
+              <Grid size={{ xs: 12, md: 6, lg: 3 }}>
                 <StatCard
                   title="Active Listings"
                   value={formatNumber(analytics?.listings?.totalActive || 0)}
@@ -523,7 +523,7 @@ const MerchantAnalyticsPage = () => {
               </Grid>
 
               {/* Low Stock */}
-              <Grid item size={{ xs: 12, md: 6, lg: 3 }}>
+              <Grid size={{ xs: 12, md: 6, lg: 3 }}>
                 <StatCard
                   title="Low Stock Items"
                   value={formatNumber(analytics?.listings?.lowStock || 0)}
@@ -535,7 +535,7 @@ const MerchantAnalyticsPage = () => {
               </Grid>
 
               {/* Completed Orders */}
-              <Grid item size={{ xs: 12, md: 6, lg: 3 }}>
+              <Grid size={{ xs: 12, md: 6, lg: 3 }}>
                 <StatCard
                   title="Completed Orders"
                   value={formatNumber(analytics?.orders?.completed || 0)}

@@ -168,7 +168,7 @@ function ProfileLayout() {
       <Grid container spacing={3}>
         {/*Desktop Sidebar */}
         {!isMobile && (
-          <Grid item md={3}>
+          <Grid size={{ md: 3 }}>
             <Paper
               elevation={1}
               sx={{
@@ -185,7 +185,7 @@ function ProfileLayout() {
         )}
 
         {/* Main Content */}
-        <Grid item size={{ xs: 12, md: 9 }}>
+        <Grid size={{ xs: 12, md: 9 }}>
           {/* Mobile Header */}
           {isMobile && (
             <Box

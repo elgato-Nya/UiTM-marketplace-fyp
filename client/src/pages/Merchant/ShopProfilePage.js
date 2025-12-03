@@ -384,7 +384,7 @@ function ShopProfilePage() {
 
                 {/* Shop Stats */}
                 <Grid container spacing={2} sx={{ mb: 2 }}>
-                  <Grid item>
+                  <Grid>
                     <Box
                       sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
                     >
@@ -399,18 +399,18 @@ function ShopProfilePage() {
                       </Typography>
                     </Box>
                   </Grid>
-                  <Grid item>
+                  <Grid>
                     <Typography variant="body2" color="text.secondary">
                       <strong>{shop.shopMetrics?.totalProducts || 0}</strong>{" "}
                       Products
                     </Typography>
                   </Grid>
-                  <Grid item>
+                  <Grid>
                     <Typography variant="body2" color="text.secondary">
                       <strong>{shop.shopMetrics?.totalSales || 0}</strong> Sales
                     </Typography>
                   </Grid>
-                  <Grid item>
+                  <Grid>
                     <Typography variant="body2" color="text.secondary">
                       <strong>
                         {shop.shopMetrics?.totalViews?.toLocaleString() || 0}

@@ -71,7 +71,7 @@ function SkeletonLoader({ config }) {
         <Box p={3}>
           <Grid container spacing={3}>
             {[...Array(6)].map((_, index) => (
-              <Grid item size={{ xs: 12, md: 6, lg: 4 }} key={index}>
+              <Grid size={{ xs: 12, md: 6, lg: 4 }} key={index}>
                 <Box p={2} border={1} borderColor="divider" borderRadius={1}>
                   <Skeleton variant="text" width="60%" height={24} />
                   <Skeleton variant="text" width="100%" height={60} />
@@ -108,7 +108,7 @@ function SkeletonLoader({ config }) {
         )}
         <Grid container spacing={3}>
           {[...Array(4)].map((_, index) => (
-            <Grid item size={{ xs: 12, md: 6 }} key={index}>
+            <Grid size={{ xs: 12, md: 6 }} key={index}>
               <Skeleton variant="text" width="100%" height={56} />
             </Grid>
           ))}
@@ -136,7 +136,7 @@ function SkeletonLoader({ config }) {
         )}
         <Grid container spacing={3}>
           {[...Array(config.columns * config.rows)].map((_, index) => (
-            <Grid item size={{ xs: 12, md: 12 / config.columns }} key={index}>
+            <Grid size={{ xs: 12, md: 12 / config.columns }} key={index}>
               <Box
                 border={1}
                 borderColor="divider"
@@ -183,7 +183,7 @@ function SkeletonLoader({ config }) {
             <Skeleton variant="text" width={200} height={40} sx={{ mb: 3 }} />
             <Grid container spacing={3}>
               {[...Array(6)].map((_, index) => (
-                <Grid item size={{ xs: 6, md: 4, lg: 2 }} key={index}>
+                <Grid size={{ xs: 6, md: 4, lg: 2 }} key={index}>
                   <Box textAlign="center">
                     <Skeleton
                       variant="circular"
@@ -204,7 +204,7 @@ function SkeletonLoader({ config }) {
             <Skeleton variant="text" width={250} height={40} sx={{ mb: 3 }} />
             <Grid container spacing={3}>
               {[...Array(8)].map((_, index) => (
-                <Grid item size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={index}>
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={index}>
                   <Box
                     border={1}
                     borderColor="divider"

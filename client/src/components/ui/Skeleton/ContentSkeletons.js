@@ -121,7 +121,7 @@ export const GridSkeleton = ({ config, skeletonProps }) => (
   <Container maxWidth="lg" sx={{ py: 3 }}>
     <Grid container spacing={3}>
       {[...Array(config.items * 2)].map((_, i) => (
-        <Grid item size={{ xs: 12, sm: 6, md: 4 }} key={i}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
           <Paper sx={{ p: 2, height: "100%" }}>
             <Skeleton
               variant="rectangular"
@@ -182,7 +182,7 @@ export const CartSkeleton = ({ config, skeletonProps }) => (
   <Container maxWidth="lg" sx={{ py: 4 }}>
     <Grid container spacing={3}>
       {/* Cart Items Skeleton */}
-      <Grid item size={{ xs: 12, md: 8 }}>
+      <Grid size={{ xs: 12, md: 8 }}>
         {[...Array(3)].map((_, i) => (
           <Paper key={i} sx={{ p: 2, mb: 2, display: "flex", gap: 2 }}>
             <Skeleton
@@ -219,7 +219,7 @@ export const CartSkeleton = ({ config, skeletonProps }) => (
       </Grid>
 
       {/* Summary Skeleton */}
-      <Grid item size={{ xs: 12, md: 4 }}>
+      <Grid size={{ xs: 12, md: 4 }}>
         <Paper sx={{ p: 3 }}>
           <Skeleton
             variant="text"
@@ -264,7 +264,7 @@ export const WishlistSkeleton = ({ config, skeletonProps }) => (
   <Container maxWidth="lg" sx={{ py: 4 }}>
     <Grid container spacing={3}>
       {[...Array(config.items || 6)].map((_, i) => (
-        <Grid item size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={i}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={i}>
           <Paper sx={{ p: 2 }}>
             <Skeleton
               variant="rectangular"
@@ -310,7 +310,7 @@ export const CheckoutSkeleton = ({ config, skeletonProps }) => (
   <Container maxWidth="lg" sx={{ py: 4 }}>
     <Grid container spacing={3}>
       {/* Main content */}
-      <Grid item size={{ xs: 12, md: 8 }}>
+      <Grid size={{ xs: 12, md: 8 }}>
         {/* Session timer skeleton */}
         <Skeleton
           variant="rectangular"

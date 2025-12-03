@@ -259,7 +259,7 @@ const CartPage = () => {
 
           <Grid container spacing={3}>
             {/* Cart Items */}
-            <Grid item size={{ xs: 12, md: 8 }}>
+            <Grid size={{ xs: 12, md: 8 }}>
               <CartList
                 items={cart.items}
                 onQuantityIncrease={handleIncreaseQuantity}

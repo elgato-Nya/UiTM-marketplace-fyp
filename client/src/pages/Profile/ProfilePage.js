@@ -226,7 +226,7 @@ function ProfilePage() {
 
       <Grid container spacing={3}>
         {/* Avatar Section */}
-        <Grid item size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <InfoCard
             variant="outlined"
             title={displayUsername}
@@ -268,7 +268,7 @@ function ProfilePage() {
         </Grid>
 
         {/* Profile Information */}
-        <Grid item size={{ xs: 12, md: 8 }}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Paper
             sx={{
               border: `1px solid ${theme.palette.divider}`,
@@ -284,7 +284,7 @@ function ProfilePage() {
               </Typography>
 
               <Grid container spacing={2}>
-                <Grid item size={{ xs: 12, sm: 6 }}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <InlineEditField
                     label="Username"
                     value={displayUsername === "User" ? "" : displayUsername}
@@ -294,7 +294,7 @@ function ProfilePage() {
                     maxLength={15}
                   />
                 </Grid>
-                <Grid item size={{ xs: 12, sm: 6 }}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <InlineEditField
                     label="Phone Number"
                     value={currentProfile.phoneNumber || ""}
@@ -305,7 +305,7 @@ function ProfilePage() {
                   />
                 </Grid>
 
-                <Grid item size={{ xs: 12 }}>
+                <Grid size={{ xs: 12 }}>
                   <InlineEditField
                     label="Bio"
                     value={currentProfile.bio || ""}
@@ -342,7 +342,7 @@ function ProfilePage() {
         </Grid>
 
         {/* Quick Actions */}
-        <Grid item size={{ xs: 12 }}>
+        <Grid size={{ xs: 12 }}>
           <Paper
             sx={{
               p: 3,

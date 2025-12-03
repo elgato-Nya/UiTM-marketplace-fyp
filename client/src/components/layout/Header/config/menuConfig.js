@@ -15,6 +15,7 @@ import {
   Info,
   History,
   ContactMail,
+  Code,
 } from "@mui/icons-material";
 import { ROUTES } from "../../../../constants/routes";
 
@@ -24,7 +25,9 @@ export const getGuestMenuItems = () => [
   { icon: <Category />, text: "All Listings", link: ROUTES.LISTINGS.ALL },
   { icon: <ShoppingBag />, text: "Products", link: ROUTES.LISTINGS.PRODUCTS },
   { icon: <Store />, text: "Services", link: ROUTES.LISTINGS.SERVICES },
-  { icon: <Info />, text: "About Us", link: "/about" },
+  { icon: <Info />, text: "About Us", link: "/about#about" },
+  { icon: <History />, text: "Our History", link: "/about#history" },
+  { icon: <Code />, text: "Nekodez", link: "/about/nekodez" },
   { icon: <ContactMail />, text: "Contact", link: "/contact" },
   { icon: <Help />, text: "Help", link: ROUTES.HELP },
 ];
@@ -155,11 +158,17 @@ export const getAuthMenuSections = (roles) => {
       title: "About",
       collapsible: true,
       items: [
-        { icon: <Info />, text: "About Us", link: "/about", show: true },
+        { icon: <Info />, text: "About Us", link: "/about#about", show: true },
         {
           icon: <History />,
           text: "Our History",
-          link: "/about/history",
+          link: "/about#history",
+          show: true,
+        },
+        {
+          icon: <Code />,
+          text: "Nekodez",
+          link: "/about/nekodez",
           show: true,
         },
         {

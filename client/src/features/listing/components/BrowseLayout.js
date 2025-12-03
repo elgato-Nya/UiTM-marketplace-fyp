@@ -52,7 +52,7 @@ const BrowseLayout = ({
   const freeCount = listings.filter((listing) => listing.isFree).length;
 
   return (
-    <Container disableGutters sx={{ py: isMobile ? 2 : 4 }}>
+    <Container disableGutters sx={{ p: isMobile ? 2 : 4 }}>
       {/* Page Header Section */}
       <Box sx={{ mb: isMobile ? 2 : 3 }}>
         {/* Dynamic Header */}

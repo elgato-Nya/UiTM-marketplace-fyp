@@ -192,7 +192,7 @@ function ProfilePage() {
   ];
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: { xs: 2, sm: 3 } }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 600, mb: 1 }}>
@@ -349,24 +349,46 @@ function ProfilePage() {
               border: `1px solid ${theme.palette.divider}`,
             }}
           >
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                mb: 3,
+                fontWeight: 600,
+                textAlign: "center",
+              }}
+            >
               Quick Actions
             </Typography>
 
-            <ActionGrid
-              items={quickActionsData}
-              spacing={2}
-              breakpoints={{ xs: 12, sm: 6, md: 3 }}
-              renderItem={(item) => (
-                <ActionCard
-                  key={item.id}
-                  icon={item.icon}
-                  title={item.title}
-                  href={item.href}
-                  color={item.color}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                width: "100%",
+              }}
+            >
+              <Box
+                sx={{
+                  width: "100%",
+                  maxWidth: "500px",
+                }}
+              >
+                <ActionGrid
+                  items={quickActionsData}
+                  spacing={2}
+                  breakpoints={{ xs: 6, sm: 6 }}
+                  renderItem={(item) => (
+                    <ActionCard
+                      key={item.id}
+                      icon={item.icon}
+                      title={item.title}
+                      href={item.href}
+                      color={item.color}
+                    />
+                  )}
                 />
-              )}
-            />
+              </Box>
+            </Box>
           </Paper>
         </Grid>
       </Grid>

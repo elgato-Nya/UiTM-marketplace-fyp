@@ -42,7 +42,6 @@ function MainLayout({ showFilters = false, userRole = "guest" }) {
         sx={{
           display: "flex",
           flexGrow: 1,
-          px: { xs: 2, sm: 3 },
           pt: { xs: 7, sm: 8 }, // Account for fixed header height
           minHeight: "calc(100vh - 64px)",
         }}

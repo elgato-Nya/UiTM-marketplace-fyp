@@ -43,13 +43,14 @@ function MobileDrawer({ open, onClose }) {
 
   return (
     <Drawer
-      anchor="left"
+      anchor="right"
       open={open}
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: 280,
+          width: 300,
           backgroundColor: theme.palette.background.paper,
+          backgroundImage: "none",
         },
       }}
     >
@@ -58,10 +59,11 @@ function MobileDrawer({ open, onClose }) {
         theme={theme}
         isAuthenticated={isAuthenticated}
         user={user}
+        onClose={onClose}
       />
 
       {/* Menu Items */}
-      <List sx={{ pt: 0 }}>
+      <List sx={{ pt: 0, pb: 2 }}>
         {!isAuthenticated ? (
           <>
             {/* Guest Menu */}
@@ -72,24 +74,40 @@ function MobileDrawer({ open, onClose }) {
                   to={item.link}
                   onClick={handleItemClick}
                   sx={{
+                    py: 1.5,
                     "&:hover": {
-                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                      backgroundColor: alpha(theme.palette.primary.main, 0.08),
                     },
                   }}
                 >
-                  <ListItemIcon sx={{ color: theme.palette.text.secondary }}>
+                  <ListItemIcon
+                    sx={{
+                      color: theme.palette.primary.main,
+                      minWidth: 40,
+                    }}
+                  >
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText primary={item.text} />
+                  <ListItemText
+                    primary={item.text}
+                    primaryTypographyProps={{
+                      fontWeight: 500,
+                    }}
+                  />
                 </ListItemButton>
               </ListItem>
             ))}
 
-            <Divider sx={{ my: 1 }} />
+            <Divider sx={{ my: 2 }} />
 
             {/* Auth Buttons */}
             <Box
-              sx={{ p: 2, display: "flex", flexDirection: "column", gap: 1 }}
+              sx={{
+                p: 2,
+                display: "flex",
+                flexDirection: "column",
+                gap: 1.5,
+              }}
             >
               <Button
                 component={Link}
@@ -98,7 +116,16 @@ function MobileDrawer({ open, onClose }) {
                 startIcon={<Login />}
                 variant="outlined"
                 fullWidth
-                sx={{ textTransform: "none" }}
+                size="large"
+                sx={{
+                  textTransform: "none",
+                  py: 1.2,
+                  borderWidth: 2,
+                  fontWeight: 600,
+                  "&:hover": {
+                    borderWidth: 2,
+                  },
+                }}
               >
                 Login
               </Button>
@@ -109,7 +136,16 @@ function MobileDrawer({ open, onClose }) {
                 startIcon={<PersonAdd />}
                 variant="contained"
                 fullWidth
-                sx={{ textTransform: "none" }}
+                size="large"
+                sx={{
+                  textTransform: "none",
+                  py: 1.2,
+                  fontWeight: 600,
+                  boxShadow: 2,
+                  "&:hover": {
+                    boxShadow: 4,
+                  },
+                }}
               >
                 Sign Up
               </Button>
@@ -177,7 +213,7 @@ function MobileDrawer({ open, onClose }) {
               collapsible={authMenuSections.settings.collapsible}
             />
 
-            <Divider sx={{ my: 1 }} />
+            <Divider sx={{ my: 2 }} />
 
             {/* Logout Button */}
             <Box sx={{ p: 2 }}>
@@ -186,7 +222,17 @@ function MobileDrawer({ open, onClose }) {
                 variant="outlined"
                 color="error"
                 fullWidth
-                sx={{ textTransform: "none" }}
+                size="large"
+                sx={{
+                  textTransform: "none",
+                  py: 1.2,
+                  fontWeight: 600,
+                  borderWidth: 2,
+                  "&:hover": {
+                    borderWidth: 2,
+                    backgroundColor: alpha(theme.palette.error.main, 0.08),
+                  },
+                }}
               >
                 Logout
               </Button>

@@ -20,7 +20,7 @@ function DrawerSection({
   theme,
   color,
   collapsible = false,
-  defaultExpanded = true,
+  defaultExpanded = false,
 }) {
   const [expanded, setExpanded] = React.useState(defaultExpanded);
 
@@ -36,35 +36,49 @@ function DrawerSection({
 
   return (
     <>
-      <Divider sx={{ my: 1 }} />
+      <Divider sx={{ my: 1.5 }} />
       <Box
         sx={{
           px: 2,
-          pt: 1,
+          pt: 1.5,
           pb: 0.5,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           cursor: collapsible ? "pointer" : "default",
+          "&:hover": collapsible
+            ? {
+                backgroundColor: alpha(theme.palette.action.hover, 0.5),
+              }
+            : {},
+          borderRadius: collapsible ? 1 : 0,
+          mx: collapsible ? 1 : 0,
         }}
         onClick={handleToggle}
       >
         <Typography
           variant="caption"
           sx={{
-            fontWeight: 600,
+            fontWeight: 700,
             color: color || theme.palette.text.secondary,
             textTransform: "uppercase",
-            letterSpacing: 0.5,
+            letterSpacing: 1,
+            fontSize: "0.75rem",
           }}
         >
           {title}
         </Typography>
         {collapsible &&
           (expanded ? (
-            <ExpandLess fontSize="small" />
+            <ExpandLess
+              fontSize="small"
+              sx={{ color: color || theme.palette.text.secondary }}
+            />
           ) : (
-            <ExpandMore fontSize="small" />
+            <ExpandMore
+              fontSize="small"
+              sx={{ color: color || theme.palette.text.secondary }}
+            />
           ))}
       </Box>
       <Collapse in={expanded} timeout="auto" unmountOnExit>
@@ -75,18 +89,31 @@ function DrawerSection({
               to={item.link}
               onClick={onItemClick}
               sx={{
+                py: 1.5,
                 "&:hover": {
                   backgroundColor: alpha(
                     color || theme.palette.primary.main,
-                    0.1
+                    0.08
                   ),
                 },
               }}
             >
-              <ListItemIcon sx={{ color: theme.palette.text.secondary }}>
+              <ListItemIcon
+                sx={{
+                  color: color || theme.palette.primary.main,
+                  minWidth: 40,
+                }}
+              >
                 {item.icon}
               </ListItemIcon>
-              <ListItemText primary={item.text} />
+              <ListItemText
+                primary={item.text}
+                slotProps={{
+                  primary: {
+                    fontWeight: 500,
+                  },
+                }}
+              />
             </ListItemButton>
           </ListItem>
         ))}

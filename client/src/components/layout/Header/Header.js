@@ -8,8 +8,16 @@ import {
   IconButton,
   alpha,
   useMediaQuery,
+  Menu,
+  MenuItem,
+  Badge,
 } from "@mui/material";
-import { Menu as MenuIcon, KeyboardArrowDown } from "@mui/icons-material";
+import {
+  Menu as MenuIcon,
+  KeyboardArrowDown,
+  ShoppingCart as CartIcon,
+  Favorite as WishlistIcon,
+} from "@mui/icons-material";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useTheme } from "../../../hooks/useTheme";
@@ -38,6 +46,7 @@ function Header({ onMenuClick, userRole, isMobile }) {
   const [merchantMenuAnchor, setMerchantMenuAnchor] = useState(null);
   const [adminMenuAnchor, setAdminMenuAnchor] = useState(null);
   const [aboutMenuAnchor, setAboutMenuAnchor] = useState(null);
+  const [authMenuAnchor, setAuthMenuAnchor] = useState(null);
 
   const handleUserMenuOpen = (event) => {
     setUserMenuAnchor(event.currentTarget);
@@ -79,6 +88,14 @@ function Header({ onMenuClick, userRole, isMobile }) {
     setAboutMenuAnchor(null);
   };
 
+  const handleAuthMenuOpen = (event) => {
+    setAuthMenuAnchor(event.currentTarget);
+  };
+
+  const handleAuthMenuClose = () => {
+    setAuthMenuAnchor(null);
+  };
+
   return (
     <AppBar
       position="fixed"
@@ -101,38 +118,27 @@ function Header({ onMenuClick, userRole, isMobile }) {
           overflow: "visible",
         }}
       >
-        {/* Mobile Menu Button */}
-        {isMobile && (
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={onMenuClick}
-            sx={{ mr: 1 }}
+        {/* Left Side: Logo */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {/* Logo */}
+          <Typography
+            variant="h6"
+            component={Link}
+            to={ROUTES.HOME}
+            sx={{
+              textDecoration: "none",
+              color: theme.palette.primary.main,
+              fontWeight: "bold",
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              minWidth: "fit-content",
+              fontSize: { xs: "1rem", sm: "1.25rem" },
+            }}
           >
-            <MenuIcon />
-          </IconButton>
-        )}
-
-        {/* Logo */}
-        <Typography
-          variant="h6"
-          component={Link}
-          to={ROUTES.HOME}
-          sx={{
-            textDecoration: "none",
-            color: theme.palette.primary.main,
-            fontWeight: "bold",
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            minWidth: "fit-content",
-          }}
-        >
-          🎓
-          {!isSmallScreen && "UiTM Marketplace"}
-          {isSmallScreen && "UiTM"}
-        </Typography>
+            🎓 UiTM Marketplace
+          </Typography>
+        </Box>
 
         {/* Spacer to push navigation to the right */}
         <Box sx={{ flexGrow: 1 }} />
@@ -281,6 +287,34 @@ function Header({ onMenuClick, userRole, isMobile }) {
 
           {isAuthenticated ? (
             <>
+              {/* Cart Icon - Show on Mobile */}
+              {isMobile && (
+                <IconButton
+                  component={Link}
+                  to={ROUTES.CART}
+                  color="inherit"
+                  size="small"
+                >
+                  <Badge badgeContent={cartCount} color="error">
+                    <CartIcon />
+                  </Badge>
+                </IconButton>
+              )}
+
+              {/* Wishlist Icon - Show on Mobile */}
+              {isMobile && (
+                <IconButton
+                  component={Link}
+                  to={ROUTES.WISHLIST}
+                  color="inherit"
+                  size="small"
+                >
+                  <Badge badgeContent={wishlistCount} color="error">
+                    <WishlistIcon />
+                  </Badge>
+                </IconButton>
+              )}
+
               {/* Only show action buttons on desktop */}
               {!isMobile && (
                 <ActionButtons
@@ -301,33 +335,49 @@ function Header({ onMenuClick, userRole, isMobile }) {
             </>
           ) : (
             <>
-              {/* Guest Actions */}
-              <Button
-                component={Link}
-                to={ROUTES.AUTH.LOGIN}
-                sx={{
-                  color: theme.palette.text.primary,
-                  textTransform: "none",
-                  display: { xs: "none", sm: "flex" },
-                }}
-              >
-                Login
-              </Button>
-              <Button
-                component={Link}
-                to={ROUTES.AUTH.REGISTER}
-                variant="contained"
-                sx={{
-                  bgcolor: theme.palette.primary.main,
-                  textTransform: "none",
-                  "&:hover": {
-                    bgcolor: theme.palette.primary.dark,
-                  },
-                }}
-              >
-                {isSmallScreen ? "Join" : "Sign Up"}
-              </Button>
+              {/* Guest Actions - Desktop */}
+              {!isMobile && (
+                <>
+                  <Button
+                    component={Link}
+                    to={ROUTES.AUTH.LOGIN}
+                    sx={{
+                      color: theme.palette.text.primary,
+                      textTransform: "none",
+                    }}
+                  >
+                    Login
+                  </Button>
+                  <Button
+                    component={Link}
+                    to={ROUTES.AUTH.REGISTER}
+                    variant="contained"
+                    sx={{
+                      bgcolor: theme.palette.primary.main,
+                      textTransform: "none",
+                      "&:hover": {
+                        bgcolor: theme.palette.primary.dark,
+                      },
+                    }}
+                  >
+                    Sign Up
+                  </Button>
+                </>
+              )}
             </>
+          )}
+
+          {/* Mobile Menu Button - Right Side for Right-Hand Users */}
+          {isMobile && (
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="end"
+              onClick={onMenuClick}
+              sx={{ ml: 0.5 }}
+            >
+              <MenuIcon />
+            </IconButton>
           )}
         </Box>
       </Toolbar>

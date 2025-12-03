@@ -1,26 +1,53 @@
 import React from "react";
-import { Box, Avatar, Typography } from "@mui/material";
+import { Box, Avatar, Typography, IconButton } from "@mui/material";
+import { Close as CloseIcon } from "@mui/icons-material";
 
-function DrawerHeader({ theme, isAuthenticated, user }) {
+function DrawerHeader({ theme, isAuthenticated, user, onClose }) {
   return (
     <Box
       sx={{
         p: 2,
-        backgroundColor: theme.palette.primary.main,
+        background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
         color: theme.palette.primary.contrastText,
+        position: "relative",
       }}
     >
-      <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+      {/* Close Button */}
+      <IconButton
+        onClick={onClose}
+        sx={{
+          position: "absolute",
+          right: 8,
+          top: 8,
+          color: theme.palette.primary.contrastText,
+          "&:hover": {
+            backgroundColor: "rgba(255, 255, 255, 0.1)",
+          },
+        }}
+        size="small"
+      >
+        <CloseIcon />
+      </IconButton>
+
+      <Typography
+        variant="h6"
+        sx={{
+          fontWeight: "bold",
+          mb: isAuthenticated && user ? 2 : 0,
+          pr: 4,
+        }}
+      >
         🎓 UiTM Marketplace
       </Typography>
       {isAuthenticated && user && (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <Avatar
             sx={{
               bgcolor: theme.palette.primary.contrastText,
               color: theme.palette.primary.main,
-              width: 32,
-              height: 32,
+              width: 40,
+              height: 40,
+              fontWeight: "bold",
             }}
           >
             {user?.profile?.username
@@ -29,11 +56,28 @@ function DrawerHeader({ theme, isAuthenticated, user }) {
                 ? user.email.charAt(0).toUpperCase()
                 : "U"}
           </Avatar>
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              variant="body1"
+              sx={{
+                fontWeight: 600,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
               {user?.profile?.username || "User"}
             </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.8 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                opacity: 0.9,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                display: "block",
+              }}
+            >
               {user?.email || ""}
             </Typography>
           </Box>

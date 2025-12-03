@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, IconButton, Badge, Tooltip } from "@mui/material";
+import { Box, IconButton, Badge, Tooltip, Avatar } from "@mui/material";
 import {
   ShoppingCart,
   Favorite as FavoriteIcon,
@@ -15,6 +15,7 @@ function ActionButtons({
   wishlistCount,
   onUserMenuOpen,
   theme,
+  user,
 }) {
   return (
     <>
@@ -69,12 +70,27 @@ function ActionButtons({
           onClick={onUserMenuOpen}
           size={isSmallScreen ? "small" : "medium"}
           sx={{
-            p: 0.5,
-            border: `2px solid ${theme.palette.primary.main}`,
-            borderRadius: "50%",
+            p: 0,
           }}
         >
-          <AccountCircle sx={{ fontSize: isSmallScreen ? 24 : 28 }} />
+          <Avatar
+            src={user?.profile?.avatar}
+            alt={user?.profile?.username || user?.email}
+            sx={{
+              bgcolor: theme.palette.primary.main,
+              width: isSmallScreen ? 32 : 36,
+              height: isSmallScreen ? 32 : 36,
+              fontSize: isSmallScreen ? "0.875rem" : "1rem",
+              fontWeight: 600,
+              border: `2px solid ${theme.palette.primary.main}`,
+            }}
+          >
+            {user?.profile?.username
+              ? user.profile.username.charAt(0).toUpperCase()
+              : user?.email
+                ? user.email.charAt(0).toUpperCase()
+                : "U"}
+          </Avatar>
         </IconButton>
       </Tooltip>
     </>

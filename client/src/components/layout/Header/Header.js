@@ -323,6 +323,7 @@ function Header({ onMenuClick, userRole, isMobile }) {
                   wishlistCount={wishlistCount}
                   onUserMenuOpen={handleUserMenuOpen}
                   theme={theme}
+                  user={user}
                 />
               )}
 

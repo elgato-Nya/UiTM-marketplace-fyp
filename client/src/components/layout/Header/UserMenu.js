@@ -97,6 +97,8 @@ function UserMenu({ anchorEl, open, onClose, user }) {
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <Avatar
+            src={user?.profile?.avatar}
+            alt={user?.profile?.username || user?.email}
             sx={{
               bgcolor: theme.palette.primary.main,
               width: 40,

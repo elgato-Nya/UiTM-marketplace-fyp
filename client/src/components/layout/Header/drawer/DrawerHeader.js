@@ -6,7 +6,9 @@ function DrawerHeader({ theme, isAuthenticated, user, onClose }) {
   return (
     <Box
       sx={{
+        mt: "60px",
         p: 2,
+        py: 3,
         background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
         color: theme.palette.primary.contrastText,
         position: "relative",
@@ -33,15 +35,17 @@ function DrawerHeader({ theme, isAuthenticated, user, onClose }) {
         variant="h6"
         sx={{
           fontWeight: "bold",
-          mb: isAuthenticated && user ? 2 : 0,
+          mb: isAuthenticated && user ? 3 : 0,
           pr: 4,
         }}
       >
         🎓 UiTM Marketplace
       </Typography>
       {isAuthenticated && user && (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mt: 1 }}>
           <Avatar
+            src={user?.profile?.avatar}
+            alt={user?.profile?.username || user?.email}
             sx={{
               bgcolor: theme.palette.primary.contrastText,
               color: theme.palette.primary.main,

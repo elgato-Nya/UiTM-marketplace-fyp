@@ -49,14 +49,11 @@ import MerchantAnalyticsPage from "./pages/Dashboard/MerchantAnalyticsPage";
 import MyStorePage from "./pages/Merchant/MyStorePage";
 import ShopProfilePage from "./pages/Merchant/ShopProfilePage";
 import AboutPage from "./pages/About/AboutPage";
+import NekodezPage from "./pages/About/NekodezPage";
 import ContactUsPage from "./pages/Contact/ContactUsPage";
-// import NotFoundPage from "./pages/NotFound/NotFoundPage";
+import NotFoundPage from "./pages/NotFound/NotFoundPage";
 
 import { ROUTES } from "./constants/routes";
-// Temporary placeholder components (you'll create these later)
-function NotFoundPage() {
-  return <div>404 - Page Not Found</div>;
-}
 
 // App content with theme integration
 function AppContent() {
@@ -174,6 +171,7 @@ function AppContent() {
 
                 {/* Public Pages */}
                 <Route path={ROUTES.ABOUT} element={<AboutPage />} />
+                <Route path="/about/nekodez" element={<NekodezPage />} />
                 <Route path="/contact" element={<ContactUsPage />} />
 
                 <Route path="*" element={<NotFoundPage />} />

@@ -6,15 +6,16 @@ const { calculateWishlistSummary } = require("./wishlist.helpers");
 
 const getWishlistWithDetails = async (userId) => {
   try {
-    const wishlist = await Wishlist.getWishlistItemDetails(userId);
+    let wishlist = await Wishlist.getWishlistItemDetails(userId);
 
+    // Auto-create wishlist if it doesn't exist
     if (!wishlist) {
-      handleNotFoundError(
-        "Wishlist",
-        "WISHLIST_NOT_FOUND",
-        "getWishlistWithDetails",
-        { userId: userId.toString() }
-      );
+      logger.info("Wishlist not found, creating new wishlist for user", {
+        userId: userId.toString(),
+      });
+      wishlist = await Wishlist.findOrCreateWishlist(userId);
+      // Fetch again with details after creation
+      wishlist = await Wishlist.getWishlistItemDetails(userId);
     }
 
     const summary = calculateWishlistSummary(wishlist);

@@ -11,12 +11,16 @@ const {
 
 const getCartWithDetails = async (userId) => {
   try {
-    const cart = await Cart.getCartWithDetails(userId);
+    let cart = await Cart.getCartWithDetails(userId);
 
+    // Auto-create cart if it doesn't exist
     if (!cart) {
-      handleNotFoundError("Cart", "CART_NOT_FOUND", "getCartWithDetails", {
+      logger.info("Cart not found, creating new cart for user", {
         userId: userId.toString(),
       });
+      cart = await Cart.findOrCreateCart(userId);
+      // Fetch again with details after creation
+      cart = await Cart.getCartWithDetails(userId);
     }
 
     const summary = await calculateCartSummary(cart);

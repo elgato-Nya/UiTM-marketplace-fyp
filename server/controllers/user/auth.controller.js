@@ -46,13 +46,12 @@ const sendStatusToken = async (user, statusCode, res) => {
   res.cookie("refreshToken", tokenData.refreshToken, cookieOptions);
 
   const { email, roles, profile } = user;
-  const { username, phoneNumber } = profile;
 
   const userData = {
     token: tokenData.accessToken,
     email,
     roles,
-    profile: { username, phoneNumber },
+    profile, // Send the entire profile object including avatar
   };
 
   return baseController.sendSuccess(

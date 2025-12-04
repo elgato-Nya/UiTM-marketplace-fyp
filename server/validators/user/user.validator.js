@@ -6,10 +6,23 @@ const { CampusEnum, FacultyEnum } = require("../../utils/enums/user.enum");
  */
 class UserValidator {
   /**
-   * Validates UiTM email format
+   * Validates any email format (universal registration)
+   * @param {string} email
+   * @returns {boolean}
+   * NOTE: Accepts any valid email domain for user registration
+   */
+  static isValidEmail(email) {
+    if (!email || typeof email !== "string") return false;
+    // Standard RFC 5322 email validation (simplified)
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.toLowerCase());
+  }
+
+  /**
+   * Validates UiTM email format (for merchant verification only)
    * @param {string} email
    * @returns {boolean}
    * NOTE: email must be a valid UiTM email address (e.g., user@uitm.edu.my)
+   * USAGE: Only used for merchant verification, not general registration
    */
   static isValidUiTMEmail(email) {
     if (!email || typeof email !== "string") return false;
@@ -164,7 +177,8 @@ const userErrorMessages = {
   },
   email: {
     required: "Email is required",
-    invalid:
+    invalid: "Email must be a valid email address",
+    invalidUiTM:
       "Email must be a valid UiTM email address (e.g., user@uitm.edu.my)",
     unique: "Email already exists",
   },

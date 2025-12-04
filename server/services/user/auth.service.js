@@ -18,6 +18,31 @@ const {
 const createUser = async (userData, password) => {
   try {
     const completedData = { ...userData, password };
+
+    // 🎯 AUTO-VERIFICATION LOGIC: Detect UiTM email at registration
+    const isUiTMEmail = /^[a-zA-Z0-9]+@[\w.-]*\.?uitm\.edu\.my$/.test(
+      userData.email.toLowerCase()
+    );
+
+    if (isUiTMEmail) {
+      // User registered with UiTM email - auto-verify for merchant capability
+      completedData.merchantDetails = {
+        verificationEmail: userData.email,
+        originalVerificationEmail: userData.email,
+        isUiTMVerified: true,
+        verificationDate: new Date(),
+        permanentVerification: true, // Keep status even if email changes later
+      };
+
+      logger.info(
+        "🎉 UiTM email detected - user auto-verified for merchant status",
+        {
+          email: userData.email,
+          action: "auto_verify_merchant",
+        }
+      );
+    }
+
     const user = new User(completedData);
     await user.save({ validateBeforeSave: false });
 

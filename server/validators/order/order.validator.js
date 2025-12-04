@@ -5,12 +5,8 @@ const {
 } = require("../../utils/enums/order.enum");
 const { UserValidator, AddressValidator } = require("../user");
 
-const {
-  isValidMongoId,
-  isValidUsername,
-  isValidUiTMEmail,
-  isValidPhoneNumber,
-} = UserValidator;
+const { isValidMongoId, isValidUsername, isValidEmail, isValidPhoneNumber } =
+  UserValidator;
 const {
   isValidRecipientName,
   isValidCampusAddress,
@@ -71,7 +67,7 @@ class OrderValidator {
     return (
       isValidMongoId(userId) &&
       isValidUsername(username) &&
-      isValidUiTMEmail(email) &&
+      isValidEmail(email) &&
       isValidPhoneNumber(phone)
     );
   }
@@ -82,7 +78,7 @@ class OrderValidator {
     return (
       isValidMongoId(userId) &&
       isValidRecipientName(name) &&
-      isValidUiTMEmail(email) &&
+      isValidEmail(email) &&
       isValidPhoneNumber(phone)
     );
   }

@@ -207,7 +207,7 @@ describe("User Model", () => {
         {
           field: "email",
           value: "invalid-email",
-          error: "Email must be a valid UiTM email address",
+          error: "Email must be a valid email address", // ✅ UPDATED: Generic message
         },
         {
           field: "password",
@@ -456,7 +456,9 @@ describe("User Model", () => {
        * Testing actual database query operations.
        */
 
-      const foundUser = await User.findOne({ email: "queryuser1@uitm.edu.my" });
+      const foundUser = await User.findOne({
+        email: "queryuser1@uitm.edu.my",
+      }).select("+email"); // ✅ Need to explicitly select email since it's now select: false
 
       expect(foundUser).toBeTruthy();
       expect(foundUser.email).toBe("queryuser1@uitm.edu.my");

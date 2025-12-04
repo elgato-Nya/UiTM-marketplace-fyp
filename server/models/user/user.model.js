@@ -11,6 +11,7 @@ const { UserValidator, userErrorMessages } = require("../../validators/user");
 const { createServerError } = require("../../utils/errors");
 
 const {
+  isValidEmail,
   isValidUiTMEmail,
   isValidPassword,
   isValidAvatar,
@@ -28,10 +29,11 @@ const UserSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
       validate: {
-        validator: isValidUiTMEmail,
+        validator: isValidEmail, // ✅ CHANGED: Now accepts any email domain
         message: userErrorMessages.email.invalid,
       },
       index: true,
+      select: false, // ⚠️ PRIVACY: Hide from public queries
     },
     password: {
       type: String,

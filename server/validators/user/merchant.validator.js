@@ -10,8 +10,30 @@
  * - Shop description validation
  * - Business registration validation
  * - Category validation
+ * - Email validation (verification & business emails)
  */
+
+// Import email validators from UserValidator
+const { UserValidator } = require("./user.validator");
+const { isValidUiTMEmail, isValidEmail } = UserValidator;
+
 class MerchantValidator {
+  /**
+   * Validate UiTM verification email (for merchant verification)
+   * RULES: Must be valid UiTM email format
+   */
+  static isValidVerificationEmail(email) {
+    return isValidUiTMEmail(email);
+  }
+
+  /**
+   * Validate business email (any domain, optional)
+   * RULES: Must be valid email format if provided
+   */
+  static isValidBusinessEmail(email) {
+    if (!email) return true; // Optional field
+    return isValidEmail(email);
+  }
   /**
    * Validate shop name
    * RULES: 3-50 characters, alphanumeric + spaces/hyphens, trimmed
@@ -259,6 +281,16 @@ const merchantErrorMessages = () => ({
   },
   shopBanner: {
     invalid: "Shop banner must be a valid URL or file path",
+  },
+  // ================== NEW: Email Validation Messages ==================
+  verificationEmail: {
+    required: "UiTM email is required for merchant verification",
+    invalid:
+      "Verification email must be a valid UiTM email address (e.g., user@uitm.edu.my)",
+    unique: "This UiTM email is already used for merchant verification",
+  },
+  businessEmail: {
+    invalid: "Business email must be a valid email address",
   },
 });
 

@@ -589,6 +589,246 @@ const trackShopView = async (shopSlug) => {
   }
 };
 
+// ================== NEW: Merchant Verification Functions ==================
+
+const {
+  generateTokenWithExpiry,
+  hashToken,
+  compareToken,
+} = require("../token.service");
+const { UserValidator } = require("../../validators/user");
+const { isValidUiTMEmail } = UserValidator;
+const {
+  createValidationError,
+  createConflictError,
+  createAuthError,
+} = require("../../utils/errors");
+
+/**
+ * Submit UiTM email for merchant verification
+ * @param {string} userId - User ID requesting verification
+ * @param {string} verificationEmail - UiTM email to verify
+ * @returns {Promise<Object>} Verification status
+ */
+const submitMerchantVerification = async (userId, verificationEmail) => {
+  try {
+    const user = await User.findById(userId).select(
+      "+merchantDetails.verificationEmail +merchantDetails.isUiTMVerified"
+    );
+
+    if (!user) {
+      return handleNotFoundError(
+        "User",
+        "USER_NOT_FOUND",
+        "submitMerchantVerification",
+        { userId }
+      );
+    }
+
+    // Check if already verified
+    if (user.merchantDetails?.isUiTMVerified) {
+      logger.info("User already has UiTM verification", {
+        userId,
+        verificationEmail: user.merchantDetails.verificationEmail,
+      });
+      return {
+        status: "already_verified",
+        message: "Your merchant status is already verified",
+        verificationEmail: user.merchantDetails.verificationEmail,
+      };
+    }
+
+    // Validate UiTM email format
+    if (!isValidUiTMEmail(verificationEmail)) {
+      throw createValidationError(
+        "Verification email must be a valid UiTM email address"
+      );
+    }
+
+    // Check if email already used by another merchant
+    const existingMerchant = await User.findOne({
+      "merchantDetails.verificationEmail": verificationEmail.toLowerCase(),
+      _id: { $ne: userId },
+    });
+
+    if (existingMerchant) {
+      throw createConflictError(
+        "This UiTM email is already used for merchant verification"
+      );
+    }
+
+    // Generate verification token
+    const { token, expiresAt } = generateTokenWithExpiry(32, 24 * 60); // 24 hours
+    const hashedToken = await hashToken(token);
+
+    // Update user with pending verification
+    await User.findByIdAndUpdate(userId, {
+      "merchantDetails.verificationEmail": verificationEmail.toLowerCase(),
+      "merchantDetails.isUiTMVerified": false, // Pending verification
+      "merchantDetails.verificationToken": hashedToken,
+      "merchantDetails.verificationTokenExpires": expiresAt,
+    });
+
+    // Send verification email
+    const emailService = require("../email.service");
+    try {
+      await emailService.sendMerchantVerificationEmail(
+        user,
+        verificationEmail,
+        token
+      );
+      logger.info("Merchant verification email sent successfully", {
+        userId,
+        verificationEmail,
+      });
+    } catch (emailError) {
+      logger.warn("Failed to send merchant verification email", {
+        userId,
+        verificationEmail,
+        error: emailError.message,
+      });
+      // Don't fail the request if email fails - token is still valid
+      // User can retry or admin can manually verify
+    }
+
+    return {
+      status: "verification_sent",
+      message: "Verification email sent. Please check your UiTM inbox.",
+      verificationEmail: verificationEmail.toLowerCase(),
+      expiresAt,
+      token, // For testing purposes - remove in production
+    };
+  } catch (error) {
+    return handleServiceError(error, "submitMerchantVerification", {
+      userId,
+      verificationEmail,
+    });
+  }
+};
+
+/**
+ * Verify merchant email with token
+ * @param {string} userId - User ID
+ * @param {string} token - Verification token from email
+ * @returns {Promise<Object>} Verification result
+ */
+const verifyMerchantEmail = async (userId, token) => {
+  try {
+    const user = await User.findById(userId).select(
+      "+merchantDetails.verificationToken +merchantDetails.verificationTokenExpires +merchantDetails.verificationEmail"
+    );
+
+    if (!user) {
+      return handleNotFoundError(
+        "User",
+        "USER_NOT_FOUND",
+        "verifyMerchantEmail",
+        { userId }
+      );
+    }
+
+    if (!user.merchantDetails?.verificationToken) {
+      throw createAuthError("No pending verification found", "TOKEN_NOT_FOUND");
+    }
+
+    if (user.merchantDetails.verificationTokenExpires < new Date()) {
+      throw createAuthError(
+        "Invalid or expired verification token",
+        "TOKEN_EXPIRED"
+      );
+    }
+
+    const isTokenValid = await compareToken(
+      token,
+      user.merchantDetails.verificationToken
+    );
+    if (!isTokenValid) {
+      throw createAuthError(
+        "Invalid or expired verification token",
+        "TOKEN_INVALID"
+      );
+    }
+
+    // Mark as verified
+    const updateData = {
+      $set: {
+        "merchantDetails.isUiTMVerified": true,
+        "merchantDetails.verificationDate": new Date(),
+        "merchantDetails.permanentVerification": true,
+        "merchantDetails.verificationToken": null,
+        "merchantDetails.verificationTokenExpires": null,
+      },
+    };
+
+    // Set originalVerificationEmail only if not already set (immutable field)
+    if (!user.merchantDetails.originalVerificationEmail) {
+      updateData.$set["merchantDetails.originalVerificationEmail"] =
+        user.merchantDetails.verificationEmail;
+    }
+
+    await User.updateOne({ _id: userId }, updateData);
+
+    logger.auth("Merchant email verified successfully", userId, {
+      verificationEmail: user.merchantDetails.verificationEmail,
+    });
+
+    return {
+      status: "verified",
+      message: "Your merchant status has been verified!",
+      isUiTMVerified: true,
+      permanentVerification: true,
+      verificationEmail: user.merchantDetails.verificationEmail,
+      verificationDate: new Date(),
+    };
+  } catch (error) {
+    return handleServiceError(error, "verifyMerchantEmail", { userId });
+  }
+};
+
+/**
+ * Update business contact email (public)
+ * @param {string} userId - User ID
+ * @param {string} businessEmail - New business email (optional)
+ * @returns {Promise<Object>} Update result
+ */
+const updateBusinessEmail = async (userId, businessEmail) => {
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return handleNotFoundError(
+        "User",
+        "USER_NOT_FOUND",
+        "updateBusinessEmail",
+        { userId }
+      );
+    }
+
+    // Ensure user is a merchant
+    if (!user.roles.includes("merchant")) {
+      throw createAuthError("User is not a merchant", "NOT_MERCHANT");
+    }
+
+    // Validate email format if provided
+    const { isValidEmail } = UserValidator;
+    if (businessEmail && !isValidEmail(businessEmail)) {
+      throw createValidationError("Invalid email address format");
+    }
+
+    await User.findByIdAndUpdate(userId, {
+      "merchantDetails.businessEmail": businessEmail?.toLowerCase() || null,
+    });
+
+    logger.info("Business email updated", { userId, businessEmail });
+
+    return {
+      status: "updated",
+      businessEmail: businessEmail || null,
+    };
+  } catch (error) {
+    return handleServiceError(error, "updateBusinessEmail", { userId });
+  }
+};
+
 module.exports = {
   autoCreateShopFromProfile,
   getOrCreateShop,
@@ -602,4 +842,8 @@ module.exports = {
   getMerchantStats,
   trackShopView,
   syncMerchantDataToListings,
+  // New merchant verification functions
+  submitMerchantVerification,
+  verifyMerchantEmail,
+  updateBusinessEmail,
 };

@@ -11,6 +11,9 @@ const {
   getAllMerchants,
   trackShopView,
   syncMerchantListings,
+  submitMerchantVerification,
+  verifyMerchantEmail,
+  updateBusinessEmail,
 } = require("../../controllers/user/merchant.controller");
 
 const { authenticateUser } = require("../../middleware/auth");
@@ -101,6 +104,27 @@ router.put("/profile", validateUpdateMerchant, createOrUpdateMerchant);
  * @access  Private (merchant only)
  */
 router.get("/stats", getMerchantStats);
+
+/**
+ * @route   POST /api/merchants/verify-email/submit
+ * @desc    Submit UiTM email for merchant verification
+ * @access  Private (authenticated users)
+ */
+router.post("/verify-email/submit", submitMerchantVerification);
+
+/**
+ * @route   POST /api/merchants/verify-email/confirm
+ * @desc    Confirm UiTM email verification with token
+ * @access  Private (authenticated users)
+ */
+router.post("/verify-email/confirm", verifyMerchantEmail);
+
+/**
+ * @route   PUT /api/merchants/business-email
+ * @desc    Update business contact email (public)
+ * @access  Private (merchant only)
+ */
+router.put("/business-email", updateBusinessEmail);
 
 /**
  * @route   POST /api/merchants/sync-listings

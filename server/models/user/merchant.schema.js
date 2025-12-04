@@ -3,6 +3,7 @@ const {
   MerchantValidator,
   merchantErrorMessages,
 } = require("../../validators/user");
+const { UserValidator } = require("../../validators/user");
 
 const {
   isValidShopName,
@@ -10,6 +11,7 @@ const {
   isValidShopDescription,
   isValidImageUrl,
 } = MerchantValidator;
+const { isValidUiTMEmail, isValidEmail } = UserValidator;
 const errorMessages = merchantErrorMessages();
 
 /**
@@ -27,6 +29,103 @@ const errorMessages = merchantErrorMessages();
 
 const merchantSchema = new mongoose.Schema(
   {
+    // ================== EMAIL FIELDS (3-Email System) ==================
+
+    /**
+     * UiTM Verification Email (PRIVATE)
+     * PURPOSE: Verify merchant status with UiTM credentials
+     * VISIBILITY: Owner + Admin only (select: false)
+     * REQUIRED: For merchant verification
+     */
+    verificationEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      sparse: true, // Allow multiple null values
+      validate: {
+        validator: function (email) {
+          return !email || isValidUiTMEmail(email);
+        },
+        message: "Verification email must be a valid UiTM email address",
+      },
+      select: false, // ⚠️ CRITICAL: Hidden from public queries
+    },
+
+    /**
+     * UiTM Verification Status
+     * PURPOSE: Track merchant verification state
+     */
+    isUiTMVerified: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    /**
+     * Verification Date
+     * PURPOSE: Track when merchant was verified
+     */
+    verificationDate: {
+      type: Date,
+      select: false,
+    },
+
+    /**
+     * Original Verification Email (Historical Record)
+     * PURPOSE: Keep record of initial verification email
+     * NOTE: Never updated, immutable
+     */
+    originalVerificationEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      select: false,
+      immutable: true,
+    },
+
+    /**
+     * Permanent Verification Flag
+     * PURPOSE: Keep merchant status even if verification email expires (graduation)
+     */
+    permanentVerification: {
+      type: Boolean,
+      default: false,
+    },
+
+    /**
+     * Business Contact Email (PUBLIC)
+     * PURPOSE: Public contact email for customer inquiries
+     * VISIBILITY: Public (shown in shop profiles)
+     * OPTIONAL: Falls back to primary email if not set
+     */
+    businessEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      validate: {
+        validator: function (email) {
+          return !email || isValidEmail(email);
+        },
+        message: "Business email must be a valid email address",
+      },
+      // ✅ Public field - customers can see this
+    },
+
+    /**
+     * Verification Token (for email verification flow)
+     */
+    verificationToken: {
+      type: String,
+      select: false,
+    },
+
+    verificationTokenExpires: {
+      type: Date,
+      select: false,
+    },
+
+    // ================== SHOP INFORMATION ==================
+
     shopName: {
       type: String,
       unique: [true, "Shop name already exists"],

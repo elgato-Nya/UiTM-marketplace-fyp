@@ -27,6 +27,7 @@ const {
 } = require("../../../validators/user");
 
 const {
+  isValidEmail,
   isValidUiTMEmail,
   isValidPassword,
   isValidUsername,
@@ -85,11 +86,45 @@ describe("User Model Unit Test", () => {
      * 3. Test edge cases (empty, null, undefined)
      *
      * WHY THESE SPECIFIC TESTS?
-     * - UiTM domain requirement is business logic
+     * - Universal registration now allows any email domain
+     * - UiTM domain required only for merchant verification
      * - Edge cases prevent runtime errors
      * - Clear examples help other developers understand requirements
      */
-    it("should validate UiTM emails", () => {
+
+    it("should validate any email format (universal registration)", () => {
+      /**
+       * NEW: Testing universal email validation
+       * Accepts any valid email domain for user registration
+       */
+
+      // Valid emails from any domain should return true
+      expect(isValidEmail("user@gmail.com")).toBe(true);
+      expect(isValidEmail("student@yahoo.com")).toBe(true);
+      expect(isValidEmail("merchant@outlook.com")).toBe(true);
+      expect(isValidEmail("test@uitm.edu.my")).toBe(true); // UiTM also valid
+      expect(isValidEmail("staff@mail.uitm.edu.my")).toBe(true);
+      expect(isValidEmail("contact@business.co")).toBe(true);
+      expect(isValidEmail("user123@domain.com")).toBe(true);
+
+      // Invalid email formats should return false
+      expect(isValidEmail("notanemail")).toBe(false);
+      expect(isValidEmail("@nodomain.com")).toBe(false);
+      expect(isValidEmail("user@")).toBe(false);
+      expect(isValidEmail("user")).toBe(false);
+      expect(isValidEmail("user@domain")).toBe(false); // no TLD
+      expect(isValidEmail("user @domain.com")).toBe(false); // space
+      expect(isValidEmail("user@domain .com")).toBe(false); // space
+
+      // Edge cases - prevent runtime errors
+      expect(isValidEmail("")).toBe(false);
+      expect(isValidEmail(null)).toBe(false);
+      expect(isValidEmail(undefined)).toBe(false);
+      expect(isValidEmail(123)).toBe(false);
+      expect(isValidEmail({})).toBe(false);
+    });
+
+    it("should validate UiTM emails (merchant verification only)", () => {
       /**
        * Testing pure validation functions - no mocking needed
        * These are pure functions: same input always gives same output

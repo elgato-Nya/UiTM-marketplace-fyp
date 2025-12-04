@@ -317,6 +317,96 @@ const syncMerchantListings = asyncHandler(async (req, res) => {
   );
 }, "sync_merchant_listings");
 
+/**
+ * Submit UiTM email for merchant verification
+ * POST /api/merchants/verify-email/submit
+ */
+const submitMerchantVerification = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { verificationEmail } = sanitizeObject(req.body);
+
+  if (!verificationEmail) {
+    return res.status(400).json({
+      success: false,
+      message: "Verification email is required",
+    });
+  }
+
+  const result = await merchantService.submitMerchantVerification(
+    userId,
+    verificationEmail
+  );
+
+  baseController.logAction("submit_merchant_verification", req, {
+    userId,
+    verificationEmail: verificationEmail.substring(0, 3) + "***", // Log partial for privacy
+  });
+
+  return baseController.sendSuccess(
+    res,
+    result,
+    result.status === "already_verified"
+      ? "Your merchant account is already verified"
+      : "Verification email sent. Please check your UiTM inbox."
+  );
+}, "submit_merchant_verification");
+
+/**
+ * Verify UiTM email with token
+ * POST /api/merchants/verify-email/confirm
+ */
+const verifyMerchantEmail = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { token } = sanitizeObject(req.body);
+
+  if (!token) {
+    return res.status(400).json({
+      success: false,
+      message: "Verification token is required",
+    });
+  }
+
+  const result = await merchantService.verifyMerchantEmail(userId, token);
+
+  baseController.logAction("verify_merchant_email", req, {
+    userId,
+    verificationDate: result.verificationDate,
+  });
+
+  return baseController.sendSuccess(
+    res,
+    result,
+    "Your UiTM email has been verified! You now have permanent merchant status."
+  );
+}, "verify_merchant_email");
+
+/**
+ * Update business email (public contact)
+ * PUT /api/merchants/business-email
+ */
+const updateBusinessEmail = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { businessEmail } = sanitizeObject(req.body);
+
+  const result = await merchantService.updateBusinessEmail(
+    userId,
+    businessEmail || null
+  );
+
+  baseController.logAction("update_business_email", req, {
+    userId,
+    hasBusinessEmail: !!result.businessEmail,
+  });
+
+  return baseController.sendSuccess(
+    res,
+    result,
+    result.businessEmail
+      ? "Business email updated successfully"
+      : "Business email removed successfully"
+  );
+}, "update_business_email");
+
 module.exports = {
   getMerchantProfile,
   createOrUpdateMerchant,
@@ -329,4 +419,7 @@ module.exports = {
   getAllMerchants,
   trackShopView,
   syncMerchantListings,
+  submitMerchantVerification,
+  verifyMerchantEmail,
+  updateBusinessEmail,
 };

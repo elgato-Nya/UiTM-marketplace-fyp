@@ -69,47 +69,52 @@ const sendStatusToken = async (user, statusCode, res) => {
  * @returns {Promise<void>} Sends a response with success message upon successful registration.
  */
 const register = asyncHandler(async (req, res) => {
-  const userDTO = {
-    email: req.body.email,
-    profile: req.body.profile,
-  };
+  // Extract and trim email separately (don't sanitize it)
+  const email = req.body.email?.trim().toLowerCase();
   const password = req.body.password;
 
-  const sanitizedData = sanitizeObject(userDTO);
+  // Sanitize only the profile data (not email)
+  const sanitizedProfile = sanitizeObject(req.body.profile || {});
+
+  const userDTO = {
+    email: email,
+    profile: sanitizedProfile,
+  };
 
   baseController.logAction("register_user", req, {
-    email: sanitizedData.email,
+    email: email,
   });
-  const user = await authService.createUser(sanitizedData, password);
+  const user = await authService.createUser(userDTO, password);
 
-  // Generate and send verification email
-  try {
-    // Generate unhashed token for email
-    const { token, expiresAt } = generateTokenWithExpiry(32, 24 * 60); // 24 hours
-    const hashedToken = await hashToken(token);
+  // Generate verification token and save to database
+  const { token, expiresAt } = generateTokenWithExpiry(32, 24 * 60); // 24 hours
+  const hashedToken = await hashToken(token);
 
-    // Save hashed token to database
-    await User.findByIdAndUpdate(user._id, {
-      "emailVerification.token": hashedToken,
-      "emailVerification.tokenExpires": expiresAt,
+  // Save hashed token to database
+  await User.findByIdAndUpdate(user._id, {
+    "emailVerification.token": hashedToken,
+    "emailVerification.tokenExpires": expiresAt,
+  });
+
+  // Send verification email asynchronously (fire-and-forget)
+  // Don't await - let it run in background to avoid blocking response
+  sendVerificationEmail(user, token)
+    .then(() => {
+      logger.auth("Verification email sent", user._id, {
+        email: user.email,
+        expires: expiresAt,
+      });
+    })
+    .catch((emailError) => {
+      logger.warn("Failed to send verification email", {
+        userId: user._id,
+        email: user.email,
+        error: emailError.message,
+      });
+      // User can request resend via resend endpoint
     });
 
-    // Send email with unhashed token
-    await sendVerificationEmail(user, token);
-
-    logger.auth("Verification email sent", user._id, {
-      email: user.email,
-      expires: expiresAt,
-    });
-  } catch (emailError) {
-    logger.warn("Failed to send verification email", {
-      userId: user._id,
-      email: user.email,
-      error: emailError.message,
-    });
-    // Don't fail registration if email fails - user can request resend
-  }
-
+  // Respond immediately without waiting for email
   baseController.sendSuccess(
     res,
     {},
@@ -126,10 +131,11 @@ const register = asyncHandler(async (req, res) => {
  */
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  const sanitizedEmail = sanitizeInput(email);
+  // Only trim and lowercase email (don't sanitize it)
+  const cleanEmail = email?.trim().toLowerCase();
 
-  const user = await authService.authenticateUser(sanitizedEmail, password);
-  baseController.logAction("login_user", req, { email: sanitizedEmail });
+  const user = await authService.authenticateUser(cleanEmail, password);
+  baseController.logAction("login_user", req, { email: cleanEmail });
 
   await sendStatusToken(user, 200, res);
 }, "login_user");
@@ -169,9 +175,10 @@ const handleTokenRefresh = asyncHandler(async (req, res) => {
 
 const resendVerificationEmail = asyncHandler(async (req, res) => {
   const { email } = req.body;
-  const sanitizedEmail = sanitizeInput(email);
+  // Only trim and lowercase email (don't sanitize it)
+  const cleanEmail = email?.trim().toLowerCase();
 
-  const user = await User.findOne({ email: sanitizedEmail });
+  const user = await User.findOne({ email: cleanEmail });
   if (!user || user.emailVerification?.isVerified) {
     return baseController.sendSuccess(
       res,
@@ -191,23 +198,38 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
     "emailVerification.tokenExpires": expiresAt,
   });
 
-  // Send verification email
-  await sendVerificationEmail(user, token);
+  // Send verification email asynchronously (fire-and-forget)
+  sendVerificationEmail(user, token)
+    .then(() => {
+      logger.auth("Resend verification email sent", user._id, {
+        email: user.email,
+        expires: expiresAt,
+      });
+    })
+    .catch((emailError) => {
+      logger.warn("Failed to resend verification email", {
+        userId: user._id,
+        email: user.email,
+        error: emailError.message,
+      });
+    });
 
   baseController.logAction("resend_verification_email", req, {
-    email: sanitizedEmail,
+    email: cleanEmail,
   });
+  // Respond immediately without waiting for email
   baseController.sendSuccess(res, {}, "Verification email sent", 200);
 }, "resend_verification_email");
 
 const verifyEmail = asyncHandler(async (req, res) => {
   const { email, token } = req.body;
-  const sanitizedEmail = sanitizeInput(email);
+  // Only trim and lowercase email (don't sanitize it)
+  const cleanEmail = email?.trim().toLowerCase();
   const sanitizedToken = sanitizeInput(token);
 
-  await authService.verifyEmail(sanitizedEmail, sanitizedToken);
+  await authService.verifyEmail(cleanEmail, sanitizedToken);
 
-  baseController.logAction("verify_email", req, { email: sanitizedEmail });
+  baseController.logAction("verify_email", req, { email: cleanEmail });
   baseController.sendSuccess(res, {}, "Email verified successfully", 200);
 }, "verify_email");
 /**
@@ -218,14 +240,15 @@ const verifyEmail = asyncHandler(async (req, res) => {
  */
 const handleForgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
-  const sanitizedEmail = sanitizeInput(email);
+  // Only trim and lowercase email (don't sanitize it)
+  const cleanEmail = email?.trim().toLowerCase();
 
   const { status, message } = await authService.generatePasswordResetToken(
-    sanitizedEmail
+    cleanEmail
   );
 
   baseController.logAction("forgot_password", req, {
-    email: sanitizedEmail,
+    email: cleanEmail,
     status,
     message,
   });
@@ -240,39 +263,41 @@ const handleForgotPassword = asyncHandler(async (req, res) => {
 
 const handleValidateResetToken = asyncHandler(async (req, res) => {
   const { email, token } = req.body;
-  const sanitizedEmail = sanitizeInput(email);
+  // Only trim and lowercase email (don't sanitize it)
+  const cleanEmail = email?.trim().toLowerCase();
 
-  if (!sanitizedEmail || !token) {
+  if (!cleanEmail || !token) {
     logger.error("Email or token missing for reset validation", {
       action: "validate_reset_token",
-      email: sanitizedEmail || "missing",
+      email: cleanEmail || "missing",
       token: token || "missing",
     });
     createValidationError(
       "Email and token are required",
       {
         action: "validate_reset_token",
-        email: sanitizedEmail || "missing",
+        email: cleanEmail || "missing",
         token: token || "missing",
       },
       "RESET_TOKEN_INVALID"
     );
   }
 
-  const result = await authService.validateResetToken(sanitizedEmail, token);
+  const result = await authService.validateResetToken(cleanEmail, token);
 
   baseController.sendSuccess(res, result, "Reset token is valid", 200);
 }, "validate_reset_token");
 
 const handleResetPassword = asyncHandler(async (req, res) => {
   const { email, token, newPassword } = req.body;
-  const sanitizedEmail = sanitizeInput(email);
+  // Only trim and lowercase email (don't sanitize it)
+  const cleanEmail = email?.trim().toLowerCase();
   const sanitizedToken = sanitizeInput(token);
 
-  if (!sanitizedEmail || !sanitizedToken || !newPassword) {
+  if (!cleanEmail || !sanitizedToken || !newPassword) {
     logger.error("Missing fields for password reset", {
       action: "reset_password",
-      email: sanitizedEmail || "missing",
+      email: cleanEmail || "missing",
       token: sanitizedToken || "missing",
       newPassword: newPassword ? "provided" : "missing",
     });
@@ -280,7 +305,7 @@ const handleResetPassword = asyncHandler(async (req, res) => {
       "Email, token, and new password are required",
       {
         action: "reset_password",
-        email: sanitizedEmail || "missing",
+        email: cleanEmail || "missing",
         token: sanitizedToken || "missing",
         newPassword: newPassword ? "provided" : "missing",
       },
@@ -288,9 +313,9 @@ const handleResetPassword = asyncHandler(async (req, res) => {
     );
   }
 
-  await authService.resetPassword(sanitizedEmail, sanitizedToken, newPassword);
+  await authService.resetPassword(cleanEmail, sanitizedToken, newPassword);
 
-  baseController.logAction("reset_password", req, { email: sanitizedEmail });
+  baseController.logAction("reset_password", req, { email: cleanEmail });
   baseController.sendSuccess(res, {}, "Password reset successfully", 200);
 }, "reset_password");
 

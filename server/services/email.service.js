@@ -5,6 +5,13 @@ const {
   createValidationError,
 } = require("../utils/errors");
 const logger = require("../utils/logger");
+const {
+  sendEmailViaSdk,
+  testSdkConnection,
+} = require("./email.aws-sdk.service");
+
+// Flag to track if SMTP is blocked (network restriction)
+let smtpBlocked = false;
 
 // AWS SES specific configuration
 const SES_REGIONS = {
@@ -23,7 +30,9 @@ let transporter = null;
  */
 const initializeTransporter = () => {
   try {
-    if (!transporter) {
+    // Force recreation if transporter exists (for development/testing)
+    // In production, this will only run once
+    if (!transporter || process.env.NODE_ENV === "development") {
       // Validate required environment variables
       const requiredEnvVars = [
         "SMTP_HOST",
@@ -57,13 +66,22 @@ const initializeTransporter = () => {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
+        // CRITICAL FIX: AWS SES rejects EHLO with localhost/127.0.0.1
+        // Must provide a valid hostname for production mode
+        name: "nekodez.com",
+        tls: {
+          // Allow connections even if certificate doesn't match hostname
+          rejectUnauthorized: false,
+        },
       };
 
       // Add AWS SES specific settings for better performance
-      if (
+      const isAwsSes =
         process.env.SMTP_HOST &&
-        process.env.SMTP_HOST.includes("amazonses.com")
-      ) {
+        (process.env.SMTP_HOST.includes("amazonaws.com") ||
+          process.env.SMTP_HOST.includes("amazonses.com"));
+
+      if (isAwsSes) {
         config.connectionTimeout = 60000; // 60 seconds
         config.greetingTimeout = 30000; // 30 seconds
         config.socketTimeout = 60000; // 60 seconds
@@ -71,7 +89,9 @@ const initializeTransporter = () => {
         config.maxMessages = 100; // Messages per connection
         config.rateLimit = 14; // Messages per second (SES limit is 14/sec by default)
 
-        logger.info("AWS SES specific configuration applied");
+        logger.info("AWS SES specific configuration applied", {
+          host: process.env.SMTP_HOST,
+        });
       }
 
       transporter = nodemailer.createTransport(config);
@@ -79,7 +99,7 @@ const initializeTransporter = () => {
       logger.info("Email transporter initialized successfully", {
         host: process.env.SMTP_HOST,
         port: process.env.SMTP_PORT,
-        isAwsSes: config.host && config.host.includes("amazonses.com"),
+        isAwsSes,
       });
     }
     return transporter;
@@ -132,13 +152,44 @@ const sendVerificationEmail = async (user, token) => {
       html: getVerificationTemplate(user, verificationUrl),
     };
 
-    const result = await emailTransporter.sendMail(mailOptions);
-    logger.info(`Verification email sent successfully to ${user.email}`, {
-      messageId: result.messageId,
-      response: result.response,
-      accepted: result.accepted,
-      rejected: result.rejected,
-    });
+    let result;
+
+    // Try SMTP first (unless we know it's blocked)
+    if (!smtpBlocked) {
+      try {
+        const emailTransporter = initializeTransporter();
+        result = await emailTransporter.sendMail(mailOptions);
+        logger.info(`Verification email sent via SMTP to ${user.email}`, {
+          messageId: result.messageId,
+        });
+      } catch (smtpError) {
+        // Check if error is network-related (SMTP blocked)
+        if (
+          smtpError.code === "ESOCKET" ||
+          smtpError.code === "ECONNRESET" ||
+          smtpError.code === "ETIMEDOUT"
+        ) {
+          logger.warn("SMTP blocked, switching to AWS SDK permanently", {
+            error: smtpError.code,
+          });
+          smtpBlocked = true; // Remember for future requests
+
+          // Fallback to AWS SDK
+          result = await sendEmailViaSdk(mailOptions);
+          logger.info(`Verification email sent via AWS SDK to ${user.email}`, {
+            messageId: result.messageId,
+          });
+        } else {
+          throw smtpError; // Re-throw non-network errors
+        }
+      }
+    } else {
+      // SMTP is known to be blocked, use AWS SDK directly
+      result = await sendEmailViaSdk(mailOptions);
+      logger.info(`Verification email sent via AWS SDK to ${user.email}`, {
+        messageId: result.messageId,
+      });
+    }
   } catch (error) {
     logger.error(
       `Failed to send verification email to ${user?.email || "unknown"}: ${
@@ -166,6 +217,112 @@ const sendVerificationEmail = async (user, token) => {
 
     // Otherwise, wrap in server error
     createServerError("Failed to send verification email", "EMAIL_SEND_FAILED");
+  }
+};
+
+/**
+ * Send merchant verification email to UiTM email
+ * @param {Object} user - User object with email and profile
+ * @param {String} verificationEmail - UiTM email address to verify
+ * @param {String} token - Verification token
+ * @throws {AppError} Validation or server error
+ */
+const sendMerchantVerificationEmail = async (
+  user,
+  verificationEmail,
+  token
+) => {
+  try {
+    // Validate input parameters
+    if (!user || !user.email) {
+      createValidationError(
+        "User information is required",
+        [{ field: "user", message: "User object is required" }],
+        "INVALID_USER"
+      );
+    }
+
+    if (!verificationEmail) {
+      createValidationError(
+        "Verification email is required",
+        [{ field: "verificationEmail", message: "Email is required" }],
+        "MISSING_VERIFICATION_EMAIL"
+      );
+    }
+
+    if (!token) {
+      createValidationError(
+        "Verification token is required",
+        [{ field: "token", message: "Token is required" }],
+        "MISSING_VERIFICATION_TOKEN"
+      );
+    }
+
+    if (!process.env.CLIENT_URL) {
+      createValidationError(
+        "CLIENT_URL environment variable is required",
+        [{ field: "CLIENT_URL", message: "Required for verification URL" }],
+        "MISSING_CLIENT_URL"
+      );
+    }
+
+    const emailTransporter = initializeTransporter();
+    const verificationUrl = `${process.env.CLIENT_URL}/merchant/verify-email?token=${token}&userId=${user._id}`;
+
+    const mailOptions = {
+      from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_FROM}>`,
+      to: verificationEmail,
+      subject: "Verify Your Merchant Status - UiTM Marketplace",
+      html: getMerchantVerificationTemplate(user, verificationUrl),
+    };
+
+    const result = await emailTransporter.sendMail(mailOptions);
+    logger.info(
+      `Merchant verification email sent successfully to ${verificationEmail}`,
+      {
+        userId: user._id,
+        messageId: result.messageId,
+        response: result.response,
+        accepted: result.accepted,
+        rejected: result.rejected,
+      }
+    );
+
+    return {
+      success: true,
+      messageId: result.messageId,
+      verificationEmail,
+    };
+  } catch (error) {
+    logger.error(
+      `Failed to send merchant verification email to ${
+        verificationEmail || "unknown"
+      }: ${error.message}`
+    );
+
+    // Check for SES sandbox restriction errors
+    if (error.message && error.message.includes("MessageRejected")) {
+      logger.error(
+        "SES Sandbox Restriction: Email address not verified. Please verify the recipient email in AWS SES Console or request production access.",
+        { recipientEmail: verificationEmail }
+      );
+    }
+
+    // If it's already an AppError, re-throw it
+    if (error.isOperational) {
+      throw new AppError(
+        error.message,
+        error.statusCode,
+        error.errorCode,
+        error.isOperational
+      );
+    }
+
+    // Otherwise, wrap in server error
+    createServerError(
+      "Failed to send merchant verification email",
+      "EMAIL_SEND_FAILED"
+    );
   }
 };
 
@@ -282,6 +439,57 @@ const getVerificationTemplate = (user, url) => {
         <p style="margin: 0; color: #1565c0;">
           <strong>Note:</strong> This link expires in <strong>24 hours</strong>.<br>
           If you didn't create this account, please ignore this email.
+        </p>
+      </div>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+      <p style="color: #999; font-size: 12px; text-align: center;">
+        This is an automated message from UiTM Marketplace. Please do not reply to this email.
+      </p>
+    </div>
+  `;
+};
+
+/**
+ * Generate merchant verification email template
+ * @param {Object} user - User object
+ * @param {String} url - Verification URL
+ * @returns {String} HTML template
+ */
+const getMerchantVerificationTemplate = (user, url) => {
+  const username = user?.profile?.username || "Merchant";
+
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #f9f9f9; border-radius: 8px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h1 style="color: #007bff; margin: 0;">UiTM Marketplace</h1>
+      </div>
+      <h2 style="color: #333;">Merchant Verification</h2>
+      <p>Hi <strong>${username}</strong>,</p>
+      <p>You've requested to verify your merchant status with your UiTM email. Click the button below to complete verification:</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${url}" aria-label="Verify Merchant Status" style="background: #28a745; color: white; padding: 14px 32px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+          Verify Merchant Status
+        </a>
+      </div>
+      <p style="color: #666; font-size: 14px;">
+        Or copy and paste this link in your browser:<br>
+        <a href="${url}" style="color: #1976d2; word-break: break-all;">${url}</a>
+      </p>
+      <div style="background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; padding: 12px; margin: 20px 0;">
+        <p style="margin: 0; color: #155724;">
+          <strong>✓ What happens after verification:</strong><br>
+          • You'll gain permanent merchant status<br>
+          • You can list products on the marketplace<br>
+          • Your shop will be visible to customers<br>
+          • Merchant status remains even after graduation
+        </p>
+      </div>
+      <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; padding: 12px; margin: 20px 0;">
+        <p style="margin: 0; color: #856404;">
+          <strong>⚠️ Important:</strong><br>
+          • This link expires in <strong>24 hours</strong><br>
+          • This email was sent to your UiTM email for verification<br>
+          • If you didn't request this, please ignore this email
         </p>
       </div>
       <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
@@ -437,6 +645,7 @@ const isSandboxMode = () => {
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
+  sendMerchantVerificationEmail,
   initializeTransporter,
   testConnection,
   handleSesError,

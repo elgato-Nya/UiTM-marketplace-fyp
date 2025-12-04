@@ -8,6 +8,7 @@ const {
 } = require("../../../validators/user");
 
 const {
+  isValidEmail,
   isValidUiTMEmail,
   isValidPassword,
   isValidUsername,
@@ -22,18 +23,20 @@ const {
 // ================ REUSABLE VALIDATION RULE CHAINS ================
 
 const emailValidation = (fieldName = "email") => {
-  return body(fieldName)
-    .notEmpty()
-    .withMessage(userErrorMessages.email.required)
-    .bail()
-    .trim()
-    .toLowerCase()
-    .isEmail()
-    .normalizeEmail()
-    .custom((email) => {
-      return isValidUiTMEmail(email);
-    })
-    .withMessage(userErrorMessages.email.invalid);
+  return (
+    body(fieldName)
+      .notEmpty()
+      .withMessage(userErrorMessages.email.required)
+      .bail()
+      .trim()
+      .toLowerCase()
+      .isEmail()
+      // .normalizeEmail() ← REMOVED: This removes dots from Gmail addresses!
+      .custom((email) => {
+        return isValidEmail(email); // ✅ CHANGED: Now accepts any email domain
+      })
+      .withMessage(userErrorMessages.email.invalid)
+  );
 };
 
 const passwordValidation = (fieldName = "password") => {

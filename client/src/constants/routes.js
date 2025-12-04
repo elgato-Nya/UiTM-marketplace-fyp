@@ -40,6 +40,8 @@ export const ROUTES = {
     PRODUCTS: "/merchant/products",
     ORDERS: "/merchant/orders",
     ANALYTICS: "/merchant/analytics",
+    BECOME: "/merchant/become",
+    VERIFY_EMAIL: "/merchant/verify-email",
     // Listing Management Routes (under merchant)
     LISTINGS: {
       MY_LISTINGS: "/merchant/listings",

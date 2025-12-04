@@ -18,8 +18,10 @@ import { Save, Store, Info } from "@mui/icons-material";
 import { useTheme } from "../../hooks/useTheme";
 import { useSnackbar } from "../../hooks/useSnackbar";
 import { useMerchant } from "../../features/merchant/hooks/useMerchant";
+import { useAuth } from "../../features/auth/hooks/useAuth";
 import ShopStatusBadge from "../../features/merchant/components/ShopStatusBadge";
 import ShopBrandingUploader from "../../features/merchant/components/ShopBrandingUploader";
+import EmailManagementSection from "../../features/merchant/components/EmailManagementSection";
 
 /**
  * MyStorePage Component
@@ -38,6 +40,7 @@ function MyStorePage() {
   const { theme } = useTheme();
   const { showSnackbar } = useSnackbar();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const { user } = useAuth();
 
   const {
     shop,
@@ -390,6 +393,11 @@ function MyStorePage() {
               </Card>
             </Grid>
           </Grid>
+
+          {/* Email Management Section */}
+          <Box sx={{ mt: 3 }}>
+            <EmailManagementSection user={user} />
+          </Box>
 
           {/* Save Button - Full Width at Bottom */}
           <Box sx={{ mt: 3 }}>

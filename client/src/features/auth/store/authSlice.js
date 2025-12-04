@@ -41,19 +41,24 @@ export const login = createAsyncThunk(
         sessionExpiry: response.data.sessionExpiry,
       };
     } catch (error) {
-      // Extract the detailed error message from the server response
-      const serverError = error.response?.data?.error;
+      // Extract error from server response structure
+      // Development: error.response.data.error.message
+      // Production: error.response.data.message
+      const responseData = error.response?.data;
       const errorMessage =
-        serverError?.message ||
-        error.response?.data?.message ||
-        error?.message ||
-        "Login failed";
+        responseData?.error?.message || // Development format
+        responseData?.message || // Production format
+        "Unable to complete login. Please try again.";
+
+      const errorCode =
+        responseData?.error?.code || // Development format
+        responseData?.code || // Production format
+        "LOGIN_ERROR";
 
       return rejectWithValue({
         message: errorMessage,
-        code: serverError?.code || "UNKNOWN_ERROR",
+        code: errorCode,
         statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
       });
     }
   }
@@ -67,33 +72,24 @@ export const register = createAsyncThunk(
 
       // Registration just returns a success message, no user data
       return {
-        message: response.data.message || "Registration successful",
+        message:
+          response.data.message ||
+          "Registration successful. Please check your email to verify your account.",
       };
     } catch (error) {
-      // Extract detailed error from server response
-      const serverError = error.response?.data?.error;
-      const validationErrors = error.response?.data?.errors;
+      const responseData = error.response?.data;
+      const errorMessage =
+        responseData?.error?.message ||
+        responseData?.message ||
+        "Unable to complete registration. Please try again.";
 
-      let errorMessage =
-        serverError?.message ||
-        error.response?.data?.message ||
-        error?.message ||
-        "Registration failed";
-
-      // If there are validation errors, format them nicely
-      if (validationErrors && validationErrors.length > 0) {
-        const fieldErrors = validationErrors
-          .map((err) => `${err.field}: ${err.message}`)
-          .join(", ");
-        errorMessage = `Validation failed: ${fieldErrors}`;
-      }
+      const errorCode =
+        responseData?.error?.code || responseData?.code || "REGISTRATION_ERROR";
 
       return rejectWithValue({
         message: errorMessage,
-        code: serverError?.code || "UNKNOWN_ERROR",
+        code: errorCode,
         statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
-        validationErrors: validationErrors || null,
       });
     }
   }
@@ -111,10 +107,19 @@ export const handleRefreshToken = createAsyncThunk(
         sessionExpiry: response.data.sessionExpiry,
       };
     } catch (error) {
+      const responseData = error.response?.data;
+      const errorMessage =
+        responseData?.error?.message ||
+        responseData?.message ||
+        "Session expired. Please log in again.";
+
+      const errorCode =
+        responseData?.error?.code || responseData?.code || "SESSION_EXPIRED";
+
       return rejectWithValue({
-        message: "Session expired. Please log in again.",
-        statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
+        message: errorMessage,
+        code: errorCode,
+        statusCode: error.response?.status || 401,
       });
     }
   }
@@ -132,9 +137,19 @@ export const logout = createAsyncThunk(
         statusCode: 200,
       };
     } catch (error) {
+      const responseData = error.response?.data;
+      const errorMessage =
+        responseData?.error?.message ||
+        responseData?.message ||
+        "Logout completed locally";
+
+      const errorCode =
+        responseData?.error?.code || responseData?.code || "LOGOUT_ERROR";
+
       return rejectWithValue({
-        message: "Logout completed locally",
-        statusCode: error.response?.status,
+        message: errorMessage,
+        code: errorCode,
+        statusCode: error.response?.status || 500,
       });
     }
   }
@@ -145,15 +160,26 @@ export const resetPassword = createAsyncThunk(
   async (email, { rejectWithValue }) => {
     try {
       const response = await authService.forgotPassword(email);
-      return { message: response.data.message || "Reset email sent" };
-    } catch (error) {
-      return rejectWithValue({
+      return {
         message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to send reset email",
+          response.data.message || "Password reset link sent to your email",
+      };
+    } catch (error) {
+      const responseData = error.response?.data;
+      const errorMessage =
+        responseData?.error?.message ||
+        responseData?.message ||
+        "Unable to send reset email. Please try again.";
+
+      const errorCode =
+        responseData?.error?.code ||
+        responseData?.code ||
+        "RESET_PASSWORD_ERROR";
+
+      return rejectWithValue({
+        message: errorMessage,
+        code: errorCode,
         statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
       });
     }
   }
@@ -268,7 +294,7 @@ const authSlice = createSlice({
         state.roles = [];
         state.token = null;
         state.refreshToken = null;
-        state.error = action.payload || { message: "Login failed" };
+        state.error = action.payload;
       })
 
       // Register
@@ -284,7 +310,7 @@ const authSlice = createSlice({
       })
       .addCase(register.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload || { message: "Registration failed" };
+        state.error = action.payload;
       })
 
       // Handle Refresh Token
@@ -304,7 +330,7 @@ const authSlice = createSlice({
         state.roles = [];
         state.token = null;
         state.refreshToken = null;
-        state.error = action.payload || { message: "Session expired" };
+        state.error = action.payload;
       })
 
       // Logout
@@ -339,7 +365,7 @@ const authSlice = createSlice({
         state.token = null;
         state.refreshToken = null;
         state.sessionExpiry = null;
-        state.error = action.payload || { message: "Logout failed" };
+        state.error = action.payload;
 
         // Clear localStorage even on error
         try {

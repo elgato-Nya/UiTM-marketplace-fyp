@@ -32,8 +32,23 @@ const authService = {
     return await api.post("/auth/verify-email", { code });
   },
 
-  async resendVerificationEmail() {
-    return await api.post("/auth/resend-verification-email");
+  async resendVerificationEmail(email) {
+    return await api.post("/auth/resend-verification", { email });
+  },
+
+  // Merchant verification API calls
+  async submitMerchantVerification(verificationEmail) {
+    return await api.post("/merchants/verify-email/submit", {
+      verificationEmail,
+    });
+  },
+
+  async verifyMerchantEmail(token) {
+    return await api.post("/merchants/verify-email/confirm", { token });
+  },
+
+  async updateBusinessEmail(businessEmail) {
+    return await api.put("/merchants/business-email", { businessEmail });
   },
 };
 

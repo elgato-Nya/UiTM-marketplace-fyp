@@ -4,19 +4,25 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 
 import { useTheme } from "../../hooks/useTheme";
 import { useAuth } from "../../features/auth/hooks/useAuth";
+import { useSnackbar } from "../../hooks/useSnackbar";
 import { register } from "../../features/auth/store/authSlice";
 import DynamicForm from "../../components/common/Form/DynamicForm";
 import DynamicSkeleton from "../../components/ui/Skeleton/DynamicSkeleton";
 import { registerFormConfig } from "../../config/forms/authForms";
 import { registerValidator } from "../../validation/authValidator";
 import { ROUTES } from "../../constants/routes";
+import authService from "../../features/auth/service/authService";
 
 function RegisterPage() {
   const { theme } = useTheme();
   const { registerUser, error, isLoading, clearAuthError } = useAuth();
+  const { showSnackbar } = useSnackbar();
   const navigate = useNavigate();
 
   const [registerError, setRegisterError] = useState("");
+  const [registeredEmail, setRegisteredEmail] = useState("");
+  const [showResendOption, setShowResendOption] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     clearAuthError();
@@ -28,17 +34,41 @@ function RegisterPage() {
   }, [clearAuthError]);
 
   useEffect(() => {
-    if (error) {
-      setRegisterError(
-        error.message || "Registration failed. Please try again."
-      );
+    if (error && error.message) {
+      setRegisterError(error.message);
+      showSnackbar(error.message, "error");
     }
-  }, [error]);
+  }, [error, showSnackbar]);
+
+  const handleResendVerification = async () => {
+    if (!registeredEmail) return;
+
+    setIsResending(true);
+    try {
+      await authService.resendVerificationEmail(registeredEmail);
+      showSnackbar(
+        "Verification email sent! Please check your inbox.",
+        "success"
+      );
+      setShowResendOption(false);
+    } catch (error) {
+      // Extract error from server response structure
+      const responseData = error.response?.data;
+      const errorMessage =
+        responseData?.error?.message || // Development format
+        responseData?.message || // Production format
+        "Unable to resend verification email. Please try again.";
+      showSnackbar(errorMessage, "error");
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const handleRegister = async (data) => {
     try {
       setRegisterError("");
       clearAuthError();
+      setShowResendOption(false);
 
       const registrationData = {
         email: data.email.toLowerCase(),
@@ -51,25 +81,35 @@ function RegisterPage() {
         },
       };
 
+      setRegisteredEmail(registrationData.email);
       const result = await registerUser(registrationData);
 
       // Check if registration was successful
       if (register.fulfilled.match(result)) {
-        alert("Registration successful! Please log in with your credentials.");
-        navigate(ROUTES.AUTH.LOGIN, {
-          state: { message: "Registration successful! Please log in." },
-        });
-      } else {
-        // Handle registration failure
-        const errorMessage =
-          result.payload?.message || "Registration failed. Please try again.";
-        setRegisterError(errorMessage);
+        showSnackbar(
+          "Registration successful! Please check your email to verify your account.",
+          "success"
+        );
+        setShowResendOption(true);
+
+        // Navigate to login after 2 seconds
+        setTimeout(() => {
+          navigate(ROUTES.AUTH.LOGIN, {
+            state: {
+              message:
+                "Registration successful! Please verify your email and then log in.",
+              email: registrationData.email,
+            },
+          });
+        }, 2000);
+      } else if (result.payload?.message) {
+        // Handle registration failure - error message from server
+        setRegisterError(result.payload.message);
+        showSnackbar(result.payload.message, "error");
       }
     } catch (error) {
+      // Error is already set in Redux state and will be handled by useEffect
       console.error("Registration error:", error);
-      setRegisterError(
-        error.message || "Registration failed. Please try again."
-      );
     }
   };
 
@@ -98,6 +138,27 @@ function RegisterPage() {
         isLoading={isLoading}
         error={registerError}
       />
+
+      {/* Resend Verification Option - shown after successful registration */}
+      {showResendOption && registeredEmail && (
+        <Box sx={{ textAlign: "center", mt: 2, mb: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Didn't receive the email?
+          </Typography>
+          <Button
+            onClick={handleResendVerification}
+            disabled={isResending}
+            variant="text"
+            size="small"
+            sx={{
+              color: theme.palette.primary.main,
+              "&:hover": { textDecoration: "underline" },
+            }}
+          >
+            {isResending ? "Sending..." : "Resend Verification Email"}
+          </Button>
+        </Box>
+      )}
 
       <Typography
         variant="body2"

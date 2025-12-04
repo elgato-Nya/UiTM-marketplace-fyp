@@ -6,8 +6,7 @@ import { CAMPUS_OPTIONS, FACULTY_OPTIONS } from "../constants/authConstant";
 const errorMessages = {
   email: {
     required: "Email is required",
-    invalid:
-      "Email must be a valid UiTM email address (e.g., user@uitm.edu.my)",
+    invalid: "Please enter a valid email address",
   },
   password: {
     required: "Password is required",
@@ -47,11 +46,7 @@ export const loginValidation = yup.object().shape({
   email: yup
     .string()
     .required(errorMessages.email.required)
-    .email(errorMessages.email.invalid)
-    .matches(
-      /^[a-zA-Z0-9]+@[\w.-]*\.?uitm\.edu\.my$/,
-      errorMessages.email.invalid
-    ),
+    .email(errorMessages.email.invalid),
 
   password: yup
     .string()
@@ -69,11 +64,7 @@ export const registerValidator = yup.object().shape({
   email: yup
     .string()
     .required(errorMessages.email.required)
-    .email(errorMessages.email.invalid)
-    .matches(
-      /^[a-zA-Z0-9]+@[\w.-]*\.?uitm\.edu\.my$/,
-      errorMessages.email.invalid
-    ),
+    .email(errorMessages.email.invalid),
 
   password: yup
     .string()

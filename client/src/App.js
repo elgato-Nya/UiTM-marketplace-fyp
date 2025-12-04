@@ -48,6 +48,8 @@ import CheckoutSuccessPage from "./pages/Checkout/CheckoutSuccessPage";
 import MerchantAnalyticsPage from "./pages/Dashboard/MerchantAnalyticsPage";
 import MyStorePage from "./pages/Merchant/MyStorePage";
 import ShopProfilePage from "./pages/Merchant/ShopProfilePage";
+import BecomeMerchantPage from "./pages/Merchant/BecomeMerchantPage";
+import VerifyMerchantEmailPage from "./pages/Merchant/VerifyMerchantEmailPage";
 import AboutPage from "./pages/About/AboutPage";
 import NekodezPage from "./pages/About/NekodezPage";
 import ContactUsPage from "./pages/Contact/ContactUsPage";
@@ -130,6 +132,20 @@ function AppContent() {
                 <Route
                   path="/merchants/:shopSlug"
                   element={<ShopProfilePage />}
+                />
+
+                {/* Merchant Application Routes (Public/Protected) */}
+                <Route
+                  path={ROUTES.MERCHANT.BECOME}
+                  element={
+                    <ProtectedRoute>
+                      <BecomeMerchantPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path={ROUTES.MERCHANT.VERIFY_EMAIL}
+                  element={<VerifyMerchantEmailPage />}
                 />
 
                 {/* 

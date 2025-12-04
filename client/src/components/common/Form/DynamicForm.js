@@ -48,9 +48,10 @@ function DynamicForm({
   const watchedValues = watch();
   const isMultiStep = config.steps && config.steps.length > 1;
 
-  // Reset form and stepper on successful submission if resetOnSuccess is true
+  // Reset form and stepper ONLY on successful submission (no error) if resetOnSuccess is true
+  // This ensures form state is maintained when 4xx errors occur
   useEffect(() => {
-    if (resetOnSuccess && isLoading && !error) {
+    if (resetOnSuccess && !isLoading && !error) {
       reset();
       setActiveStep(0);
       setPasswordVisibility({});

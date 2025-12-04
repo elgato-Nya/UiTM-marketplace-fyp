@@ -16,10 +16,10 @@ export const loginFormConfig = {
     {
       name: "email",
       type: "email",
-      label: "UiTM Email Address",
-      placeholder: "email@uitm.edu.my",
+      label: "Email Address",
+      placeholder: "your@email.com",
       required: true,
-      helperText: "Use your official UiTM email address",
+      helperText: "Use any valid email address",
     },
     {
       name: "password",
@@ -56,10 +56,11 @@ export const registerFormConfig = {
         {
           name: "email",
           type: "email",
-          label: "UiTM Email Address",
-          placeholder: "email@uitm.edu.my",
+          label: "Email Address",
+          placeholder: "your@email.com",
           required: true,
-          helperText: "Use your official UiTM email address",
+          helperText:
+            "Any email accepted. UiTM emails get instant merchant access! 🎉",
         },
         {
           name: "password",

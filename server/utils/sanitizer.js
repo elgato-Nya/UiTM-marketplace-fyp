@@ -35,10 +35,15 @@ const sanitizeInput = (input) => {
  * @param {Object} options - Sanitization options
  * @param {boolean} options.removeOperators - Remove MongoDB operators (default: true)
  * @param {boolean} options.sanitizeStrings - Sanitize string values (default: true)
+ * @param {Array<string>} options.skipKeys - Keys to skip sanitization (e.g., ['email'])
  * @returns {Object} Sanitized object - all string fields sanitized, dangerous keys removed
  */
 const sanitizeObject = (obj, options = {}) => {
-  const { removeOperators = true, sanitizeStrings = true } = options;
+  const {
+    removeOperators = true,
+    sanitizeStrings = true,
+    skipKeys = ["email"],
+  } = options;
 
   if (!obj || typeof obj !== "object") return obj;
   if (obj instanceof ObjectId) return obj; // Skip MongoDB ObjectId
@@ -61,11 +66,17 @@ const sanitizeObject = (obj, options = {}) => {
     if (value === null || value === undefined) {
       sanitized[key] = value;
     } else if (typeof value === "string") {
-      sanitized[key] = sanitizeStrings ? sanitizeInput(value) : value;
+      // Skip sanitization for email fields (they need to preserve dots and special chars)
+      const shouldSkip =
+        skipKeys.includes(key) || skipKeys.includes(key.toLowerCase());
+      sanitized[key] =
+        sanitizeStrings && !shouldSkip ? sanitizeInput(value) : value;
     } else if (Array.isArray(value)) {
-      sanitized[key] = value.map((item) => sanitizeObject(item, options));
+      sanitized[key] = value.map((item) =>
+        sanitizeObject(item, { ...options, skipKeys })
+      );
     } else if (typeof value === "object") {
-      const sanitizedNested = sanitizeObject(value, options);
+      const sanitizedNested = sanitizeObject(value, { ...options, skipKeys });
 
       // If nested object has MongoDB operators in ALL its keys, don't include parent key
       const hasOnlyOperators =

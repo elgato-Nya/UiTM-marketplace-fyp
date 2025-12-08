@@ -296,11 +296,11 @@ const listingSlice = createSlice({
         );
         state.isLoading = false;
         state.success = true;
-        const updatedListing = action.payload.listing;
+        const updatedListing = action.payload.updatedListing;
 
         // Update in myListings
         const index = state.myListings.findIndex(
-          (listing) => listing._id === updatedListing.id
+          (listing) => listing._id === updatedListing._id
         );
         if (index !== -1) {
           state.myListings[index] = updatedListing;

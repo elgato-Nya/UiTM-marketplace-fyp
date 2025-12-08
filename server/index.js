@@ -75,8 +75,6 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb", strict: true })); // Increase body size limit for large requests
 app.use(express.urlencoded({ extended: true, limit: "10mb" })); // Increase body size limit for form data
-// Note: NoSQL injection prevention is handled via enhanced sanitizeObject() in utils/sanitizer.js
-// This approach is more reliable and compatible with Express v5
 
 // Compress response bodies for better performance
 app.use(

@@ -71,18 +71,6 @@ router.get(
   handleGetSellerListings
 );
 
-/**
- * @route   GET /api/listings/:id
- * @desc    Get listing by ID with optional seller details
- * @access  Public (Available for guest users to browse)
- * @params  id - Listing ID
- * @query   includeSeller (boolean), fields (comma-separated)
- * @returns Listing data with optional seller information
- * @note    Must come AFTER specific routes like /my-listings and /seller/:sellerId
- * @note    Public access allows guest browsing, but owners see enhanced details
- */
-router.get("/:id", validateGetListing, handleGetListing);
-
 // ==================== AUTHENTICATED ROUTES ====================
 
 // Apply authentication middleware to all routes below
@@ -110,7 +98,7 @@ router.post(
  * @query   page, limit, sort, includeUnavailable, type, category, fields
  * @returns Paginated user listings with metadata
  * @note    Shows both available and unavailable listings for owner
- * @note    MUST come before /:id route to avoid being caught as a parameter
+ * @note    MUST come BEFORE /:id route to avoid being caught as a parameter
  */
 router.get(
   "/my-listings",
@@ -118,6 +106,18 @@ router.get(
   validatePagination,
   handleGetMyListings
 );
+
+/**
+ * @route   GET /api/listings/:id
+ * @desc    Get listing by ID with optional seller details
+ * @access  Public (Available for guest users to browse)
+ * @params  id - Listing ID
+ * @query   includeSeller (boolean), fields (comma-separated)
+ * @returns Listing data with optional seller information
+ * @note    Must come AFTER specific routes like /my-listings and /seller/:sellerId
+ * @note    Public access allows guest browsing, but owners see enhanced details
+ */
+router.get("/:id", validateGetListing, handleGetListing);
 
 // ==================== OWNERSHIP-PROTECTED ROUTES ====================
 

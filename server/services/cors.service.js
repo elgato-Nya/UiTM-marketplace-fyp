@@ -17,10 +17,7 @@ class CorsService {
     const envOrigins = process.env.ALLOWED_ORIGINS;
     if (envOrigins) {
       const origins = envOrigins.split(",").map((origin) => origin.trim());
-      logger.info(`CORS: Using origins from environment`, {
-        origins,
-        environment: nodeEnv,
-      });
+      logger.info(`CORS: Using ${origins.length} origin(s) from environment`);
       return origins;
     }
 

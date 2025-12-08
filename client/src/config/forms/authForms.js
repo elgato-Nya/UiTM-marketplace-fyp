@@ -1,12 +1,6 @@
-import {
-  CAMPUS_OPTIONS,
-  FACULTY_OPTIONS,
-  STATE_OPTIONS,
-} from "../../constants/authConstant";
+import { CAMPUS_OPTIONS, FACULTY_OPTIONS } from "../../constants/authConstant";
 
 export const loginFormConfig = {
-  title: "Welcome Back!",
-  subtitle: "Sign in to your UiTM Marketplace account",
   submitText: "Sign In",
   defaultValues: {
     email: "",
@@ -32,10 +26,7 @@ export const loginFormConfig = {
 };
 
 export const registerFormConfig = {
-  title: "Join UiTM Marketplace",
-  subtitle: "Create your account to get started",
   submitText: "Create Account",
-  maxWidth: 500,
   defaultValues: {
     email: "",
     password: "",

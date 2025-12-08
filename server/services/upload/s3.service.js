@@ -63,8 +63,6 @@ const uploadFile = async (
       Key: key,
       Body: fileBuffer,
       ContentType: MimeType,
-      // Note: ACL removed - use bucket policy instead for public access
-      // ACLs are disabled by default on new S3 buckets (as of April 2023)
 
       Metadata: {
         originalName,

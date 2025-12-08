@@ -18,6 +18,20 @@ const handleValidationErrors = (req, res, next) => {
       location: error.location,
     }));
 
+    // Create a more user-friendly message
+    const errorCount = formattedErrors.length;
+    const primaryError = formattedErrors[0];
+    let userMessage = "Validation failed";
+
+    // Provide more context in the main message
+    if (errorCount === 1) {
+      userMessage = `Invalid ${primaryError.field}: ${primaryError.message}`;
+    } else {
+      userMessage = `Validation failed: ${errorCount} error${
+        errorCount > 1 ? "s" : ""
+      } found`;
+    }
+
     logger.error("Validation errors:", {
       formattedErrors,
       request: {
@@ -35,9 +49,13 @@ const handleValidationErrors = (req, res, next) => {
 
     return res.status(400).json({
       success: false,
-      message: "Validation failed",
+      message: userMessage,
       errors: formattedErrors,
       code: "VALIDATION_ERROR",
+      hint:
+        errorCount === 1 && primaryError.location === "params"
+          ? "The URL parameter is invalid. Please check the route you're accessing."
+          : null,
     });
   }
 

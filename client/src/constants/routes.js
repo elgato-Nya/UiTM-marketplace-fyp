@@ -89,8 +89,6 @@ export const ROUTES = {
   // Utility Routes
   SEARCH: "/search",
   NOTIFICATIONS: "/notifications",
-  HELP: "/help",
-  SUPPORT: "/support",
   SETTINGS: "/settings",
 
   // Error Routes
@@ -115,18 +113,26 @@ export const MAIN_NAV = [
 export const USER_MENU = {
   CONSUMER: [
     { icon: "Person", label: "My Profile", path: ROUTES.PROFILE.INDEX },
-    { icon: "Settings", label: "Account Settings", path: ROUTES.SETTINGS },
+    {
+      icon: "LocationOn",
+      label: "My Addresses",
+      path: ROUTES.PROFILE.ADDRESSES,
+    },
     { icon: "ShoppingBag", label: "My Orders", path: ROUTES.ORDERS.PURCHASES },
     {
       icon: "Notifications",
       label: "Notifications",
       path: ROUTES.NOTIFICATIONS,
     },
-    { icon: "Help", label: "Help & Support", path: ROUTES.HELP },
+    { icon: "Settings", label: "Account Settings", path: ROUTES.SETTINGS },
   ],
   MERCHANT: [
     { icon: "Person", label: "My Profile", path: ROUTES.PROFILE.INDEX },
-    { icon: "Settings", label: "Account Settings", path: ROUTES.SETTINGS },
+    {
+      icon: "LocationOn",
+      label: "My Addresses",
+      path: ROUTES.PROFILE.ADDRESSES,
+    },
     { icon: "Store", label: "My Store", path: ROUTES.MERCHANT.INDEX },
     {
       icon: "ShoppingBag",
@@ -139,18 +145,22 @@ export const USER_MENU = {
       label: "Notifications",
       path: ROUTES.NOTIFICATIONS,
     },
-    { icon: "Help", label: "Help & Support", path: ROUTES.HELP },
+    { icon: "Settings", label: "Account Settings", path: ROUTES.SETTINGS },
   ],
   ADMIN: [
     { icon: "Person", label: "My Profile", path: ROUTES.PROFILE.INDEX },
-    { icon: "Settings", label: "Account Settings", path: ROUTES.SETTINGS },
+    {
+      icon: "LocationOn",
+      label: "My Addresses",
+      path: ROUTES.PROFILE.ADDRESSES,
+    },
     { icon: "Dashboard", label: "Admin Dashboard", path: ROUTES.ADMIN.INDEX },
     {
       icon: "Notifications",
       label: "Notifications",
       path: ROUTES.NOTIFICATIONS,
     },
-    { icon: "Help", label: "Help & Support", path: ROUTES.HELP },
+    { icon: "Settings", label: "Account Settings", path: ROUTES.SETTINGS },
   ],
 };
 
@@ -161,7 +171,7 @@ export const MOBILE_GUEST_NAV = [
   { icon: "Home", label: "Home", path: ROUTES.HOME },
   { icon: "ShoppingBag", label: "Products", path: ROUTES.LISTINGS.PRODUCTS },
   { icon: "Store", label: "Services", path: ROUTES.LISTINGS.SERVICES },
-  { icon: "Help", label: "Help", path: ROUTES.HELP },
+  { icon: "ContactMail", label: "Contact", path: ROUTES.CONTACT },
 ];
 
 /**
@@ -178,8 +188,13 @@ export const MOBILE_AUTH_NAV = {
       path: ROUTES.NOTIFICATIONS,
     },
     { icon: "Person", label: "Profile", path: ROUTES.PROFILE.INDEX },
+    {
+      icon: "LocationOn",
+      label: "My Addresses",
+      path: ROUTES.PROFILE.ADDRESSES,
+    },
     { icon: "Settings", label: "Settings", path: ROUTES.SETTINGS },
-    { icon: "Help", label: "Help", path: ROUTES.HELP },
+    { icon: "ContactMail", label: "Contact", path: ROUTES.CONTACT },
   ],
   CONSUMER_ONLY: [
     { icon: "ShoppingBag", label: "My Orders", path: ROUTES.ORDERS.PURCHASES },
@@ -210,17 +225,44 @@ export const MERCHANT_SIDEBAR = [
     path: ROUTES.MERCHANT.LISTINGS.MY_LISTINGS,
   },
   { icon: "Receipt", label: "Orders", path: ROUTES.MERCHANT.ORDERS },
-  { icon: "Analytics", label: "Analytics", path: ROUTES.MERCHANT.ANALYTICS },
 ];
 
 /**
- * Admin Dashboard Sidebar
+ * Admin Dashboard Sidebar - Grouped Navigation with Collapsible Sections
+ * Only showing functional/implemented features
  */
 export const ADMIN_SIDEBAR = [
-  { icon: "Dashboard", label: "Dashboard", path: ROUTES.ADMIN.DASHBOARD },
-  { icon: "People", label: "Users", path: ROUTES.ADMIN.USERS },
-  { icon: "Assessment", label: "Reports", path: ROUTES.ADMIN.REPORTS },
-  { icon: "Settings", label: "Settings", path: ROUTES.ADMIN.SETTINGS },
+  {
+    group: "Overview",
+    items: [
+      { icon: "Dashboard", label: "Dashboard", path: ROUTES.ADMIN.DASHBOARD },
+    ],
+  },
+  {
+    group: "User Management",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      { icon: "People", label: "Users", path: ROUTES.ADMIN.USERS },
+      {
+        icon: "VerifiedUser",
+        label: "Merchant Verification",
+        path: "/admin/merchants/verification",
+      },
+    ],
+  },
+  {
+    group: "Communication",
+    collapsible: true,
+    defaultOpen: false,
+    items: [
+      {
+        icon: "ContactMail",
+        label: "Contact Messages",
+        path: "/admin/contacts",
+      },
+    ],
+  },
 ];
 
 /**

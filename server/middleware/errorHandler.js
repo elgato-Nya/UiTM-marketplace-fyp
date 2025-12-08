@@ -37,7 +37,7 @@ const handleDuplicateFieldsDB = (err) => {
   // Check if it's a MongooseError with custom message from schema
   if (err.name === "MongooseError" && err.message) {
     // Use the custom message from the schema unique constraint
-    return createDuplicateError(err.message, null, err.action);
+    return new AppError(err.message, 409, "DUPLICATE_FIELD");
   }
 
   // Handle standard MongoDB E11000 duplicate key error
@@ -45,18 +45,20 @@ const handleDuplicateFieldsDB = (err) => {
     const field = Object.keys(err.keyValue)[0];
     const value = err.keyValue[field];
 
-    // Create a generic message for E11000 errors
-    // const message = `${field.replace(/^profile\./,"")} '${value}' already exists`;
-    // ! use a more generic message that handles nested fields
+    // Extract field name (handle nested fields like "profile.username")
+    const fieldName = field.includes(".") ? field.split(".").pop() : field;
 
-    const message = `${
-      field.includes(".") ? field.split(".")[1] : field
-    } '${value}' already exists`;
-    return createDuplicateError(message, null, err.action);
+    // Capitalize first letter for user-friendly message
+    const capitalizedField =
+      fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+
+    // Create user-friendly message
+    const message = `${capitalizedField} '${value}' is already registered. Please use a different ${fieldName}.`;
+    return new AppError(message, 409, "DUPLICATE_FIELD");
   }
 
   // Fallback for unknown duplicate errors
-  return createDuplicateError("Duplicate value detected", null, err.action);
+  return new AppError("Duplicate value detected", 409, "DUPLICATE_FIELD");
 };
 
 const handleValidationErrorDB = (err) => {

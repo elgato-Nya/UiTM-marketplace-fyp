@@ -35,6 +35,8 @@ const wishlistRoutes = require("./routes/wishlist/wishlist.route");
 const checkoutRoutes = require("./routes/checkout/checkout.route");
 const analyticsRoutes = require("./routes/analytic/analytics.route");
 const contactRoutes = require("./routes/contact/contact.route");
+const adminMerchantRoutes = require("./routes/admin/merchant.routes");
+const adminUserRoutes = require("./routes/admin/users.route");
 
 logger.info("All route modules loaded successfully", {
   routes: [
@@ -50,6 +52,8 @@ logger.info("All route modules loaded successfully", {
     "checkout",
     "analytics",
     "contact",
+    "admin/merchants",
+    "admin/users",
   ],
 });
 
@@ -106,6 +110,12 @@ app.use("/api/checkout", checkoutRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/contact", contactRoutes);
 
+// Admin routes
+app.use("/api/admin/merchants", adminMerchantRoutes);
+logger.info("✅ Admin merchants route loaded");
+app.use("/api/admin/users", adminUserRoutes);
+logger.info("✅ Admin users route loaded");
+
 // Health check endpoint
 app.get("/api/health", (req, res) => {
   res.status(200).json({
@@ -129,27 +139,37 @@ let startAnalyticsScheduler, stopAnalyticsScheduler;
 
 const startServer = async () => {
   try {
-    logger.info("Starting e-commerce server...", {
-      environment: process.env.NODE_ENV,
-      port: PORT,
-    });
+    logger.info("Starting e-commerce server...");
 
     // Try to connect to database, but don't fail if it's not available in development
     try {
-      await database.connect();
-
-      // Import scheduler functions after database connection
+      // Import scheduler functions BEFORE connection attempt
       const analyticsJob = require("./jobs/analytics.job");
       startAnalyticsScheduler = analyticsJob.startAnalyticsScheduler;
       stopAnalyticsScheduler = analyticsJob.stopAnalyticsScheduler;
 
-      // Start scheduler when MongoDB is ready
-      mongoose.connection.once("open", () => {
-        logger.info("MongoDB connected successfully");
+      // Connect to database and wait for it to be fully ready
+      await database.connect();
 
-        // Start analytics scheduler
-        startAnalyticsScheduler();
-      });
+      // Start analytics scheduler after successful connection
+      try {
+        // Check if connection is ready (might already be open)
+        if (mongoose.connection.readyState === 1) {
+          logger.info("MongoDB connected, starting analytics scheduler...");
+          startAnalyticsScheduler();
+        } else {
+          // If not ready yet, wait for 'open' event
+          mongoose.connection.once("open", () => {
+            logger.info("MongoDB ready, starting analytics scheduler...");
+            startAnalyticsScheduler();
+          });
+        }
+      } catch (schedulerError) {
+        // Scheduler error should not crash the server
+        logger.warn("Analytics scheduler failed to start", {
+          error: schedulerError.message,
+        });
+      }
     } catch (dbError) {
       if (process.env.NODE_ENV === "development") {
         logger.warn(
@@ -166,11 +186,7 @@ const startServer = async () => {
     // Start the server
     const server = app.listen(PORT, () => {
       logger.info(
-        `🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`,
-        {
-          environment: process.env.NODE_ENV,
-          port: PORT,
-        }
+        `🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
       );
     });
 
@@ -205,6 +221,32 @@ const startServer = async () => {
   }
 };
 
-startServer();
+// Debug: Check if this code is being reached
+logger.info("Reached end of index.js", {
+  requireMain: require.main?.filename,
+  moduleFilename: module.filename,
+  isMainModule: require.main === module,
+});
+
+// Only start server if this file is run directly (not imported as a module)
+if (require.main === module) {
+  logger.info("Starting server from main module...");
+
+  // Start server and handle any unhandled promise rejections
+  startServer()
+    .then(() => {
+      logger.info("startServer() promise resolved successfully");
+    })
+    .catch((error) => {
+      logger.error("Unhandled error during server startup:", {
+        error: error.message,
+        stack: error.stack,
+      });
+      process.exit(1);
+    });
+} else {
+  // If imported as a module, just export the app
+  logger.info("Server module loaded (not starting server in this process)");
+}
 
 module.exports = app;

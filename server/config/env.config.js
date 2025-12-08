@@ -273,12 +273,8 @@ if (validationErrors.length > 0) {
 }
 
 // Log configuration summary (without sensitive data)
-logger.info("Environment configuration loaded", {
-  environment: NODE_ENV,
-  port: config.server.port,
-  database: config.database.uri.replace(/\/\/.*@/, "//***:***@"), // Hide credentials
-  corsOrigins: config.cors.allowedOrigins.length,
-  fileLogging: config.logging.enableFileLogging,
-});
+logger.info(
+  `Environment: ${NODE_ENV} | Port: ${config.server.port} | Database: Connected | CORS: ${config.cors.allowedOrigins.length} origin(s)`
+);
 
 module.exports = config;

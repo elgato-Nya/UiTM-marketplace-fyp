@@ -45,7 +45,12 @@ import CartPage from "./pages/Cart/CartPage";
 import WishlistPage from "./pages/Wishlist/WishlistPage";
 import CheckoutPageWrapper from "./pages/Checkout/CheckoutPageWrapper";
 import CheckoutSuccessPage from "./pages/Checkout/CheckoutSuccessPage";
-import MerchantAnalyticsPage from "./pages/Dashboard/MerchantAnalyticsPage";
+import MerchantAnalyticsPage from "./pages/Merchant/MerchantAnalyticsPage";
+import AdminDashboardPage from "./pages/Admin/AdminDashboardPage";
+import MerchantVerificationPage from "./pages/Admin/MerchantVerificationPage";
+import UserManagementPage from "./pages/Admin/UserManagementPage";
+import ContactManagementPage from "./pages/Admin/ContactManagementPage";
+import PlaceholderPage from "./pages/Admin/PlaceholderPage";
 import MyStorePage from "./pages/Merchant/MyStorePage";
 import ShopProfilePage from "./pages/Merchant/ShopProfilePage";
 import BecomeMerchantPage from "./pages/Merchant/BecomeMerchantPage";
@@ -128,7 +133,8 @@ function AppContent() {
                   element={<div>Merchants Directory - Coming Soon!</div>}
                 />
 
-                {/* Public Shop Profile */}
+                {/* Public Shop Profile - Multiple routes for compatibility */}
+                <Route path="/shop/:shopSlug" element={<ShopProfilePage />} />
                 <Route
                   path="/merchants/:shopSlug"
                   element={<ShopProfilePage />}
@@ -164,7 +170,28 @@ function AppContent() {
                 >
                   <Route index element={<ProfilePage />} />
                   <Route path="addresses" element={<AddressesPage />} />
+                  <Route path="notifications" element={<PlaceholderPage />} />
                 </Route>
+
+                {/* Protected Settings Route */}
+                <Route
+                  path={ROUTES.SETTINGS}
+                  element={
+                    <ProtectedRoute>
+                      <PlaceholderPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Protected Notifications Route */}
+                <Route
+                  path={ROUTES.NOTIFICATIONS}
+                  element={
+                    <ProtectedRoute>
+                      <PlaceholderPage />
+                    </ProtectedRoute>
+                  }
+                />
 
                 {/* Public Listing Detail */}
                 <Route
@@ -241,22 +268,25 @@ function AppContent() {
                   element={<Navigate to={ROUTES.ADMIN.DASHBOARD} replace />}
                 />
 
+                <Route path="dashboard" element={<AdminDashboardPage />} />
+
+                {/* User & Merchant Management */}
+                <Route path="users" element={<UserManagementPage />} />
                 <Route
-                  path="dashboard"
-                  element={<div>Admin Dashboard Home - Coming Soon!</div>}
+                  path="merchants/verification"
+                  element={<MerchantVerificationPage />}
                 />
-                <Route
-                  path="users"
-                  element={<div>User Management - Coming Soon!</div>}
-                />
-                <Route
-                  path="settings"
-                  element={<div>Admin Settings - Coming Soon!</div>}
-                />
-                <Route
-                  path="reports"
-                  element={<div>Reports - Coming Soon!</div>}
-                />
+
+                {/* Contact & Report Management */}
+                <Route path="contacts" element={<ContactManagementPage />} />
+
+                {/* Placeholder routes for features under development */}
+                <Route path="reports" element={<PlaceholderPage />} />
+                <Route path="listings" element={<PlaceholderPage />} />
+                <Route path="transactions" element={<PlaceholderPage />} />
+                <Route path="orders" element={<PlaceholderPage />} />
+                <Route path="support" element={<PlaceholderPage />} />
+                <Route path="settings" element={<PlaceholderPage />} />
               </Route>
 
               {/** Merchant Routes */}
@@ -292,8 +322,6 @@ function AppContent() {
                   <Route index element={<SalesPage />} />
                   <Route path=":orderId" element={<OrderDetailPage />} />
                 </Route>
-
-                <Route path="analytics" element={<MerchantAnalyticsPage />} />
               </Route>
 
               {/* Unauthorized Route */}

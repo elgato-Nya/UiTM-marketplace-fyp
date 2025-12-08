@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Box, Button, Divider, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
+import { Box, Button, Typography, Link } from "@mui/material";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 
 import { useTheme } from "../../hooks/useTheme";
@@ -131,6 +131,26 @@ function RegisterPage() {
 
   return (
     <Box>
+      <Typography
+        variant="h4"
+        component="h1"
+        sx={{
+          fontWeight: 700,
+          mb: { xs: 1, sm: 1.5 },
+          fontSize: { xs: "1.5rem", sm: "2rem" },
+          textAlign: "center",
+        }}
+      >
+        Create Account
+      </Typography>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ mb: { xs: 2.5, sm: 3 }, textAlign: "center" }}
+      >
+        Join UiTM Marketplace today
+      </Typography>
+
       <DynamicForm
         config={registerFormConfig}
         validationSchema={registerValidator}
@@ -141,8 +161,18 @@ function RegisterPage() {
 
       {/* Resend Verification Option - shown after successful registration */}
       {showResendOption && registeredEmail && (
-        <Box sx={{ textAlign: "center", mt: 2, mb: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+        <Box
+          sx={{
+            textAlign: "center",
+            mt: { xs: 1.5, sm: 2 },
+            mb: { xs: 1.5, sm: 2 },
+          }}
+        >
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mb: 1, fontSize: { xs: "0.8rem", sm: "0.875rem" } }}
+          >
             Didn't receive the email?
           </Typography>
           <Button
@@ -152,6 +182,7 @@ function RegisterPage() {
             size="small"
             sx={{
               color: theme.palette.primary.main,
+              fontSize: { xs: "0.8rem", sm: "0.875rem" },
               "&:hover": { textDecoration: "underline" },
             }}
           >
@@ -160,32 +191,47 @@ function RegisterPage() {
         </Box>
       )}
 
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ mt: 2, mb: 1, textAlign: "center" }}
-      >
-        Already have an account?
-      </Typography>
+      {/* Sign in link */}
+      <Box sx={{ textAlign: "center", mt: { xs: 3, sm: 4 } }}>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ fontSize: { xs: "0.875rem", sm: "0.9375rem" } }}
+        >
+          Already have an account?{" "}
+          <Link
+            component={RouterLink}
+            to="/auth/login"
+            sx={{
+              color: theme.palette.primary.main,
+              textDecoration: "none",
+              fontWeight: 600,
+              "&:hover": {
+                textDecoration: "underline",
+              },
+            }}
+          >
+            Sign in
+          </Link>
+        </Typography>
+      </Box>
 
-      <Button
-        component={RouterLink}
-        to="/auth/login"
-        variant="outlined"
-        fullWidth
-        size="large"
-        sx={{
-          py: 1.5,
-          borderColor: theme.palette.primary.main,
-          color: theme.palette.primary.main,
-          "&:hover": {
-            borderColor: theme.palette.primary.dark,
-            backgroundColor: theme.palette.primary.main + "10",
-          },
-        }}
-      >
-        Sign In
-      </Button>
+      <Box sx={{ textAlign: "center", mt: { xs: 2.5, sm: 3 } }}>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ fontSize: { xs: "0.7rem", sm: "0.75rem" } }}
+        >
+          By creating an account, you agree to our{" "}
+          <Link href="/terms" color="primary">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" color="primary">
+            Privacy Policy
+          </Link>
+        </Typography>
+      </Box>
     </Box>
   );
 }

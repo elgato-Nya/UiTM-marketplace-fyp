@@ -14,7 +14,6 @@ import {
   selectUserRoles,
   selectAuthLoading,
   selectAuthError,
-  selectIsConsumer,
   selectIsMerchant,
   selectIsAdmin,
   selectCanSell,
@@ -78,22 +77,38 @@ export function useAuth() {
 
   // Auto-refresh token 5 minutes before expiry
   useEffect(() => {
-    if (auth.sessionExpiry && auth.refreshToken) {
+    if (auth.sessionExpiry && auth.token && isAuthenticated) {
       const expiryTime = new Date(auth.sessionExpiry).getTime();
       const currentTime = Date.now();
       const timeUntilExpiry = expiryTime - currentTime;
 
       // Set timeout to refresh token 5 minute before expiry
       const refreshTime = timeUntilExpiry - 5 * 60 * 1000;
-      if (refreshTime > 0) {
+
+      // Only set up auto-refresh if we have at least 1 minute until refresh time
+      if (refreshTime > 60 * 1000) {
+        console.log(
+          `Auto-refresh scheduled in ${Math.round(refreshTime / 1000 / 60)} minutes`
+        );
+
         const timer = setTimeout(() => {
-          dispatch(handleRefreshToken());
+          console.log("Auto-refresh triggered");
+          dispatch(handleRefreshToken()).catch((error) => {
+            // Silently handle auto-refresh errors - the API interceptor will handle logout
+            console.warn("Auto-refresh failed:", error);
+          });
         }, refreshTime);
 
-        return () => clearTimeout(timer);
+        return () => {
+          clearTimeout(timer);
+          console.log("Auto-refresh timer cleared");
+        };
+      } else if (timeUntilExpiry < 0) {
+        // Token already expired - let the API interceptor handle it on next request
+        console.log("Token already expired, will refresh on next API call");
       }
     }
-  }, [auth.sessionExpiry, auth.refreshToken, dispatch]);
+  }, [auth.sessionExpiry, auth.token, isAuthenticated, dispatch]);
 
   return {
     // State

@@ -26,19 +26,58 @@ const createUser = async (userData, password) => {
 
     if (isUiTMEmail) {
       // User registered with UiTM email - auto-verify for merchant capability
+      completedData.roles = ["consumer", "merchant"]; // Grant merchant role immediately
+
+      // Auto-create shop profile from user data
+      const username =
+        userData.profile?.username || userData.email.split("@")[0];
+      const baseShopName = `${username}'s Shop`;
+      const baseSlug =
+        username.toLowerCase().replace(/[^a-z0-9]/g, "-") + "-shop";
+
+      // Ensure unique shop slug by checking existing shops
+      let shopSlug = baseSlug;
+      let shopName = baseShopName;
+      let counter = 1;
+
+      while (await User.findOne({ "merchantDetails.shopSlug": shopSlug })) {
+        shopSlug = `${baseSlug}-${counter}`;
+        shopName = `${baseShopName} ${counter}`;
+        counter++;
+      }
+
       completedData.merchantDetails = {
         verificationEmail: userData.email,
         originalVerificationEmail: userData.email,
         isUiTMVerified: true,
         verificationDate: new Date(),
         permanentVerification: true, // Keep status even if email changes later
+        // Auto-created shop data
+        shopName: shopName,
+        shopSlug: shopSlug,
+        shopDescription: `Welcome to ${shopName}!`,
+        shopStatus: "active",
+        verificationStatus: "unverified",
+        shopRating: {
+          averageRating: 0,
+          totalReviews: 0,
+        },
+        shopMetrics: {
+          totalProducts: 0,
+          totalSales: 0,
+          totalRevenue: 0,
+          totalViews: 0,
+        },
       };
 
       logger.info(
-        "🎉 UiTM email detected - user auto-verified for merchant status",
+        "🎉 UiTM email detected - user auto-verified for merchant status with merchant role and shop created",
         {
           email: userData.email,
           action: "auto_verify_merchant",
+          roles: ["consumer", "merchant"],
+          shopName: shopName,
+          shopSlug: shopSlug,
         }
       );
     }
@@ -123,6 +162,8 @@ const logoutUser = async (userId, refreshToken) => {
 };
 
 const refreshUserTokens = async (refreshToken) => {
+  let decoded = null; // Initialize outside try block to access in catch
+
   try {
     if (!refreshToken) {
       logger.warn("Refresh token missing in refreshUserTokens", {
@@ -131,10 +172,31 @@ const refreshUserTokens = async (refreshToken) => {
       createAuthError("No refresh token provided", "AUTH_NO_REFRESH_TOKEN");
     }
 
-    const decoded = verifyRefreshToken(refreshToken);
+    // Verify and decode the refresh token
+    try {
+      decoded = verifyRefreshToken(refreshToken);
+    } catch (verifyError) {
+      logger.warn("Invalid or expired refresh token", {
+        action: "refresh_tokens",
+        error: verifyError.message,
+        errorType: verifyError.name,
+      });
+      createAuthError(
+        "Invalid or expired refresh token. Please log in again.",
+        "AUTH_INVALID_REFRESH_TOKEN"
+      );
+    }
+
+    if (!decoded || !decoded.userId) {
+      logger.error("Token decoded but missing userId", {
+        action: "refresh_tokens",
+        hasDecoded: !!decoded,
+      });
+      createAuthError("Invalid token payload", "AUTH_INVALID_TOKEN_PAYLOAD");
+    }
 
     const user = await User.findById(decoded.userId).select(
-      "+refreshTokens -password -__v"
+      "email roles profile +refreshTokens"
     );
     if (!user) {
       handleNotFoundError("User", "USER_NOT_FOUND", "refresh_user_tokens", {
@@ -170,9 +232,12 @@ const refreshUserTokens = async (refreshToken) => {
 
     return user;
   } catch (error) {
+    // Safe error handling with fallback for userId
+    const userId = decoded?.userId?.toString() || "unknown";
     handleServiceError(error, "refreshUserTokens", {
-      userId: decoded?.userId.toString(),
-      refreshToken,
+      userId,
+      hasRefreshToken: !!refreshToken,
+      errorMessage: error.message,
     });
   }
 };

@@ -11,6 +11,25 @@ import { loginFormConfig } from "../../config/forms/authForms";
 import { loginValidation } from "../../validation/authValidator";
 import authService from "../../features/auth/service/authService";
 
+// Forgot Password Link Component
+const ForgotPasswordLink = ({ theme }) => (
+  <Box sx={{ textAlign: "right" }}>
+    <Link
+      component={RouterLink}
+      to="/auth/forgot-password"
+      variant="body2"
+      sx={{
+        color: theme.palette.primary.main,
+        textDecoration: "none",
+        fontSize: { xs: "0.85rem", sm: "0.875rem" },
+        "&:hover": { textDecoration: "underline" },
+      }}
+    >
+      Forgot Password?
+    </Link>
+  </Box>
+);
+
 function LoginPage() {
   const { theme } = useTheme();
   const { loginUser, isLoading, error, clearAuthError } = useAuth();
@@ -120,10 +139,30 @@ function LoginPage() {
     <Box>
       {/* Success message from registration */}
       {location.state?.message && (
-        <Alert severity="success" sx={{ mb: 3 }}>
+        <Alert severity="success" sx={{ mb: { xs: 2, sm: 3 } }}>
           {location.state.message}
         </Alert>
       )}
+
+      <Typography
+        variant="h4"
+        component="h1"
+        sx={{
+          fontWeight: 700,
+          mb: { xs: 1, sm: 1.5 },
+          fontSize: { xs: "1.5rem", sm: "2rem" },
+          textAlign: "center",
+        }}
+      >
+        Welcome Back
+      </Typography>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ mb: { xs: 2.5, sm: 3 }, textAlign: "center" }}
+      >
+        Sign in to continue shopping
+      </Typography>
 
       <DynamicForm
         config={loginFormConfig}
@@ -131,6 +170,7 @@ function LoginPage() {
         onSubmit={handleLogin}
         isLoading={isLoading}
         error={loginError}
+        customContent={<ForgotPasswordLink theme={theme} />}
       />
 
       {/* Resend Verification Link - shown when email not verified */}
@@ -138,7 +178,7 @@ function LoginPage() {
         (error?.code === "EMAIL_NOT_VERIFIED" ||
           loginError.includes("verify your email")) &&
         lastEmail && (
-          <Box sx={{ textAlign: "center", mt: 2 }}>
+          <Box sx={{ textAlign: "center", mt: { xs: 1.5, sm: 2 } }}>
             <Button
               onClick={handleResendVerification}
               disabled={isResending}
@@ -146,6 +186,7 @@ function LoginPage() {
               size="small"
               sx={{
                 color: theme.palette.warning.main,
+                fontSize: { xs: "0.8rem", sm: "0.875rem" },
                 "&:hover": { textDecoration: "underline" },
               }}
             >
@@ -154,49 +195,37 @@ function LoginPage() {
           </Box>
         )}
 
-      {/* Forgot Password Link */}
-      <Box sx={{ textAlign: "right", mt: 2, mb: 3 }}>
-        <Link
-          component={RouterLink}
-          to="/auth/forgot-password"
+      {/* Sign up link */}
+      <Box sx={{ textAlign: "center", mt: { xs: 3, sm: 4 } }}>
+        <Typography
           variant="body2"
-          sx={{
-            color: theme.palette.primary.main,
-            textDecoration: "none",
-            "&:hover": { textDecoration: "underline" },
-          }}
+          color="text.secondary"
+          sx={{ fontSize: { xs: "0.875rem", sm: "0.9375rem" } }}
         >
-          Forgot Password?
-        </Link>
+          New to UiTM Marketplace?{" "}
+          <Link
+            component={RouterLink}
+            to="/auth/register"
+            sx={{
+              color: theme.palette.primary.main,
+              textDecoration: "none",
+              fontWeight: 600,
+              "&:hover": {
+                textDecoration: "underline",
+              },
+            }}
+          >
+            Sign up
+          </Link>
+        </Typography>
       </Box>
 
-      <Divider sx={{ my: 4 }}>
-        <Typography variant="body2" color="text.secondary">
-          New to UiTM Marketplace?
-        </Typography>
-      </Divider>
-
-      <Button
-        component={RouterLink}
-        to="/auth/register"
-        variant="outlined"
-        fullWidth
-        size="large"
-        sx={{
-          py: 1.5,
-          borderColor: theme.palette.primary.main,
-          color: theme.palette.primary.main,
-          "&:hover": {
-            borderColor: theme.palette.primary.dark,
-            backgroundColor: theme.palette.primary.main + "10",
-          },
-        }}
-      >
-        Create an Account
-      </Button>
-
-      <Box sx={{ textAlign: "center", mt: 4 }}>
-        <Typography variant="body2" color="text.secondary">
+      <Box sx={{ textAlign: "center", mt: { xs: 2.5, sm: 3 } }}>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ fontSize: { xs: "0.7rem", sm: "0.75rem" } }}
+        >
           By signing in, you agree to our{" "}
           <Link href="/terms" color="primary">
             Terms of Service

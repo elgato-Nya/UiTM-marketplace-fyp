@@ -178,7 +178,9 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
   // Only trim and lowercase email (don't sanitize it)
   const cleanEmail = email?.trim().toLowerCase();
 
-  const user = await User.findOne({ email: cleanEmail });
+  const user = await User.findOne({ email: cleanEmail }).select(
+    "email profile emailVerification"
+  );
   if (!user || user.emailVerification?.isVerified) {
     return baseController.sendSuccess(
       res,

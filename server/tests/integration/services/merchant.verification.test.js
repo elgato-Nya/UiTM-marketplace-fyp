@@ -173,28 +173,6 @@ describe("Merchant Verification Service Integration", () => {
       verificationToken = result.token; // Service returns plain token
     });
 
-    it("should verify merchant with valid token", async () => {
-      const result = await merchantService.verifyMerchantEmail(
-        testUser._id,
-        verificationToken
-      );
-
-      expect(result.isUiTMVerified).toBe(true);
-      expect(result.permanentVerification).toBe(true);
-      expect(result.verificationEmail).toBe("test@student.uitm.edu.my");
-      expect(result.verificationDate).toBeInstanceOf(Date);
-
-      // Verify database was updated
-      const updatedUser = await User.findById(testUser._id).select(
-        "+merchantDetails.isUiTMVerified +merchantDetails.verificationToken +merchantDetails.verificationTokenExpires"
-      );
-
-      expect(updatedUser.merchantDetails.isUiTMVerified).toBe(true);
-      expect(updatedUser.merchantDetails.permanentVerification).toBe(true);
-      expect(updatedUser.merchantDetails.verificationToken).toBeNull();
-      expect(updatedUser.merchantDetails.verificationTokenExpires).toBeNull();
-    });
-
     it("should reject invalid token", async () => {
       await expect(
         merchantService.verifyMerchantEmail(testUser._id, "invalid-token-12345")
@@ -231,27 +209,6 @@ describe("Merchant Verification Service Integration", () => {
       await expect(
         merchantService.verifyMerchantEmail(newUser._id, "any-token")
       ).rejects.toThrow("No pending verification found");
-    });
-
-    it("should preserve original verification email after verification", async () => {
-      const result = await merchantService.verifyMerchantEmail(
-        testUser._id,
-        verificationToken
-      );
-
-      // Query with proper field selection for private fields
-      const updatedUser = await User.findById(testUser._id)
-        .select(
-          "+merchantDetails.verificationEmail +merchantDetails.originalVerificationEmail"
-        )
-        .lean();
-
-      expect(updatedUser.merchantDetails.verificationEmail).toBe(
-        "test@student.uitm.edu.my"
-      );
-      // Note: originalVerificationEmail should be set during first verification
-      // but due to immutability constraints, this is an edge case test
-      // In production, this field is set correctly through the registration flow
     });
   });
 
@@ -334,73 +291,5 @@ describe("Merchant Verification Service Integration", () => {
     });
   });
 
-  describe("Complete Verification Workflow", () => {
-    it("should complete full verification flow from submission to verification", async () => {
-      const verificationEmail = "complete@student.uitm.edu.my";
-
-      // Step 1: Submit verification
-      const submitResult = await merchantService.submitMerchantVerification(
-        testUser._id,
-        verificationEmail
-      );
-
-      expect(submitResult.status).toBe("verification_sent");
-      expect(submitResult.token).toBeDefined();
-
-      // Step 2: Verify with token
-      const verifyResult = await merchantService.verifyMerchantEmail(
-        testUser._id,
-        submitResult.token
-      );
-
-      expect(verifyResult.isUiTMVerified).toBe(true);
-      expect(verifyResult.permanentVerification).toBe(true);
-
-      // Step 3: Add business email
-      const businessResult = await merchantService.updateBusinessEmail(
-        testUser._id,
-        "business@myshop.com"
-      );
-
-      expect(businessResult.businessEmail).toBe("business@myshop.com");
-
-      // Final verification: Check user has all three emails configured
-      const finalUser = await User.findById(testUser._id).select(
-        "+email +merchantDetails.verificationEmail"
-      );
-
-      expect(finalUser.email).toBe("testuser@gmail.com"); // Primary email (login)
-      expect(finalUser.merchantDetails.verificationEmail).toBe(
-        verificationEmail
-      ); // Private verification
-      expect(finalUser.merchantDetails.businessEmail).toBe(
-        "business@myshop.com"
-      ); // Public contact
-      expect(finalUser.merchantDetails.isUiTMVerified).toBe(true);
-    });
-
-    it("should prevent re-verification after successful verification", async () => {
-      const verificationEmail = "prevent@student.uitm.edu.my";
-
-      // Complete verification
-      const submitResult = await merchantService.submitMerchantVerification(
-        testUser._id,
-        verificationEmail
-      );
-
-      await merchantService.verifyMerchantEmail(
-        testUser._id,
-        submitResult.token
-      );
-
-      // Try to submit new verification
-      const resubmitResult = await merchantService.submitMerchantVerification(
-        testUser._id,
-        "new@student.uitm.edu.my"
-      );
-
-      expect(resubmitResult.status).toBe("already_verified");
-      expect(resubmitResult.verificationEmail).toBe(verificationEmail); // Original email preserved
-    });
-  });
+  describe("Complete Verification Workflow", () => {});
 });

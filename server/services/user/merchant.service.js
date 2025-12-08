@@ -675,7 +675,7 @@ const {
 const submitMerchantVerification = async (userId, verificationEmail) => {
   try {
     const user = await User.findById(userId).select(
-      "email profile roles merchantDetails +merchantDetails.verificationEmail +merchantDetails.isUiTMVerified"
+      "email profile roles merchantDetails.isUiTMVerified merchantDetails.shopName merchantDetails.businessEmail merchantDetails.verificationToken merchantDetails.verificationTokenExpires +merchantDetails.verificationEmail"
     );
 
     if (!user) {
@@ -812,26 +812,27 @@ const verifyMerchantEmail = async (userId, token) => {
     }
 
     // Mark as verified and add merchant role
-    const updateData = {
-      $set: {
-        "merchantDetails.isUiTMVerified": true,
-        "merchantDetails.verificationDate": new Date(),
-        "merchantDetails.permanentVerification": true,
-        "merchantDetails.verificationToken": null,
-        "merchantDetails.verificationTokenExpires": null,
-      },
-      $addToSet: {
-        roles: "merchant", // Add merchant role if not already present
-      },
+    const setData = {
+      "merchantDetails.isUiTMVerified": true,
+      "merchantDetails.verificationDate": new Date(),
+      "merchantDetails.permanentVerification": true,
+      "merchantDetails.verificationToken": null,
+      "merchantDetails.verificationTokenExpires": null,
     };
 
     // Set originalVerificationEmail only if not already set (immutable field)
     if (!user.merchantDetails.originalVerificationEmail) {
-      updateData.$set["merchantDetails.originalVerificationEmail"] =
+      setData["merchantDetails.originalVerificationEmail"] =
         user.merchantDetails.verificationEmail;
     }
 
-    await User.updateOne({ _id: userId }, updateData);
+    await User.updateOne(
+      { _id: userId },
+      {
+        $set: setData,
+        $addToSet: { roles: "merchant" },
+      }
+    );
 
     logger.auth("Merchant email verified successfully", userId, {
       verificationEmail: user.merchantDetails.verificationEmail,

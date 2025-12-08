@@ -5,7 +5,6 @@ import {
   Category,
   Person,
   Settings,
-  Help,
   Dashboard,
   Notifications,
   LocalShipping,
@@ -16,12 +15,12 @@ import {
   History,
   ContactMail,
   Code,
+  LocationOn,
 } from "@mui/icons-material";
 import { ROUTES } from "../../../../constants/routes";
 
 // Guest menu configuration
 export const getGuestMenuItems = () => [
-  { icon: <Home />, text: "Home", link: ROUTES.HOME },
   { icon: <Category />, text: "All Listings", link: ROUTES.LISTINGS.ALL },
   { icon: <ShoppingBag />, text: "Products", link: ROUTES.LISTINGS.PRODUCTS },
   { icon: <Store />, text: "Services", link: ROUTES.LISTINGS.SERVICES },
@@ -29,7 +28,6 @@ export const getGuestMenuItems = () => [
   { icon: <History />, text: "Our History", link: "/about#history" },
   { icon: <Code />, text: "Nekodez", link: "/about/nekodez" },
   { icon: <ContactMail />, text: "Contact", link: "/contact" },
-  { icon: <Help />, text: "Help", link: ROUTES.HELP },
 ];
 
 // Authenticated user menu sections
@@ -41,7 +39,6 @@ export const getAuthMenuSections = (roles) => {
       title: "Browse",
       collapsible: true,
       items: [
-        { icon: <Home />, text: "Home", link: ROUTES.HOME, show: true },
         {
           icon: <Category />,
           text: "All Listings",
@@ -77,6 +74,12 @@ export const getAuthMenuSections = (roles) => {
           icon: <Person />,
           text: "Profile",
           link: ROUTES.PROFILE.INDEX,
+          show: true,
+        },
+        {
+          icon: <LocationOn />,
+          text: "My Addresses",
+          link: ROUTES.PROFILE.ADDRESSES,
           show: true,
         },
         {
@@ -181,19 +184,14 @@ export const getAuthMenuSections = (roles) => {
     },
 
     settings: {
-      title: "Settings & Help",
+      title: "Settings",
       collapsible: false,
+      show: true,
       items: [
         {
           icon: <Settings />,
           text: "Settings",
           link: ROUTES.SETTINGS,
-          show: true,
-        },
-        {
-          icon: <Help />,
-          text: "Help & Support",
-          link: ROUTES.HELP,
           show: true,
         },
       ],

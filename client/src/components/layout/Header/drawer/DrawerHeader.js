@@ -1,4 +1,3 @@
-import React from "react";
 import { Box, Avatar, Typography, IconButton } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
 
@@ -6,7 +5,7 @@ function DrawerHeader({ theme, isAuthenticated, user, onClose }) {
   return (
     <Box
       sx={{
-        mt: "60px",
+        mt: "55px",
         p: 2,
         py: 3,
         background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
@@ -31,18 +30,8 @@ function DrawerHeader({ theme, isAuthenticated, user, onClose }) {
         <CloseIcon />
       </IconButton>
 
-      <Typography
-        variant="h6"
-        sx={{
-          fontWeight: "bold",
-          mb: isAuthenticated && user ? 3 : 0,
-          pr: 4,
-        }}
-      >
-        🎓 UiTM Marketplace
-      </Typography>
       {isAuthenticated && user && (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mt: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <Avatar
             src={user?.profile?.avatar}
             alt={user?.profile?.username || user?.email}
@@ -86,6 +75,12 @@ function DrawerHeader({ theme, isAuthenticated, user, onClose }) {
             </Typography>
           </Box>
         </Box>
+      )}
+
+      {!isAuthenticated && (
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          Welcome!
+        </Typography>
       )}
     </Box>
   );

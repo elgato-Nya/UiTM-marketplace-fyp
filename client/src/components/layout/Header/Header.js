@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   AppBar,
   Toolbar,
@@ -8,8 +8,6 @@ import {
   IconButton,
   alpha,
   useMediaQuery,
-  Menu,
-  MenuItem,
   Badge,
 } from "@mui/material";
 import {
@@ -18,7 +16,7 @@ import {
   ShoppingCart as CartIcon,
   Favorite as WishlistIcon,
 } from "@mui/icons-material";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import { useTheme } from "../../../hooks/useTheme";
 import { useAuth } from "../../../features/auth/hooks/useAuth";
@@ -29,24 +27,20 @@ import ThemeToggle from "../../common/ThemeToggle";
 import UserMenu from "./UserMenu";
 import BrowseMenu from "./navigation/BrowseMenu";
 import MerchantMenu from "./navigation/MerchantMenu";
-import AdminMenu from "./navigation/AdminMenu";
 import AboutMenu from "./navigation/AboutMenu";
 import ActionButtons from "./navigation/ActionButtons";
 
 function Header({ onMenuClick, userRole, isMobile }) {
   const { theme } = useTheme();
-  const { isAuthenticated, user, isConsumer, isMerchant, isAdmin } = useAuth();
+  const { isAuthenticated, user, isMerchant, isAdmin } = useAuth();
   const { itemCount: cartCount } = useCart();
   const { itemCount: wishlistCount } = useWishlist();
-  const navigate = useNavigate();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [userMenuAnchor, setUserMenuAnchor] = useState(null);
   const [browseMenuAnchor, setBrowseMenuAnchor] = useState(null);
   const [merchantMenuAnchor, setMerchantMenuAnchor] = useState(null);
-  const [adminMenuAnchor, setAdminMenuAnchor] = useState(null);
   const [aboutMenuAnchor, setAboutMenuAnchor] = useState(null);
-  const [authMenuAnchor, setAuthMenuAnchor] = useState(null);
 
   const handleUserMenuOpen = (event) => {
     setUserMenuAnchor(event.currentTarget);
@@ -72,28 +66,12 @@ function Header({ onMenuClick, userRole, isMobile }) {
     setMerchantMenuAnchor(null);
   };
 
-  const handleAdminMenuOpen = (event) => {
-    setAdminMenuAnchor(event.currentTarget);
-  };
-
-  const handleAdminMenuClose = () => {
-    setAdminMenuAnchor(null);
-  };
-
   const handleAboutMenuOpen = (event) => {
     setAboutMenuAnchor(event.currentTarget);
   };
 
   const handleAboutMenuClose = () => {
     setAboutMenuAnchor(null);
-  };
-
-  const handleAuthMenuOpen = (event) => {
-    setAuthMenuAnchor(event.currentTarget);
-  };
-
-  const handleAuthMenuClose = () => {
-    setAuthMenuAnchor(null);
   };
 
   return (
@@ -227,28 +205,22 @@ function Header({ onMenuClick, userRole, isMobile }) {
               </>
             )}
 
-            {/* Admin Dashboard Dropdown - Only for admins */}
+            {/* Admin Dashboard Button - Only for admins */}
             {isAdmin && (
-              <>
-                <Button
-                  onClick={handleAdminMenuOpen}
-                  endIcon={<KeyboardArrowDown />}
-                  sx={{
-                    color: theme.palette.error.main,
-                    textTransform: "none",
-                    "&:hover": {
-                      backgroundColor: alpha(theme.palette.error.main, 0.1),
-                    },
-                  }}
-                >
-                  Admin
-                </Button>
-                <AdminMenu
-                  anchorEl={adminMenuAnchor}
-                  open={Boolean(adminMenuAnchor)}
-                  onClose={handleAdminMenuClose}
-                />
-              </>
+              <Button
+                component={Link}
+                to={ROUTES.ADMIN.DASHBOARD}
+                sx={{
+                  color: theme.palette.error.main,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  "&:hover": {
+                    backgroundColor: alpha(theme.palette.error.main, 0.1),
+                  },
+                }}
+              >
+                Admin Dashboard
+              </Button>
             )}
 
             {/* About Us Dropdown */}

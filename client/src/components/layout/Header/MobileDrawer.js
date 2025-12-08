@@ -162,7 +162,7 @@ function MobileDrawer({ open, onClose }) {
               </Box>
             </>
           ) : (
-            <>
+            <Box sx={{ mt: 1.5 }}>
               {/* Browse Section */}
               <DrawerSection
                 title={authMenuSections.browse.title}
@@ -171,6 +171,7 @@ function MobileDrawer({ open, onClose }) {
                 theme={theme}
                 collapsible={authMenuSections.browse.collapsible}
               />
+              <Divider sx={{ my: 1 }} />
 
               {/* Account Section */}
               <DrawerSection
@@ -180,29 +181,36 @@ function MobileDrawer({ open, onClose }) {
                 theme={theme}
                 collapsible={authMenuSections.account.collapsible}
               />
+              <Divider sx={{ my: 1 }} />
 
               {/* Merchant Section */}
               {authMenuSections.merchant.show && (
-                <DrawerSection
-                  title={authMenuSections.merchant.title}
-                  items={authMenuSections.merchant.items}
-                  onItemClick={handleItemClick}
-                  theme={theme}
-                  color={theme.palette.secondary.main}
-                  collapsible={authMenuSections.merchant.collapsible}
-                />
+                <>
+                  <DrawerSection
+                    title={authMenuSections.merchant.title}
+                    items={authMenuSections.merchant.items}
+                    onItemClick={handleItemClick}
+                    theme={theme}
+                    color={theme.palette.secondary.main}
+                    collapsible={authMenuSections.merchant.collapsible}
+                  />
+                  <Divider sx={{ my: 1 }} />
+                </>
               )}
 
               {/* Admin Section */}
               {authMenuSections.admin.show && (
-                <DrawerSection
-                  title={authMenuSections.admin.title}
-                  items={authMenuSections.admin.items}
-                  onItemClick={handleItemClick}
-                  theme={theme}
-                  color={theme.palette.error.main}
-                  collapsible={authMenuSections.admin.collapsible}
-                />
+                <>
+                  <DrawerSection
+                    title={authMenuSections.admin.title}
+                    items={authMenuSections.admin.items}
+                    onItemClick={handleItemClick}
+                    theme={theme}
+                    color={theme.palette.error.main}
+                    collapsible={authMenuSections.admin.collapsible}
+                  />
+                  <Divider sx={{ my: 1 }} />
+                </>
               )}
 
               {/* About Section */}
@@ -213,16 +221,19 @@ function MobileDrawer({ open, onClose }) {
                 theme={theme}
                 collapsible={authMenuSections.about.collapsible}
               />
+              <Divider sx={{ my: 1 }} />
 
-              {/* Settings & Help Section */}
-              <DrawerSection
-                title={authMenuSections.settings.title}
-                items={authMenuSections.settings.items}
-                onItemClick={handleItemClick}
-                theme={theme}
-                collapsible={authMenuSections.settings.collapsible}
-              />
-            </>
+              {/* Settings Section */}
+              {authMenuSections.settings.show && (
+                <DrawerSection
+                  title={authMenuSections.settings.title}
+                  items={authMenuSections.settings.items}
+                  onItemClick={handleItemClick}
+                  theme={theme}
+                  collapsible={authMenuSections.settings.collapsible}
+                />
+              )}
+            </Box>
           )}
         </List>
 

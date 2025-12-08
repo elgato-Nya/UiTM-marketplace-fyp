@@ -29,7 +29,7 @@ function Footer() {
     marketplace: [
       { text: "Browse Products", href: "/browse?type=product" },
       { text: "Browse Services", href: "/browse?type=service" },
-      { text: "Become a Merchant", href: "/auth/register?type=merchant" },
+      { text: "Become a Merchant", href: "/merchant/become" },
       { text: "How It Works", href: "/how-it-works" },
     ],
     support: [

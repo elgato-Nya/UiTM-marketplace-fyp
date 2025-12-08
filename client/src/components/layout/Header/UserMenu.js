@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Box,
   Menu,
@@ -10,7 +9,13 @@ import {
   Avatar,
   alpha,
 } from "@mui/material";
-import { Person, Settings, Logout, Help } from "@mui/icons-material";
+import {
+  Person,
+  Settings,
+  Logout,
+  LocationOn,
+  Notifications,
+} from "@mui/icons-material";
 import { Link } from "react-router-dom";
 
 import { useTheme } from "../../../hooks/useTheme";
@@ -35,16 +40,15 @@ function UserMenu({ anchorEl, open, onClose, user }) {
       show: true,
     },
     {
+      icon: <LocationOn />,
+      text: "My Addresses",
+      link: ROUTES.PROFILE.ADDRESSES,
+      show: true,
+    },
+    {
       icon: <Settings />,
       text: "Account Settings",
       link: ROUTES.SETTINGS,
-      show: true,
-    },
-    // Help section
-    {
-      icon: <Help />,
-      text: "Help & Support",
-      link: ROUTES.HELP,
       show: true,
     },
   ];

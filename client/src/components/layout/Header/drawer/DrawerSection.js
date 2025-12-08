@@ -20,9 +20,11 @@ function DrawerSection({
   theme,
   color,
   collapsible = false,
-  defaultExpanded = false,
+  defaultExpanded = true,
 }) {
-  const [expanded, setExpanded] = React.useState(defaultExpanded);
+  const [expanded, setExpanded] = React.useState(
+    collapsible ? defaultExpanded : true
+  );
 
   const handleToggle = () => {
     if (collapsible) {
@@ -36,7 +38,6 @@ function DrawerSection({
 
   return (
     <>
-      <Divider sx={{ my: 1.5 }} />
       <Box
         sx={{
           px: 2,

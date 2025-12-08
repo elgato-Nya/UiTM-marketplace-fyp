@@ -12,8 +12,21 @@ const {
 const { rateLimit } = require("express-rate-limit");
 
 // Controllers
-const merchantAnalyticsController = require("../../controllers/analytic/merchant.analytics.controller");
-const adminAnalyticsController = require("../../controllers/analytic/admin.analytics.controller");
+const {
+  handleGetAnalyticsByPeriod: getMerchantAnalyticsByPeriod,
+  handleGetOverview: getMerchantOverview,
+  handleRefreshAnalytics: refreshMerchantAnalytics,
+  handleGetQuickStats: getMerchantQuickStats,
+} = require("../../controllers/analytic/merchant.analytics.controller");
+const {
+  handleGetAnalyticsByPeriod: getAdminAnalyticsByPeriod,
+  handleGetOverview: getAdminOverview,
+  handleRefreshAnalytics: refreshAdminAnalytics,
+  handleGetPendingVerificationsAlert,
+  handleGetTopMerchants,
+  handleGetHealthSummary,
+  handleGetPublicStats,
+} = require("../../controllers/analytic/admin.analytics.controller");
 
 // ==================== RATE LIMITERS ====================
 
@@ -46,6 +59,16 @@ const adminRefreshLimiter = rateLimit({
   keyGenerator: (req) => req.user.userId.toString(),
 });
 
+// ==================== PUBLIC ROUTES ====================
+
+/**
+ * @route   GET /api/analytics/public/stats
+ * @desc    Get public platform statistics (no auth required)
+ * @access  Public
+ * @returns Basic platform stats for homepage/marketing
+ */
+router.get("/public/stats", handleGetPublicStats);
+
 // ==================== MERCHANT ROUTES ====================
 // Prefix: /api/analytics/merchant
 
@@ -58,7 +81,7 @@ router.get(
   "/merchant/overview",
   authenticate,
   authorize(["merchant"]),
-  merchantAnalyticsController.getOverview
+  getMerchantOverview
 );
 
 /**
@@ -70,7 +93,7 @@ router.get(
   "/merchant/stats",
   authenticate,
   authorize(["merchant"]),
-  merchantAnalyticsController.getQuickStats
+  getMerchantQuickStats
 );
 
 /**
@@ -82,7 +105,7 @@ router.get(
   "/merchant/:period",
   authenticate,
   authorize(["merchant"]),
-  merchantAnalyticsController.getAnalyticsByPeriod
+  getMerchantAnalyticsByPeriod
 );
 
 /**
@@ -96,7 +119,7 @@ router.post(
   authenticate,
   authorize(["merchant"]),
   merchantRefreshLimiter,
-  merchantAnalyticsController.refreshAnalytics
+  refreshMerchantAnalytics
 );
 
 // ==================== ADMIN ROUTES ====================
@@ -111,7 +134,7 @@ router.get(
   "/admin/overview",
   authenticate,
   authorize(["admin"]),
-  adminAnalyticsController.getOverview
+  getAdminOverview
 );
 
 /**
@@ -123,7 +146,7 @@ router.get(
   "/admin/health",
   authenticate,
   authorize(["admin"]),
-  adminAnalyticsController.getHealthSummary
+  handleGetHealthSummary
 );
 
 /**
@@ -135,7 +158,7 @@ router.get(
   "/admin/alerts/verifications",
   authenticate,
   authorize(["admin"]),
-  adminAnalyticsController.getPendingVerificationsAlert
+  handleGetPendingVerificationsAlert
 );
 
 /**
@@ -147,7 +170,7 @@ router.get(
   "/admin/merchants/top",
   authenticate,
   authorize(["admin"]),
-  adminAnalyticsController.getTopMerchants
+  handleGetTopMerchants
 );
 
 /**
@@ -159,7 +182,7 @@ router.get(
   "/admin/:period",
   authenticate,
   authorize(["admin"]),
-  adminAnalyticsController.getAnalyticsByPeriod
+  getAdminAnalyticsByPeriod
 );
 
 /**
@@ -173,7 +196,7 @@ router.post(
   authenticate,
   authorize(["admin"]),
   adminRefreshLimiter,
-  adminAnalyticsController.refreshAnalytics
+  refreshAdminAnalytics
 );
 
 module.exports = router;

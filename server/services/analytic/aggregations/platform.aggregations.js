@@ -62,6 +62,7 @@ const countListingsByCategory = async () => {
       { $sort: { count: -1 } },
       { $project: { _id: 0, category: "$_id", count: 1 } },
     ]);
+
     return result;
   } catch (error) {
     logger.error("Error counting listings by category", {
@@ -162,7 +163,7 @@ const countMerchantsByStatus = async () => {
       counts.total += item.count;
       if (item._id.status === "active") counts.active += item.count;
       if (item._id.verification === "verified") counts.verified += item.count;
-      if (item._id.verification === "pending")
+      if (item._id.verification === "unverified")
         counts.pendingVerification += item.count;
       if (item._id.status === "suspended") counts.suspended += item.count;
     });

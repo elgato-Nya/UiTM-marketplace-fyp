@@ -19,21 +19,18 @@ const logger = require("../utils/logger");
  */
 const calculateAllMerchantAnalytics = async () => {
   const startTime = Date.now();
-  logger.info("Starting merchant analytics calculation job");
 
   try {
-    // Get all merchants
+    // Get all merchants (silent operation)
     const merchants = await User.find({
       roles: "merchant",
       isActive: true,
     }).select("_id profile.username");
 
     if (merchants.length === 0) {
-      logger.info("No active merchants found for analytics calculation");
+      logger.info("No active merchants found");
       return { success: true, merchantsProcessed: 0, errors: [] };
     }
-
-    logger.info(`Found ${merchants.length} merchants to process`);
 
     const results = {
       success: 0,
@@ -54,26 +51,22 @@ const calculateAllMerchantAnalytics = async () => {
             try {
               await calculateMerchantAnalytics(merchant._id, period);
               results.success++;
-              logger.debug(
-                `Analytics calculated for merchant ${merchant._id}`,
-                {
-                  merchantId: merchant._id.toString(),
-                  username: merchant.profile.username,
-                  period,
-                }
-              );
             } catch (error) {
               results.failed++;
               results.errors.push({
                 merchantId: merchant._id.toString(),
+                username: merchant.profile.username,
                 period,
                 error: error.message,
               });
-              logger.error(`Failed to calculate analytics for merchant`, {
-                merchantId: merchant._id.toString(),
-                period,
-                error: error.message,
-              });
+              // Only log errors, not successes
+              logger.error(
+                `Analytics failed for ${merchant.profile.username} (${period})`,
+                {
+                  merchantId: merchant._id.toString(),
+                  error: error.message,
+                }
+              );
             }
           })
         )
@@ -86,12 +79,11 @@ const calculateAllMerchantAnalytics = async () => {
     }
 
     const duration = Date.now() - startTime;
-    logger.info("Merchant analytics calculation job completed", {
-      merchantCount: merchants.length,
-      successfulCalculations: results.success,
-      failedCalculations: results.failed,
-      durationMs: duration,
-    });
+
+    // Only log summary, not individual calculations
+    logger.info(
+      `Merchant analytics: ${results.success} successful, ${results.failed} failed (${merchants.length} merchants, ${duration}ms)`
+    );
 
     return {
       success: true,
@@ -119,7 +111,6 @@ const calculateAllMerchantAnalytics = async () => {
  */
 const calculateAllPlatformAnalytics = async () => {
   const startTime = Date.now();
-  logger.info("Starting platform analytics calculation job");
 
   try {
     const periods = ["week", "month", "year"];
@@ -133,26 +124,25 @@ const calculateAllPlatformAnalytics = async () => {
       try {
         await calculatePlatformAnalytics(period);
         results.success++;
-        logger.debug(`Platform analytics calculated for ${period}`);
       } catch (error) {
         results.failed++;
         results.errors.push({
           period,
           error: error.message,
         });
-        logger.error(`Failed to calculate platform analytics`, {
-          period,
+        // Only log errors
+        logger.error(`Platform analytics failed for ${period}`, {
           error: error.message,
         });
       }
     }
 
     const duration = Date.now() - startTime;
-    logger.info("Platform analytics calculation job completed", {
-      successfulCalculations: results.success,
-      failedCalculations: results.failed,
-      durationMs: duration,
-    });
+
+    // Only log summary
+    logger.info(
+      `Platform analytics: ${results.success} successful, ${results.failed} failed (${duration}ms)`
+    );
 
     return {
       success: true,
@@ -179,10 +169,9 @@ const calculateAllPlatformAnalytics = async () => {
  */
 const runAnalyticsJobs = async () => {
   const startTime = Date.now();
-  logger.info("=== STARTING ANALYTICS JOBS ===");
 
   try {
-    // Run both jobs in parallel
+    // Run both jobs in parallel (no start log, just run)
     const [merchantResults, platformResults] = await Promise.allSettled([
       calculateAllMerchantAnalytics(),
       calculateAllPlatformAnalytics(),
@@ -190,17 +179,27 @@ const runAnalyticsJobs = async () => {
 
     const totalDuration = Date.now() - startTime;
 
-    logger.info("=== ANALYTICS JOBS COMPLETED ===", {
-      totalDurationMs: totalDuration,
-      merchantJob:
-        merchantResults.status === "fulfilled"
-          ? merchantResults.value
-          : { error: merchantResults.reason?.message },
-      platformJob:
-        platformResults.status === "fulfilled"
-          ? platformResults.value
-          : { error: platformResults.reason?.message },
-    });
+    // Only log if there are errors, otherwise just a simple success
+    const hasErrors =
+      merchantResults.status === "rejected" ||
+      platformResults.status === "rejected" ||
+      merchantResults.value?.failedCalculations > 0 ||
+      platformResults.value?.failedCalculations > 0;
+
+    if (hasErrors) {
+      logger.warn(`Analytics completed with errors (${totalDuration}ms)`, {
+        merchantJob:
+          merchantResults.status === "fulfilled"
+            ? merchantResults.value
+            : { error: merchantResults.reason?.message },
+        platformJob:
+          platformResults.status === "fulfilled"
+            ? platformResults.value
+            : { error: platformResults.reason?.message },
+      });
+    } else {
+      logger.info(`Analytics completed successfully (${totalDuration}ms)`);
+    }
 
     return {
       success: true,
@@ -232,7 +231,6 @@ const startAnalyticsScheduler = () => {
   analyticsJobSchedule = cron.schedule(
     "*/15 * * * *",
     async () => {
-      logger.info("Analytics scheduler triggered");
       await runAnalyticsJobs();
     },
     {
@@ -241,14 +239,11 @@ const startAnalyticsScheduler = () => {
     }
   );
 
-  logger.info("Analytics scheduler started", {
-    schedule: "Every 15 minutes",
-    timezone: "Asia/Kuala_Lumpur",
-    nextRun: analyticsJobSchedule.nextDate().toISOString(),
-  });
+  logger.info(
+    "Analytics scheduler started (every 15 minutes, Asia/Kuala_Lumpur timezone)"
+  );
 
-  // Run immediately on startup (optional - remove if you don't want initial run)
-  logger.info("Running initial analytics calculation...");
+  // Run immediately on startup (silent, will log results)
   setImmediate(() => {
     runAnalyticsJobs().catch((error) => {
       logger.error("Initial analytics run failed", {

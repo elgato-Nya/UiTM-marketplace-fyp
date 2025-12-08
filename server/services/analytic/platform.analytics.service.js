@@ -86,10 +86,8 @@ const calculatePlatformAnalytics = async (period = "week") => {
 
       // Listing metrics
       listings: {
-        totalActive: listingsByCategory.reduce(
-          (sum, cat) => sum + cat.count,
-          0
-        ),
+        total: listingsByCategory.reduce((sum, cat) => sum + cat.count, 0),
+        active: listingsByCategory.reduce((sum, cat) => sum + cat.count, 0),
         byCategory: listingsByCategory,
       },
 
@@ -126,13 +124,7 @@ const calculatePlatformAnalytics = async (period = "week") => {
       { upsert: true, new: true, runValidators: true }
     );
 
-    logger.info("Platform analytics calculated successfully", {
-      period,
-      totalUsers: userCounts.total,
-      gmv: gmv.total,
-      pendingVerification: merchantStats.pendingVerification,
-    });
-
+    // Don't log individual success, only errors
     return result;
   } catch (error) {
     logger.error("Error calculating platform analytics", {
@@ -170,7 +162,7 @@ const getPlatformAnalytics = async (period = "week", adminLevel = "super") => {
           byCampus: [],
           growthRate: 0,
         },
-        listings: { totalActive: 0, byCategory: [] },
+        listings: { total: 0, active: 0, byCategory: [] },
         orders: { totalCompleted: 0, gmv: 0, gmvGrowthRate: 0 },
         merchants: {
           total: 0,

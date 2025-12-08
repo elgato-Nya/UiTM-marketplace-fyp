@@ -140,8 +140,10 @@ const OrdersChart = ({
         elevation={2}
         sx={{
           p: { xs: 2, sm: 3 },
-          height,
           borderRadius: 2,
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
         }}
       >
         <Typography
@@ -151,11 +153,22 @@ const OrdersChart = ({
         >
           {title}
         </Typography>
-        <EmptyState
-          icon={<ShoppingCart />}
-          title="No Orders Yet"
-          description="Order statistics will appear here once customers start placing orders."
-        />
+        <Box
+          sx={{
+            flexGrow: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: 200,
+          }}
+        >
+          <EmptyState
+            icon={<ShoppingCart />}
+            title="No Orders Yet"
+            description="Order statistics will appear here once customers start placing orders."
+            sx={{ py: 4 }}
+          />
+        </Box>
       </Paper>
     );
   }

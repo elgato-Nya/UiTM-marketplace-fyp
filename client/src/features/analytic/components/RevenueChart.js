@@ -124,8 +124,10 @@ const RevenueChart = ({
         elevation={2}
         sx={{
           p: { xs: 2, sm: 3 },
-          height,
           borderRadius: 2,
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
         }}
       >
         <Typography
@@ -135,11 +137,22 @@ const RevenueChart = ({
         >
           {title}
         </Typography>
-        <EmptyState
-          icon={<TrendingUp />}
-          title="No Revenue Data"
-          description="Revenue data will appear here once you start making sales."
-        />
+        <Box
+          sx={{
+            flexGrow: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: 200,
+          }}
+        >
+          <EmptyState
+            icon={<TrendingUp />}
+            title="No Revenue Data"
+            description="Revenue data will appear here once you start making sales."
+            sx={{ py: 4 }}
+          />
+        </Box>
       </Paper>
     );
   }

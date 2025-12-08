@@ -139,17 +139,11 @@ const calculateMerchantAnalytics = async (merchantId, period = "week") => {
       { upsert: true, new: true, runValidators: true }
     );
 
-    logger.info("Merchant analytics calculated successfully", {
-      merchantId: merchantId?.toString?.() || merchantId,
-      period,
-      revenue: revenue.total,
-      sales: revenue.count,
-    });
-
+    // Don't log individual success, only errors
     return result;
   } catch (error) {
     logger.error("Error calculating merchant analytics", {
-      merchantId: merchantId?.toString?.() || merchantId,
+      merchantId: String(merchantId),
       period,
       error: error.message,
       stack: error.stack,
@@ -177,7 +171,7 @@ const getMerchantAnalytics = async (merchantId, period = "week") => {
     if (!analytics) {
       // Return empty structure if no data yet
       logger.info("No analytics found for merchant, returning empty data", {
-        merchantId: merchantId?.toString?.() || merchantId,
+        merchantId: String(merchantId),
         period,
       });
 
@@ -215,7 +209,7 @@ const getMerchantAnalytics = async (merchantId, period = "week") => {
     return analytics;
   } catch (error) {
     logger.error("Error fetching merchant analytics", {
-      merchantId: merchantId?.toString?.() || merchantId,
+      merchantId: String(merchantId),
       period,
       error: error.message,
     });
@@ -248,7 +242,7 @@ const getMerchantOverview = async (merchantId) => {
     };
   } catch (error) {
     logger.error("Error fetching merchant overview", {
-      merchantId: merchantId?.toString?.() || merchantId,
+      merchantId: String(merchantId),
       error: error.message,
     });
     throw handleServiceError(error, "fetch merchant overview");
@@ -275,7 +269,7 @@ const refreshMerchantAnalytics = async (merchantId, period = "all") => {
       ]);
 
       logger.info("All merchant analytics refreshed", {
-        merchantId: merchantId?.toString?.() || merchantId,
+        merchantId: String(merchantId),
       });
 
       return { week, month, year };
@@ -284,7 +278,7 @@ const refreshMerchantAnalytics = async (merchantId, period = "all") => {
       const result = await calculateMerchantAnalytics(merchantId, period);
 
       logger.info("Merchant analytics refreshed", {
-        merchantId: merchantId?.toString?.() || merchantId,
+        merchantId: String(merchantId),
         period,
       });
 
@@ -292,7 +286,7 @@ const refreshMerchantAnalytics = async (merchantId, period = "all") => {
     }
   } catch (error) {
     logger.error("Error refreshing merchant analytics", {
-      merchantId: merchantId?.toString?.() || merchantId,
+      merchantId: String(merchantId),
       period,
       error: error.message,
     });
@@ -338,11 +332,11 @@ const deleteMerchantAnalytics = async (merchantId) => {
     await MerchantAnalytics.deleteMany({ merchantId });
 
     logger.info("Merchant analytics deleted", {
-      merchantId: merchantId?.toString?.() || merchantId,
+      merchantId: String(merchantId),
     });
   } catch (error) {
     logger.error("Error deleting merchant analytics", {
-      merchantId: merchantId?.toString?.() || merchantId,
+      merchantId: String(merchantId),
       error: error.message,
     });
     throw handleServiceError(error, "delete merchant analytics");

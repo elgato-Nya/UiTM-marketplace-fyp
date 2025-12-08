@@ -22,6 +22,7 @@ import { useTheme } from "../../../hooks/useTheme";
  * @param {Function} onPeriodChange - Callback when period changes
  * @param {Function} onRefresh - Callback when refresh button clicked
  * @param {boolean} isRefreshing - Refresh loading state
+ * @param {string} lastUpdated - Last calculated timestamp
  * @param {Object} sx - Additional styles
  */
 const FilterBar = ({
@@ -29,6 +30,7 @@ const FilterBar = ({
   onPeriodChange,
   onRefresh,
   isRefreshing = false,
+  lastUpdated = null,
   sx = {},
 }) => {
   const { theme } = useTheme();
@@ -36,31 +38,23 @@ const FilterBar = ({
 
   return (
     <Paper
-      elevation={2}
+      elevation={0}
       sx={{
-        p: { xs: 1.5, sm: 2 },
+        p: { xs: 2, sm: 2 },
         borderRadius: 2,
+        border: `1px solid ${theme.palette.divider}`,
+        backgroundColor: theme.palette.background.paper,
         ...sx,
       }}
     >
       <Stack
         direction={{ xs: "column", sm: "row" }}
-        spacing={{ xs: 2, sm: 2 }}
+        spacing={{ xs: 1.5, sm: 2 }}
         alignItems={{ xs: "stretch", sm: "center" }}
         justifyContent="space-between"
       >
         {/* Period Selector */}
         <Box sx={{ width: { xs: "100%", sm: "auto" } }}>
-          {isMobile && (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ mb: 1, display: "flex", alignItems: "center", gap: 0.5 }}
-            >
-              <CalendarMonth fontSize="small" />
-              Select Period
-            </Typography>
-          )}
           <ToggleButtonGroup
             value={period}
             exclusive
@@ -102,31 +96,50 @@ const FilterBar = ({
           </ToggleButtonGroup>
         </Box>
 
-        {/* Refresh Button */}
-        {onRefresh && (
-          <Button
-            variant={isMobile ? "contained" : "outlined"}
-            startIcon={<Refresh />}
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            size={isMobile ? "medium" : "small"}
-            fullWidth={isMobile}
-            sx={{
-              py: { xs: 1, sm: 0.75 },
-              fontWeight: 500,
-              textTransform: "none",
-              ...(isMobile && {
-                backgroundColor: theme.palette.primary.main,
-                color: theme.palette.primary.contrastText,
-                "&:hover": {
-                  backgroundColor: theme.palette.primary.dark,
-                },
-              }),
-            }}
-          >
-            {isRefreshing ? "Refreshing..." : "Refresh Data"}
-          </Button>
-        )}
+        {/* Right Side: Last Updated + Refresh */}
+        <Stack
+          direction="row"
+          spacing={1.5}
+          alignItems="center"
+          sx={{ width: { xs: "100%", sm: "auto" } }}
+        >
+          {/* Last Updated Timestamp */}
+          {lastUpdated && !isMobile && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{
+                whiteSpace: "nowrap",
+                display: "flex",
+                alignItems: "center",
+                gap: 0.5,
+              }}
+            >
+              Updated {new Date(lastUpdated).toLocaleTimeString()}
+            </Typography>
+          )}
+
+          {/* Refresh Button */}
+          {onRefresh && (
+            <Button
+              variant="contained"
+              startIcon={<Refresh />}
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              size="small"
+              fullWidth={isMobile}
+              sx={{
+                py: { xs: 1, sm: 0.75 },
+                px: { xs: 2, sm: 2 },
+                fontWeight: 600,
+                textTransform: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {isRefreshing ? "Refreshing..." : "Refresh"}
+            </Button>
+          )}
+        </Stack>
       </Stack>
     </Paper>
   );

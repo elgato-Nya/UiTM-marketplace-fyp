@@ -370,13 +370,13 @@ function ProfilePage() {
               <Box
                 sx={{
                   width: "100%",
-                  maxWidth: "500px",
+                  maxWidth: { xs: "100%", sm: "700px" },
                 }}
               >
                 <ActionGrid
                   items={quickActionsData}
-                  spacing={2}
-                  breakpoints={{ xs: 6, sm: 6 }}
+                  spacing={{ xs: 1.5, sm: 2 }}
+                  breakpoints={{ xs: 4, sm: 4, md: 4 }}
                   renderItem={(item) => (
                     <ActionCard
                       key={item.id}

@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography, Button, Paper, Grid, Fab } from "@mui/material";
+import { Box, Typography, Button, Paper, Grid } from "@mui/material";
 import { Add, Home, School } from "@mui/icons-material";
 import AddressCard from "./AddressCard";
 import { useTheme } from "../../../hooks/useTheme";
@@ -19,9 +19,9 @@ const AddressListSection = ({
   const EmptyState = () => (
     <Paper
       sx={{
-        p: 6,
+        p: { xs: 4, sm: 6 },
         textAlign: "center",
-        borderRadius: 3,
+        borderRadius: { xs: 2, sm: 3 },
         border: `2px dashed ${theme.palette.divider}`,
         backgroundColor: theme.palette.grey[50] + "80",
       }}
@@ -30,32 +30,51 @@ const AddressListSection = ({
     >
       <Box
         sx={{
-          p: 2,
+          p: { xs: 1.5, sm: 2 },
           borderRadius: "50%",
           backgroundColor: theme.palette.primary.main + "15",
           display: "inline-flex",
-          mb: 3,
+          mb: { xs: 2, sm: 3 },
         }}
       >
         {addressType === "campus" ? (
           <School
-            sx={{ fontSize: 48, color: theme.palette.primary.main }}
+            sx={{
+              fontSize: { xs: 36, sm: 48 },
+              color: theme.palette.primary.main,
+            }}
             aria-hidden="true"
           />
         ) : (
           <Home
-            sx={{ fontSize: 48, color: theme.palette.primary.main }}
+            sx={{
+              fontSize: { xs: 36, sm: 48 },
+              color: theme.palette.primary.main,
+            }}
             aria-hidden="true"
           />
         )}
       </Box>
-      <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
+      <Typography
+        variant="h5"
+        sx={{
+          fontWeight: 600,
+          mb: 1,
+          fontSize: { xs: "1.25rem", sm: "1.5rem" },
+        }}
+      >
         No {addressType} addresses yet
       </Typography>
       <Typography
         variant="body1"
         color="text.secondary"
-        sx={{ mb: 4, maxWidth: "400px", mx: "auto" }}
+        sx={{
+          mb: { xs: 3, sm: 4 },
+          maxWidth: "400px",
+          mx: "auto",
+          fontSize: { xs: "0.9rem", sm: "1rem" },
+          px: { xs: 2, sm: 0 },
+        }}
       >
         Get started by adding your first {addressType} address. This will be
         used for deliveries and order fulfillment.
@@ -67,11 +86,11 @@ const AddressListSection = ({
         onClick={onAddAddress}
         aria-label={`Add your first ${addressType} address`}
         sx={{
-          px: 4,
-          py: 1.5,
+          px: { xs: 3, sm: 4 },
+          py: { xs: 1.25, sm: 1.5 },
           borderRadius: 2,
           fontWeight: 600,
-          fontSize: "1rem",
+          fontSize: { xs: "0.9rem", sm: "1rem" },
           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
           "&:hover": {
             boxShadow: "0 6px 16px rgba(0, 0, 0, 0.2)",
@@ -109,11 +128,19 @@ const AddressListSection = ({
             variant="h5"
             component="h2"
             id="addresses-title"
-            sx={{ fontWeight: 700, mb: 0.5 }}
+            sx={{
+              fontWeight: 700,
+              mb: 0.5,
+              fontSize: { xs: "1.25rem", sm: "1.5rem" },
+            }}
           >
             {addressType === "campus" ? "Campus" : "Personal"} Addresses
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}
+          >
             {currentAddresses.length} address
             {currentAddresses.length !== 1 ? "es" : ""} saved
           </Typography>
@@ -125,16 +152,18 @@ const AddressListSection = ({
           onClick={onAddAddress}
           aria-describedby="addresses-title"
           sx={{
-            px: 3,
-            py: 1.5,
+            px: { xs: 2, sm: 3 },
+            py: { xs: 1.25, sm: 1.5 },
             borderRadius: 2,
             fontWeight: 600,
+            fontSize: { xs: "0.9rem", sm: "1rem" },
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
             "&:hover": {
               boxShadow: "0 6px 16px rgba(0, 0, 0, 0.2)",
               transform: "translateY(-1px)",
             },
             transition: "all 0.2s ease",
+            width: { xs: "100%", sm: "auto" },
           }}
         >
           Add New Address
@@ -144,7 +173,7 @@ const AddressListSection = ({
       {/* Address Grid */}
       <Grid
         container
-        spacing={3}
+        spacing={{ xs: 2, sm: 3 }}
         component="section"
         aria-label={`List of ${addressType} addresses`}
         role="list"
@@ -160,7 +189,7 @@ const AddressListSection = ({
             role="listitem"
             sx={{
               display: "flex",
-              width: "475px",
+              maxWidth: { xs: "100%", md: "475px" },
             }}
           >
             <AddressCard
@@ -174,29 +203,6 @@ const AddressListSection = ({
           </Grid>
         ))}
       </Grid>
-
-      {/* Mobile FAB - Only show when form is not open */}
-      {!showForm && (
-        <Fab
-          color="primary"
-          aria-label="add address"
-          sx={{
-            position: "fixed",
-            bottom: 24,
-            right: 24,
-            display: { xs: "flex", sm: "none" },
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.15)",
-            "&:hover": {
-              boxShadow: "0 12px 32px rgba(0, 0, 0, 0.2)",
-              transform: "scale(1.1)",
-            },
-            transition: "all 0.2s ease",
-          }}
-          onClick={onAddAddress}
-        >
-          <Add />
-        </Fab>
-      )}
     </>
   );
 

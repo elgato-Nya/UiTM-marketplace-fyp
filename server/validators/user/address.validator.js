@@ -159,8 +159,13 @@ class AddressValidator {
   static isValidPickupTime(time) {
     if (!time) return false;
     const date = new Date(time);
-    if (date < new Date()) return false; // Must be a future date
-    return !isNaN(date.getTime());
+    if (isNaN(date.getTime())) return false;
+
+    // Allow dates up to 1 minute in the past to account for timing differences and network latency
+    const oneMinuteAgo = new Date(Date.now() - 60000);
+    if (date < oneMinuteAgo) return false;
+
+    return true;
   }
 
   static isValidAddress(address) {
@@ -269,7 +274,8 @@ const addressErrorMessages = {
   },
   pickupTime: {
     required: "Pickup time is required in pickup details",
-    invalid: "Pickup time must be a valid future date",
+    invalid:
+      "Pickup time must be a valid date and not more than a minute in the past",
   },
   address: {
     invalid: "Address is invalid",

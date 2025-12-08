@@ -8,7 +8,7 @@ const AddressPageHeader = () => {
   return (
     <Box
       sx={{
-        mb: 4,
+        mb: { xs: 3, sm: 4 },
         textAlign: { xs: "center", sm: "left" },
       }}
       component="header"
@@ -18,8 +18,8 @@ const AddressPageHeader = () => {
         component="h1"
         sx={{
           fontWeight: 700,
-          mb: 1,
-          fontSize: { xs: "1.75rem", sm: "2.125rem" },
+          mb: { xs: 0.75, sm: 1 },
+          fontSize: { xs: "1.5rem", sm: "2.125rem" },
           background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
           backgroundClip: "text",
           WebkitBackgroundClip: "text",
@@ -34,8 +34,9 @@ const AddressPageHeader = () => {
         color="text.secondary"
         aria-describedby="page-title"
         sx={{
-          fontSize: "1rem",
+          fontSize: { xs: "0.875rem", sm: "1rem" },
           maxWidth: { xs: "100%", sm: "600px" },
+          lineHeight: { xs: 1.5, sm: 1.6 },
         }}
       >
         Manage your delivery addresses for orders and services. Keep your

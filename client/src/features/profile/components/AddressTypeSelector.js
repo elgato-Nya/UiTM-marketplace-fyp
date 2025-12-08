@@ -19,8 +19,8 @@ const AddressTypeSelector = ({ addressType, onTypeChange, addresses = [] }) => {
   return (
     <Paper
       sx={{
-        mb: 4,
-        borderRadius: 3,
+        mb: { xs: 3, sm: 4 },
+        borderRadius: { xs: 2, sm: 3 },
         overflow: "hidden",
         boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
         border: `1px solid ${theme.palette.divider}`,

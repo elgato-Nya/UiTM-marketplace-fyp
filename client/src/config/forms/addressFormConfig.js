@@ -254,6 +254,7 @@ export const getAddressTabsConfig = (counts = {}) => [
   {
     value: "campus",
     label: "Campus Addresses",
+    shortLabel: "Campus", // Short label for mobile
     description: "Delivery within university campus",
     icon: <School />,
     badgeCount: counts.campus || 0,
@@ -261,6 +262,7 @@ export const getAddressTabsConfig = (counts = {}) => [
   {
     value: "personal",
     label: "Personal Addresses",
+    shortLabel: "Personal", // Short label for mobile
     description: "Home, office, and other locations",
     icon: <Home />,
     badgeCount: counts.personal || 0,
@@ -268,6 +270,7 @@ export const getAddressTabsConfig = (counts = {}) => [
   {
     value: "pickup",
     label: "Pickup/Meetup Points",
+    shortLabel: "Pickup", // Short label for mobile
     description: "Self-pickup or meetup locations",
     icon: <Place />,
     badgeCount: counts.pickup || 0,

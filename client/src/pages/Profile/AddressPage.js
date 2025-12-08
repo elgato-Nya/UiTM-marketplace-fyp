@@ -255,8 +255,10 @@ function AddressesPage() {
       disableGutters
       sx={{
         py: { xs: 2, sm: 3, md: 4 },
-        px: { xs: 2, sm: 3 },
+        px: { xs: 1.5, sm: 3 },
         minHeight: "calc(100vh - 200px)",
+        maxWidth: "100% !important",
+        overflow: "hidden",
       }}
       component="article"
     >

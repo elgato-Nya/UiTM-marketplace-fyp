@@ -9,7 +9,6 @@ import {
   Step,
   StepLabel,
   StepContent,
-  Paper,
 } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -26,6 +25,7 @@ function DynamicForm({
   error = null,
   defaultValues = {},
   resetOnSuccess = false,
+  customContent = null, // Custom content to render before submit button
 }) {
   const { theme } = useTheme();
   const [activeStep, setActiveStep] = useState(0);
@@ -37,7 +37,6 @@ function DynamicForm({
     formState: { errors, isSubmitting },
     trigger,
     watch,
-    setValue,
     reset,
   } = useForm({
     resolver: validationSchema ? yupResolver(validationSchema) : undefined,
@@ -141,9 +140,13 @@ function DynamicForm({
     const fields = step.fields.filter(shouldShowField);
 
     return (
-      <Box sx={{ mt: 2 }}>
+      <Box sx={{ mt: 2, backgroundColor: "transparent" }}>
         {step.description && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ my: { xs: 1, md: 1.5 } }}
+          >
             {step.description}
           </Typography>
         )}
@@ -151,13 +154,24 @@ function DynamicForm({
         {fields.map(renderField)}
 
         {/* Step Navigation */}
-        <Box sx={{ mt: 3, mb: 2 }}>
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+        <Box sx={{ mb: 2, mt: 3 }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1.5,
+              flexWrap: "wrap",
+              justifyContent: "flex-start",
+            }}
+          >
             <Button
               disabled={stepIndex === 0 || isLoading || isSubmitting}
               onClick={handleBackStep}
               variant="outlined"
               size="medium"
+              sx={{
+                minWidth: { xs: 90, sm: 100 },
+                px: { xs: 2, sm: 2.5 },
+              }}
             >
               Back
             </Button>
@@ -169,6 +183,8 @@ function DynamicForm({
                 disabled={isLoading || isSubmitting}
                 size="medium"
                 sx={{
+                  minWidth: { xs: 140, sm: 160 },
+                  px: { xs: 3, sm: 4 },
                   bgcolor: theme.palette.primary.main,
                   "&:hover": { bgcolor: theme.palette.primary.dark },
                 }}
@@ -189,6 +205,8 @@ function DynamicForm({
                   variant="contained"
                   size="medium"
                   sx={{
+                    minWidth: { xs: 90, sm: 100 },
+                    px: { xs: 3, sm: 3.5 },
                     bgcolor: theme.palette.primary.main,
                     "&:hover": { bgcolor: theme.palette.primary.dark },
                   }}
@@ -204,7 +222,7 @@ function DynamicForm({
                       variant="outlined"
                       size="medium"
                       color="secondary"
-                      sx={{ ml: "auto" }}
+                      sx={{ ml: "auto", minWidth: { xs: 120, sm: 140 }, px: 2 }}
                     >
                       Jump to Save →
                     </Button>
@@ -221,14 +239,13 @@ function DynamicForm({
     <Box sx={{ width: "100%", maxWidth: config.maxWidth || 750, mx: "auto" }}>
       {/* Form Header */}
       {config.title && (
-        <Box sx={{ textAlign: "center", mb: 4 }}>
+        <Box sx={{ textAlign: "center", mb: 0, mt: { xs: 2, md: 3 } }}>
           <Typography
             variant="h4"
             component="h1"
             sx={{
               fontWeight: "bold",
-              color: theme.palette.primary.main,
-              mb: 1,
+              color: theme.palette.text.primary,
             }}
           >
             {config.title}
@@ -249,10 +266,33 @@ function DynamicForm({
       )}
 
       {/* Form Content */}
-      <Paper elevation={0} sx={{ p: 3 }}>
+      <Box sx={{ mx: { xs: 1, md: 4 } }}>
         {isMultiStep ? (
           // Multi-step form
-          <Stepper activeStep={activeStep} orientation="vertical">
+          <Stepper
+            activeStep={activeStep}
+            orientation="vertical"
+            sx={{
+              backgroundColor: "transparent",
+              // Target all MUI internal elements that could add backgrounds
+              "& .MuiStep-root": {
+                backgroundColor: "transparent",
+              },
+              "& .MuiStepContent-root": {
+                borderColor: theme.palette.divider,
+                backgroundColor: "transparent",
+              },
+              "& .MuiCollapse-root": {
+                backgroundColor: "transparent",
+              },
+              "& .MuiCollapse-wrapper": {
+                backgroundColor: "transparent",
+              },
+              "& .MuiCollapse-wrapperInner": {
+                backgroundColor: "transparent",
+              },
+            }}
+          >
             {config.steps.map((step, index) => (
               <Step key={step.label || step.title || `Step ${index + 1}`}>
                 <StepLabel>
@@ -278,14 +318,27 @@ function DynamicForm({
           >
             {getCurrentFields().map(renderField)}
 
-            <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+            {/* Custom content slot (e.g., forgot password link) */}
+            {customContent && <Box>{customContent}</Box>}
+
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                mt: 3,
+                justifyContent: "flex-start",
+              }}
+            >
               {onCancel && (
                 <Button
                   variant="outlined"
-                  size="large"
+                  size="medium"
                   onClick={onCancel}
                   disabled={isLoading || isSubmitting}
-                  sx={{ py: 1.5, flex: 1 }}
+                  sx={{
+                    minWidth: { xs: 90, sm: 110 },
+                    px: { xs: 2, sm: 2.5 },
+                  }}
                 >
                   {config.cancelButton?.text || "Cancel"}
                 </Button>
@@ -293,11 +346,13 @@ function DynamicForm({
               <Button
                 type="submit"
                 variant="contained"
-                size="large"
+                size="medium"
+                fullWidth
                 disabled={isLoading || isSubmitting}
                 sx={{
+                  mx: { xs: 3, md: 4 },
+                  minWidth: { xs: 140, sm: 160 },
                   py: 1.5,
-                  flex: 1,
                   bgcolor: theme.palette.primary.main,
                   "&:hover": { bgcolor: theme.palette.primary.dark },
                 }}
@@ -314,7 +369,7 @@ function DynamicForm({
             </Box>
           </Box>
         )}
-      </Paper>
+      </Box>
     </Box>
   );
 }

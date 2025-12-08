@@ -112,6 +112,7 @@ function createAppTheme(mode, fontSize, highContrast) {
     background: {
       default: isAccessible ? "#FFFFFF" : isDark ? "#141313ff" : "#fafafaff",
       paper: isAccessible ? "#FFFFFF" : isDark ? "#1E1E1E" : "#FFFFFF",
+      bold: isAccessible ? "#E0E0E0" : isDark ? "#0A0A0A" : "#F5F5F5",
     },
     text: {
       primary: isAccessible ? "#000000" : isDark ? "#FFFFFF" : "#212121",

@@ -1,32 +1,110 @@
 import React from "react";
-import { Box, Typography, Button } from "@mui/material";
-import { ShoppingBag, Storefront } from "@mui/icons-material";
+import { Box, Typography, Button, Paper } from "@mui/material";
+import {
+  ShoppingBag,
+  Storefront,
+  AddCircleOutline,
+  FilterListOff,
+} from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 
-function EmptyOrderState({ orderRole = "buyer" }) {
+function EmptyOrderState({
+  role = "buyer",
+  orderRole,
+  hasFilters = false,
+  onReset,
+}) {
   const navigate = useNavigate();
 
-  const isBuyer = orderRole === "buyer";
+  // Support both role and orderRole props for backward compatibility
+  const userRole = role || orderRole || "buyer";
+  const isBuyer = userRole === "buyer";
 
   const handleAction = () => {
     if (isBuyer) {
       navigate("/listings");
     } else {
-      // todo: recheck the navigation path for seller
-      navigate("/merchant/listings");
+      navigate("/merchant/listings/create");
     }
   };
 
+  const handleResetFilters = () => {
+    if (onReset) {
+      onReset();
+    }
+  };
+
+  // Different messages for filtered vs empty state
+  if (hasFilters) {
+    return (
+      <Paper
+        elevation={0}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          textAlign: "center",
+          py: { xs: 6, sm: 8 },
+          px: 3,
+          border: 1,
+          borderColor: "divider",
+          borderRadius: 2,
+          backgroundColor: "background.paper",
+        }}
+        role="region"
+        aria-label="No orders found message"
+      >
+        <FilterListOff
+          sx={{
+            fontSize: { xs: 60, sm: 80 },
+            color: "text.secondary",
+            opacity: 0.5,
+            mb: 2,
+          }}
+          aria-hidden="true"
+        />
+        <Typography
+          variant="h6"
+          color="text.primary"
+          gutterBottom
+          sx={{ fontWeight: 600 }}
+        >
+          No Orders Found
+        </Typography>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ maxWidth: 400, mb: 3 }}
+        >
+          No orders match your current filters. Try adjusting your search
+          criteria.
+        </Typography>
+        <Button
+          variant="outlined"
+          color="primary"
+          onClick={handleResetFilters}
+          startIcon={<FilterListOff />}
+        >
+          Clear Filters
+        </Button>
+      </Paper>
+    );
+  }
+
   return (
-    <Box
+    <Paper
+      elevation={0}
       sx={{
         display: "flex",
         flexDirection: "column",
-        justifyContent: "center",
         alignItems: "center",
         textAlign: "center",
-        py: 8,
+        py: { xs: 6, sm: 8 },
         px: 3,
+        border: 1,
+        borderColor: "divider",
+        borderRadius: 2,
+        backgroundColor: "background.paper",
       }}
       role="region"
       aria-label="Empty orders message"
@@ -34,9 +112,9 @@ function EmptyOrderState({ orderRole = "buyer" }) {
       {isBuyer ? (
         <ShoppingBag
           sx={{
-            fontSize: 80,
-            color: "text.secondary",
-            opacity: 0.5,
+            fontSize: { xs: 60, sm: 80 },
+            color: "primary.main",
+            opacity: 0.7,
             mb: 2,
           }}
           aria-hidden="true"
@@ -44,9 +122,9 @@ function EmptyOrderState({ orderRole = "buyer" }) {
       ) : (
         <Storefront
           sx={{
-            fontSize: 80,
-            color: "text.secondary",
-            opacity: 0.5,
+            fontSize: { xs: 60, sm: 80 },
+            color: "primary.main",
+            opacity: 0.7,
             mb: 2,
           }}
           aria-hidden="true"
@@ -54,37 +132,51 @@ function EmptyOrderState({ orderRole = "buyer" }) {
       )}
 
       <Typography
-        variant="h6"
-        color="text.secondary"
+        variant="h5"
+        color="text.primary"
         gutterBottom
-        sx={{ fontWeight: 500 }}
+        sx={{ fontWeight: 600, mb: 1 }}
       >
-        {isBuyer ? "You have no orders yet." : "No orders received yet."}
+        {isBuyer ? "No Orders Yet" : "No Sales Yet"}
+      </Typography>
+
+      <Typography
+        variant="body1"
+        color="text.secondary"
+        sx={{ maxWidth: 450, mb: 1 }}
+      >
+        {isBuyer
+          ? "You haven't placed any orders yet."
+          : "You haven't received any orders yet."}
       </Typography>
 
       <Typography
         variant="body2"
         color="text.secondary"
-        component="p"
-        sx={{ maxWidth: 400, mb: 3 }}
+        sx={{ maxWidth: 450, mb: 4 }}
       >
         {isBuyer
-          ? "Browse listings and make your first purchase!"
-          : "Share your store and get your first order!"}
+          ? "Discover amazing products from our merchants and start shopping today!"
+          : "Start selling by creating your first listing. Share your products with customers and watch your business grow!"}
       </Typography>
 
       <Button
         variant="contained"
         color="primary"
+        size="large"
         onClick={handleAction}
-        startIcon={isBuyer ? <ShoppingBag /> : <Storefront />}
-        aria-label={
-          isBuyer
-            ? "Browse listings to start shopping"
-            : "Go to your store management page"
-        }
-      ></Button>
-    </Box>
+        startIcon={isBuyer ? <ShoppingBag /> : <AddCircleOutline />}
+        sx={{
+          px: 4,
+          py: 1.5,
+          fontWeight: 600,
+          textTransform: "none",
+          fontSize: "1rem",
+        }}
+      >
+        {isBuyer ? "Browse Listings" : "Create Your First Listing"}
+      </Button>
+    </Paper>
   );
 }
 

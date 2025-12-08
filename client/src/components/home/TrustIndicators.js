@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Container,
@@ -6,6 +6,7 @@ import {
   Typography,
   Card,
   CardContent,
+  Skeleton,
 } from "@mui/material";
 import {
   Security,
@@ -17,8 +18,9 @@ import {
 } from "@mui/icons-material";
 
 import { useTheme } from "../../hooks/useTheme";
+import { getPublicStats } from "../../services/analyticsService";
 
-const trustFeatures = [
+const notUsedForNow = [
   {
     id: 1,
     icon: Security,
@@ -26,6 +28,16 @@ const trustFeatures = [
     description: "End-to-end encryption and secure payment processing",
     color: "success",
   },
+  {
+    id: 5,
+    icon: PaymentRounded,
+    title: "Multiple Payment Options",
+    description: "Credit cards, e-wallets, and campus payment systems",
+    color: "secondary",
+  },
+];
+
+const trustFeatures = [
   {
     id: 2,
     icon: VerifiedUser,
@@ -48,13 +60,6 @@ const trustFeatures = [
     color: "warning",
   },
   {
-    id: 5,
-    icon: PaymentRounded,
-    title: "Multiple Payment Options",
-    description: "Credit cards, e-wallets, and campus payment systems",
-    color: "secondary",
-  },
-  {
     id: 6,
     icon: StarRate,
     title: "Quality Assurance",
@@ -65,6 +70,45 @@ const trustFeatures = [
 
 function TrustIndicators() {
   const { theme, isAccessible } = useTheme();
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        const response = await getPublicStats();
+        console.log("Public stats response:", response);
+
+        // Data is spread at root level (not nested in response.data)
+        if (response.success) {
+          setStats({
+            totalUsers: response.totalUsers,
+            totalListings: response.totalListings,
+            totalMerchants: response.totalMerchants,
+            activeMerchants: response.activeMerchants,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching public stats:", error);
+        // Use fallback data if API fails
+        setStats(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // Format number with K suffix
+  const formatNumber = (num) => {
+    if (!num) return "0";
+    if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K+`;
+    }
+    return `${num}+`;
+  };
 
   return (
     <Box
@@ -103,7 +147,7 @@ function TrustIndicators() {
         {/* Features Grid */}
         <Grid
           container
-          spacing={3}
+          spacing={{ xs: 2, md: 3 }}
           justifyContent="center"
           alignItems="center"
           style={{ textAlign: "center" }}
@@ -123,8 +167,7 @@ function TrustIndicators() {
                 }}
                 key={feature.id}
                 sx={{
-                  height: 250,
-                  width: 250,
+                  height: 225,
                 }}
               >
                 <Card
@@ -216,63 +259,103 @@ function TrustIndicators() {
         >
           <Grid container spacing={4} sx={{ textAlign: "center" }}>
             <Grid size={{ xs: 6, md: 3 }}>
-              <Typography
-                variant="h3"
-                sx={{
-                  fontWeight: "bold",
-                  mb: 1,
-                  fontSize: { xs: "2rem", sm: "2.5rem" },
-                }}
-              >
-                99.9%
-              </Typography>
+              {loading ? (
+                <Skeleton
+                  variant="text"
+                  sx={{
+                    fontSize: "2.5rem",
+                    bgcolor: "rgba(255,255,255,0.2)",
+                  }}
+                />
+              ) : (
+                <Typography
+                  variant="h3"
+                  sx={{
+                    fontWeight: "bold",
+                    mb: 1,
+                    fontSize: { xs: "2rem", sm: "2.5rem" },
+                  }}
+                >
+                  {formatNumber(stats?.totalUsers || 0)}
+                </Typography>
+              )}
               <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                Uptime
+                Active Users
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, md: 3 }}>
-              <Typography
-                variant="h3"
-                sx={{
-                  fontWeight: "bold",
-                  mb: 1,
-                  fontSize: { xs: "2rem", sm: "2.5rem" },
-                }}
-              >
-                5K+
-              </Typography>
+              {loading ? (
+                <Skeleton
+                  variant="text"
+                  sx={{
+                    fontSize: "2.5rem",
+                    bgcolor: "rgba(255,255,255,0.2)",
+                  }}
+                />
+              ) : (
+                <Typography
+                  variant="h3"
+                  sx={{
+                    fontWeight: "bold",
+                    mb: 1,
+                    fontSize: { xs: "2rem", sm: "2.5rem" },
+                  }}
+                >
+                  {formatNumber(stats?.totalMerchants || 0)}
+                </Typography>
+              )}
               <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                Happy Users
+                Verified Merchants
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, md: 3 }}>
-              <Typography
-                variant="h3"
-                sx={{
-                  fontWeight: "bold",
-                  mb: 1,
-                  fontSize: { xs: "2rem", sm: "2.5rem" },
-                }}
-              >
-                10K+
-              </Typography>
+              {loading ? (
+                <Skeleton
+                  variant="text"
+                  sx={{
+                    fontSize: "2.5rem",
+                    bgcolor: "rgba(255,255,255,0.2)",
+                  }}
+                />
+              ) : (
+                <Typography
+                  variant="h3"
+                  sx={{
+                    fontWeight: "bold",
+                    mb: 1,
+                    fontSize: { xs: "2rem", sm: "2.5rem" },
+                  }}
+                >
+                  {formatNumber(stats?.totalListings || 0)}
+                </Typography>
+              )}
               <Typography variant="body1" sx={{ opacity: 0.9 }}>
                 Products Listed
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, md: 3 }}>
-              <Typography
-                variant="h3"
-                sx={{
-                  fontWeight: "bold",
-                  mb: 1,
-                  fontSize: { xs: "2rem", sm: "2.5rem" },
-                }}
-              >
-                4.8★
-              </Typography>
+              {loading ? (
+                <Skeleton
+                  variant="text"
+                  sx={{
+                    fontSize: "2.5rem",
+                    bgcolor: "rgba(255,255,255,0.2)",
+                  }}
+                />
+              ) : (
+                <Typography
+                  variant="h3"
+                  sx={{
+                    fontWeight: "bold",
+                    mb: 1,
+                    fontSize: { xs: "2rem", sm: "2.5rem" },
+                  }}
+                >
+                  {formatNumber(stats?.activeMerchants || 0)}
+                </Typography>
+              )}
               <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                Average Rating
+                Active Sellers
               </Typography>
             </Grid>
           </Grid>

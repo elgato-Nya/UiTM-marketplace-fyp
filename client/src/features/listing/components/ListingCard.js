@@ -208,7 +208,7 @@ const ListingCard = ({
             </Box>
           )}
 
-          {/* Badges Overlay */}
+          {/* Badges Overlay - Left Side */}
           <Box
             sx={{
               position: "absolute",
@@ -217,7 +217,7 @@ const ListingCard = ({
               display: "flex",
               gap: 0.5,
               flexWrap: "wrap",
-              maxWidth: "calc(100% - 16px)",
+              maxWidth: { xs: "60%", sm: "calc(100% - 100px)" }, // Leave space for type badge
             }}
           >
             {!isAvailable && (
@@ -228,6 +228,7 @@ const ListingCard = ({
                   backgroundColor: "rgba(211, 47, 47, 0.9)",
                   color: "white",
                   fontWeight: 600,
+                  fontSize: { xs: "0.65rem", sm: "0.75rem" },
                 }}
               />
             )}
@@ -239,6 +240,7 @@ const ListingCard = ({
                   backgroundColor: "rgba(237, 108, 2, 0.9)",
                   color: "white",
                   fontWeight: 600,
+                  fontSize: { xs: "0.65rem", sm: "0.75rem" },
                 }}
               />
             )}
@@ -250,12 +252,13 @@ const ListingCard = ({
                   backgroundColor: "rgba(46, 125, 50, 0.9)",
                   color: "white",
                   fontWeight: 600,
+                  fontSize: { xs: "0.65rem", sm: "0.75rem" },
                 }}
               />
             )}
           </Box>
 
-          {/* Type Badge */}
+          {/* Type Badge - Right Side */}
           <Box sx={{ position: "absolute", top: 8, right: 8 }}>
             <Chip
               label={
@@ -277,6 +280,7 @@ const ListingCard = ({
                     ? theme.palette.primary.contrastText
                     : theme.palette.text.primary,
                 fontWeight: 600,
+                fontSize: { xs: "0.65rem", sm: "0.75rem" },
                 border:
                   theme.palette.mode === "dark"
                     ? "none"

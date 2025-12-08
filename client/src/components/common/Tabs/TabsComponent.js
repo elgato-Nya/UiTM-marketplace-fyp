@@ -1,5 +1,13 @@
 import React from "react";
-import { Box, Tabs, Tab, Badge, Typography, Paper } from "@mui/material";
+import {
+  Box,
+  Tabs,
+  Tab,
+  Badge,
+  Typography,
+  Paper,
+  useMediaQuery,
+} from "@mui/material";
 
 import { useTheme } from "../../../hooks/useTheme";
 
@@ -44,18 +52,23 @@ function TabsComponent({
   ...tabsProps
 }) {
   const { theme } = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const handleChange = (event, newValue) => {
     onChange(newValue);
   };
 
   const renderTabContent = (tab) => {
-    const { label, description, icon, badgeCount } = tab;
+    const { label, shortLabel, description, icon, badgeCount } = tab;
+
+    // Use shortLabel on mobile if available, hide descriptions on mobile
+    const displayLabel = isMobile && shortLabel ? shortLabel : label;
+    const shouldShowDescription = showDescriptions && !isMobile;
 
     return (
-      <Box sx={{ textAlign: "center", py: showDescriptions ? 1 : 0 }}>
+      <Box sx={{ textAlign: "center", py: shouldShowDescription ? 1 : 0.5 }}>
         {showIcons && icon && (
-          <Box sx={{ mb: showDescriptions ? 1 : 0 }}>
+          <Box sx={{ mb: shouldShowDescription ? 1 : 0.5 }}>
             {showBadges && badgeCount !== undefined ? (
               <Badge
                 badgeContent={badgeCount}
@@ -64,16 +77,20 @@ function TabsComponent({
                   "& .MuiBadge-badge": {
                     right: -8,
                     top: 4,
-                    fontSize: "0.75rem",
-                    minWidth: 18,
-                    height: 18,
+                    fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                    minWidth: { xs: 16, sm: 18 },
+                    height: { xs: 16, sm: 18 },
                   },
                 }}
               >
-                {icon}
+                {React.cloneElement(icon, {
+                  sx: { fontSize: { xs: 20, sm: 24 } },
+                })}
               </Badge>
             ) : (
-              icon
+              React.cloneElement(icon, {
+                sx: { fontSize: { xs: 20, sm: 24 } },
+              })
             )}
           </Box>
         )}
@@ -81,12 +98,16 @@ function TabsComponent({
         <Typography
           variant="button"
           display="block"
-          sx={{ textTransform: "none" }}
+          sx={{
+            textTransform: "none",
+            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+            fontWeight: { xs: 500, sm: 600 },
+          }}
         >
-          {label}
+          {displayLabel}
         </Typography>
 
-        {showDescriptions && description && (
+        {shouldShowDescription && description && (
           <Typography variant="caption" color="text.secondary" display="block">
             {description}
           </Typography>
@@ -104,7 +125,7 @@ function TabsComponent({
         orientation={orientation}
         sx={{
           "& .MuiTabs-indicator": {
-            height: 3,
+            height: { xs: 2, sm: 3 },
           },
           ...tabsProps.sx,
         }}
@@ -116,7 +137,8 @@ function TabsComponent({
             value={tab.value}
             label={renderTabContent(tab)}
             sx={{
-              minHeight: showDescriptions ? 80 : 48,
+              minHeight: { xs: 64, sm: showDescriptions ? 80 : 48 },
+              px: { xs: 1, sm: 2 },
               "&.Mui-selected": {
                 color: theme.palette.primary.main,
               },

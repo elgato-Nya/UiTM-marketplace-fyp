@@ -85,7 +85,7 @@ function CallToAction() {
             </Button>
             <Button
               component={Link}
-              to={`${ROUTES.AUTH.REGISTER}?type=merchant`}
+              to={ROUTES.MERCHANT.BECOME}
               variant="outlined"
               color="warning"
               size="large"

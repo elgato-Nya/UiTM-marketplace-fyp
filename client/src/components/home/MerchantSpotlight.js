@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -9,57 +9,87 @@ import {
   Avatar,
   Rating,
   Button,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
-import { Store, TrendingUp, Star } from "@mui/icons-material";
+import { Store, Star } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 
 import { useTheme } from "../../hooks/useTheme";
 import { ROUTES } from "../../constants/routes";
-
-const featuredMerchants = [
-  {
-    id: 1,
-    name: "TechHub UiTM",
-    description: "Your one-stop shop for electronics and gadgets",
-    avatar:
-      "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop&crop=face",
-    rating: 4.9,
-    reviews: 342,
-    totalProducts: 156,
-    monthlyViews: "12.5K",
-    specialty: "Electronics",
-    verified: true,
-  },
-  {
-    id: 2,
-    name: "Campus Books Corner",
-    description: "Affordable textbooks and stationery for students",
-    avatar:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-    rating: 4.8,
-    reviews: 198,
-    totalProducts: 89,
-    monthlyViews: "8.2K",
-    specialty: "Books & Education",
-    verified: true,
-  },
-  {
-    id: 3,
-    name: "Foodie Express",
-    description: "Delicious meals delivered right to your dorm",
-    avatar:
-      "https://images.unsplash.com/photo-1494790108755-2616b32d95f5?w=100&h=100&fit=crop&crop=face",
-    rating: 4.7,
-    reviews: 267,
-    totalProducts: 45,
-    monthlyViews: "15.3K",
-    specialty: "Food & Services",
-    verified: true,
-  },
-];
+import { useDispatch } from "react-redux";
+import { searchMerchants } from "../../features/merchant/store/merchantSlice";
 
 function MerchantSpotlight() {
   const { theme, isAccessible } = useTheme();
+  const dispatch = useDispatch();
+  const [merchants, setMerchants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchFeaturedMerchants = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch top merchants sorted by rating and sales
+        // Don't send 'q' parameter at all to get all merchants (validator rejects empty string)
+        const response = await dispatch(
+          searchMerchants({
+            limit: 10, // Fetch more to ensure we get at least 3
+            page: 1,
+          })
+        ).unwrap();
+
+        if (response.merchants) {
+          // Take only first 3 merchants
+          const featuredMerchants = response.merchants.slice(0, 3);
+          console.log("Featured Merchants Data:", featuredMerchants);
+          setMerchants(featuredMerchants);
+        } else {
+          setMerchants([]);
+        }
+      } catch (err) {
+        console.error("Error fetching featured merchants:", err);
+        setError("Unable to load featured merchants");
+        setMerchants([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeaturedMerchants();
+  }, [dispatch]);
+
+  if (loading) {
+    return (
+      <Container maxWidth="lg" sx={{ mb: 6, px: { xs: 2, sm: 3 } }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: 300,
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ mb: 6, px: { xs: 2, sm: 3 } }}>
+        <Alert severity="error">{error}</Alert>
+      </Container>
+    );
+  }
+
+  if (!merchants || merchants.length === 0) {
+    return null; // Don't show section if no merchants
+  }
 
   return (
     <Container maxWidth="lg" sx={{ mb: 6, px: { xs: 2, sm: 3 } }}>
@@ -110,189 +140,230 @@ function MerchantSpotlight() {
       </Box>
 
       <Grid container spacing={3}>
-        {featuredMerchants.map((merchant) => (
-          <Grid size={{ xs: 12, md: 4 }} key={merchant.id}>
-            <Card
-              sx={{
-                height: "100%",
-                bgcolor: theme.palette.background.paper,
-                border: isAccessible
-                  ? `1px solid ${theme.palette.divider}`
-                  : "none",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  transform: isAccessible ? "none" : "translateY(-4px)",
-                  boxShadow: isAccessible ? "none" : theme.shadows[8],
-                  bgcolor: isAccessible
-                    ? theme.palette.background.default
-                    : theme.palette.background.paper,
-                },
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                {/* Merchant Header */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    mb: 2,
-                  }}
-                >
-                  <Avatar
-                    src={merchant.avatar}
-                    alt={merchant.name}
+        {merchants.map((merchantData) => {
+          const { merchant, shop } = merchantData;
+          const shopName = shop?.shopName || `${merchant.username}'s Shop`;
+          const shopDescription =
+            shop?.shopDescription || "Welcome to our shop!";
+          const rating = shop?.shopRating?.averageRating || 0;
+          const reviews = shop?.shopRating?.totalReviews || 0;
+          const totalProducts = shop?.shopMetrics?.totalProducts || 0;
+          const monthlyViews = shop?.shopMetrics?.totalViews || 0;
+          const isVerified = shop?.isUiTMVerified || false;
+          // Use shop slug for the URL - matches backend's sellerProfileUrl format
+          const shopSlug = shop?.shopSlug || `${merchant.username}-shop`;
+          const shopUrl = `/shop/${shopSlug}`;
+
+          // Format views
+          const formatViews = (views) => {
+            if (views >= 1000) {
+              return `${(views / 1000).toFixed(1)}K`;
+            }
+            return views.toString();
+          };
+
+          return (
+            <Grid size={{ xs: 12, md: 4 }} key={shopSlug}>
+              <Card
+                sx={{
+                  height: "100%",
+                  bgcolor: theme.palette.background.paper,
+                  border: isAccessible
+                    ? `1px solid ${theme.palette.divider}`
+                    : "none",
+                  transition: "all 0.3s ease",
+                  "&:hover": {
+                    transform: isAccessible ? "none" : "translateY(-4px)",
+                    boxShadow: isAccessible ? "none" : theme.shadows[8],
+                    bgcolor: isAccessible
+                      ? theme.palette.background.default
+                      : theme.palette.background.paper,
+                  },
+                }}
+              >
+                <CardContent sx={{ p: 3 }}>
+                  {/* Merchant Header */}
+                  <Box
                     sx={{
-                      width: 60,
-                      height: 60,
-                      mr: 2,
-                      border: `2px solid ${theme.palette.primary.main}`,
+                      display: "flex",
+                      alignItems: "center",
+                      mb: 2,
                     }}
-                  />
-                  <Box sx={{ flex: 1 }}>
-                    <Box
+                  >
+                    <Avatar
+                      src={merchant.avatar}
+                      alt={shopName}
                       sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        mb: 0.5,
+                        width: 60,
+                        height: 60,
+                        mr: 2,
+                        border: `2px solid ${theme.palette.primary.main}`,
+                        bgcolor: theme.palette.primary.main,
                       }}
                     >
-                      <Typography
-                        variant="h6"
-                        component="h3"
+                      {shopName.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <Box sx={{ flex: 1 }}>
+                      <Box
                         sx={{
-                          fontWeight: "bold",
-                          color: theme.palette.text.primary,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                          mb: 0.5,
                         }}
                       >
-                        {merchant.name}
-                      </Typography>
-                      {merchant.verified && (
-                        <Star
+                        <Typography
+                          variant="h6"
+                          component="h3"
                           sx={{
-                            color: theme.palette.warning.main,
-                            fontSize: 20,
+                            fontWeight: "bold",
+                            color: theme.palette.text.primary,
                           }}
-                        />
-                      )}
+                        >
+                          {shopName}
+                        </Typography>
+                        {isVerified && (
+                          <Star
+                            sx={{
+                              color: theme.palette.warning.main,
+                              fontSize: 20,
+                            }}
+                          />
+                        )}
+                      </Box>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: theme.palette.text.secondary,
+                          fontSize: "0.75rem",
+                          textTransform: "uppercase",
+                          fontWeight: "medium",
+                        }}
+                      >
+                        @{merchant.username}
+                      </Typography>
                     </Box>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: theme.palette.text.secondary,
-                        fontSize: "0.75rem",
-                        textTransform: "uppercase",
-                        fontWeight: "medium",
-                      }}
-                    >
-                      {merchant.specialty}
-                    </Typography>
                   </Box>
-                </Box>
 
-                {/* Description */}
-                <Typography
-                  variant="body2"
-                  sx={{
-                    mb: 2,
-                    color: theme.palette.text.secondary,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {merchant.description}
-                </Typography>
-
-                {/* Rating */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    mb: 2,
-                  }}
-                >
-                  <Rating
-                    value={merchant.rating}
-                    precision={0.1}
-                    size="small"
-                    readOnly
-                  />
+                  {/* Description */}
                   <Typography
                     variant="body2"
                     sx={{
-                      ml: 1,
+                      mb: 2,
                       color: theme.palette.text.secondary,
+                      lineHeight: 1.5,
+                      minHeight: 40,
                     }}
                   >
-                    {merchant.rating} ({merchant.reviews} reviews)
+                    {shopDescription}
                   </Typography>
-                </Box>
 
-                {/* Stats */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    mb: 3,
-                  }}
-                >
-                  <Box sx={{ textAlign: "center" }}>
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: "bold",
-                        color: theme.palette.primary.main,
-                      }}
-                    >
-                      {merchant.totalProducts}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: theme.palette.text.secondary }}
-                    >
-                      Products
-                    </Typography>
+                  {/* Rating */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      mb: 2,
+                    }}
+                  >
+                    {rating > 0 ? (
+                      <>
+                        <Rating
+                          value={rating}
+                          precision={0.1}
+                          size="small"
+                          readOnly
+                        />
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            ml: 1,
+                            color: theme.palette.text.secondary,
+                          }}
+                        >
+                          {rating.toFixed(1)} ({reviews} reviews)
+                        </Typography>
+                      </>
+                    ) : (
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: theme.palette.text.secondary,
+                        }}
+                      >
+                        No reviews yet
+                      </Typography>
+                    )}
                   </Box>
-                  <Box sx={{ textAlign: "center" }}>
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: "bold",
-                        color: theme.palette.success.main,
-                      }}
-                    >
-                      {merchant.monthlyViews}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: theme.palette.text.secondary }}
-                    >
-                      Monthly Views
-                    </Typography>
-                  </Box>
-                </Box>
 
-                {/* Action Button */}
-                <Button
-                  component={Link}
-                  to={`/merchants/${merchant.id}`}
-                  variant="outlined"
-                  fullWidth
-                  startIcon={<Store />}
-                  sx={{
-                    borderColor: theme.palette.primary.main,
-                    color: theme.palette.primary.main,
-                    "&:hover": {
-                      borderColor: theme.palette.primary.dark,
-                      bgcolor: `${theme.palette.primary.main}10`,
-                    },
-                  }}
-                >
-                  Visit Store
-                </Button>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+                  {/* Stats */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      mb: 3,
+                    }}
+                  >
+                    <Box sx={{ textAlign: "center" }}>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: "bold",
+                          color: theme.palette.primary.main,
+                        }}
+                      >
+                        {totalProducts}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: theme.palette.text.secondary }}
+                      >
+                        Listings
+                      </Typography>
+                    </Box>
+                    <Box sx={{ textAlign: "center" }}>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: "bold",
+                          color: theme.palette.secondary.main,
+                        }}
+                      >
+                        {formatViews(monthlyViews)}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: theme.palette.text.secondary }}
+                      >
+                        Views
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Visit Store Button */}
+                  <Button
+                    component={Link}
+                    to={shopUrl}
+                    fullWidth
+                    variant="outlined"
+                    startIcon={<Store />}
+                    sx={{
+                      textTransform: "none",
+                      fontWeight: 600,
+                      borderWidth: 2,
+                      "&:hover": {
+                        borderWidth: 2,
+                        bgcolor: `${theme.palette.primary.main}10`,
+                      },
+                    }}
+                  >
+                    Visit Store
+                  </Button>
+                </CardContent>
+              </Card>
+            </Grid>
+          );
+        })}
       </Grid>
 
       {/* Mobile View All Button */}

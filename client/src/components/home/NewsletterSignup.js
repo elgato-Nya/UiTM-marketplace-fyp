@@ -105,12 +105,14 @@ function NewsletterSignup() {
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
             size="small"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Email color="action" fontSize="small" />
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Email color="action" fontSize="small" />
+                  </InputAdornment>
+                ),
+              },
             }}
             sx={{
               flex: 1,

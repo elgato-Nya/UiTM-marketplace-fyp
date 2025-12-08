@@ -205,7 +205,11 @@ function HeroSection() {
         </Button>
         <Button
           component={Link}
-          to={`${ROUTES.AUTH.REGISTER}?type=merchant`}
+          to={
+            isAuthenticated
+              ? ROUTES.MERCHANT.BECOME
+              : `${ROUTES.AUTH.REGISTER}?type=merchant`
+          }
           variant="outlined"
           size={isMobile ? "medium" : "large"}
           startIcon={!isMobile && <Store />}

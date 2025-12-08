@@ -42,41 +42,43 @@ function SearchBar() {
             placeholder="Search for products, services, or merchants..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search color="action" />
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => navigate("/browse")}
-                    title="Advanced Filters"
-                    sx={{
-                      color: theme.palette.primary.main,
-                      "&:hover": {
-                        bgcolor: `${theme.palette.primary.main}15`,
-                      },
-                    }}
-                  >
-                    <FilterList />
-                  </IconButton>
-                  <IconButton
-                    type="submit"
-                    sx={{
-                      bgcolor: theme.palette.primary.main,
-                      color: "white",
-                      ml: 1,
-                      "&:hover": {
-                        bgcolor: theme.palette.primary.dark,
-                      },
-                    }}
-                  >
-                    <Search />
-                  </IconButton>
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => navigate("/browse")}
+                      title="Advanced Filters"
+                      sx={{
+                        color: theme.palette.primary.main,
+                        "&:hover": {
+                          bgcolor: `${theme.palette.primary.main}15`,
+                        },
+                      }}
+                    >
+                      <FilterList />
+                    </IconButton>
+                    <IconButton
+                      type="submit"
+                      sx={{
+                        bgcolor: theme.palette.primary.main,
+                        color: "white",
+                        ml: 1,
+                        "&:hover": {
+                          bgcolor: theme.palette.primary.dark,
+                        },
+                      }}
+                    >
+                      <Search />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
             }}
             sx={{
               "& .MuiOutlinedInput-root": {

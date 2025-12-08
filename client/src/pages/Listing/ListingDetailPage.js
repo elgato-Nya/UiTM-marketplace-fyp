@@ -168,20 +168,27 @@ const ListingDetailPage = () => {
   return (
     <Container
       maxWidth="xl"
-      sx={{ py: 4 }}
+      sx={{
+        py: { xs: 2, md: 4 },
+        px: { xs: 2, sm: 3, md: 4 },
+        maxWidth: "100%",
+        overflowX: "hidden",
+      }}
       component="section"
       aria-labelledby="listing-title"
     >
       {/* Professional Back Button */}
-      <BackButton sx={{ mb: 3 }} />
+      <BackButton sx={{ mb: { xs: 2, md: 3 } }} />
 
       {/* TOP ROW - Images & Main Content Side by Side */}
       <Box
         sx={{
           display: "grid",
           gridTemplateColumns: { xs: "1fr", md: "40% 1fr" },
-          gap: 4,
-          mb: 4,
+          gap: { xs: 2, md: 4 },
+          mb: { xs: 2, md: 4 },
+          width: "100%",
+          maxWidth: "100%",
         }}
       >
         {/* LEFT COLUMN - Image Gallery */}
@@ -190,6 +197,10 @@ const ListingDetailPage = () => {
           aria-label="Product images"
           sx={{
             order: { xs: 1, md: 1 },
+            width: "100%",
+            maxWidth: "100%",
+            minWidth: 0,
+            overflow: "hidden",
           }}
         >
           <ImageGallery images={images} altText={name} />
@@ -203,6 +214,7 @@ const ListingDetailPage = () => {
             order: { xs: 2, md: 2 },
             minWidth: 0,
             width: "100%",
+            maxWidth: "100%",
             overflow: "hidden",
           }}
         >
@@ -212,10 +224,13 @@ const ListingDetailPage = () => {
             component="h1"
             fontWeight="700"
             sx={{
-              mb: 3,
-              wordWrap: "break-word",
-              overflowWrap: "anywhere",
+              mb: { xs: 2, md: 3 },
+              fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
+              wordBreak: "break-word",
+              overflowWrap: "break-word",
               hyphens: "auto",
+              maxWidth: "100%",
+              lineHeight: 1.3,
             }}
             id="listing-title"
           >
@@ -225,7 +240,11 @@ const ListingDetailPage = () => {
           <Box
             component="section"
             aria-labelledby="description-heading"
-            sx={{ mb: 4 }}
+            sx={{
+              mb: { xs: 3, md: 4 },
+              width: "100%",
+              maxWidth: "100%",
+            }}
           >
             <Typography
               variant="h5"
@@ -233,6 +252,9 @@ const ListingDetailPage = () => {
               fontWeight="700"
               gutterBottom
               id="description-heading"
+              sx={{
+                fontSize: { xs: "1.25rem", sm: "1.5rem" },
+              }}
             >
               Description
             </Typography>
@@ -241,22 +263,24 @@ const ListingDetailPage = () => {
               color="text.secondary"
               sx={{
                 lineHeight: 1.7,
-                wordWrap: "break-word",
-                overflowWrap: "anywhere",
-                whiteSpace: "normal",
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
+                whiteSpace: "pre-wrap",
+                maxWidth: "100%",
+                fontSize: { xs: "0.875rem", sm: "1rem" },
               }}
             >
               {description}
             </Typography>
           </Box>
 
-          <Divider sx={{ my: 3 }} />
+          <Divider sx={{ my: { xs: 2, md: 3 } }} />
 
           {/* Price Section */}
           <Box
             component="section"
             aria-labelledby="price-heading"
-            sx={{ mb: 3 }}
+            sx={{ mb: { xs: 2, md: 3 } }}
           >
             <Typography
               variant="h6"
@@ -265,15 +289,33 @@ const ListingDetailPage = () => {
               color="text.secondary"
               gutterBottom
               id="price-heading"
+              sx={{
+                fontSize: { xs: "1rem", sm: "1.25rem" },
+              }}
             >
               Price
             </Typography>
             {isFree ? (
-              <Typography variant="h3" fontWeight="700" color="success.main">
+              <Typography
+                variant="h3"
+                fontWeight="700"
+                color="success.main"
+                sx={{
+                  fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" },
+                }}
+              >
                 FREE
               </Typography>
             ) : (
-              <Typography variant="h3" fontWeight="700" color="primary.main">
+              <Typography
+                variant="h3"
+                fontWeight="700"
+                color="primary.main"
+                sx={{
+                  fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" },
+                  wordBreak: "break-word",
+                }}
+              >
                 RM {parseFloat(price).toFixed(2)}
               </Typography>
             )}
@@ -284,7 +326,7 @@ const ListingDetailPage = () => {
             <Box
               component="section"
               aria-labelledby="stock-heading"
-              sx={{ mb: 3 }}
+              sx={{ mb: { xs: 2, md: 3 } }}
             >
               <Typography
                 variant="h6"
@@ -293,16 +335,23 @@ const ListingDetailPage = () => {
                 color="text.secondary"
                 gutterBottom
                 id="stock-heading"
+                sx={{
+                  fontSize: { xs: "1rem", sm: "1.25rem" },
+                }}
               >
                 Stock Availability
               </Typography>
-              <Box display="flex" alignItems="center" gap={1}>
+              <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                 <StockIcon color={stock > 0 ? "success" : "error"} />
                 <Typography
                   variant="h5"
                   fontWeight="700"
                   color={stock > 0 ? "success.main" : "error.main"}
                   aria-live="polite"
+                  sx={{
+                    fontSize: { xs: "1.125rem", sm: "1.5rem" },
+                    wordBreak: "break-word",
+                  }}
                 >
                   {stock > 0 ? `${stock} units in stock` : "Out of Stock"}
                 </Typography>
@@ -314,7 +363,7 @@ const ListingDetailPage = () => {
           <Box
             component="section"
             aria-labelledby="category-heading"
-            sx={{ mb: 4 }}
+            sx={{ mb: { xs: 3, md: 4 } }}
           >
             <Typography
               variant="h6"
@@ -323,6 +372,9 @@ const ListingDetailPage = () => {
               color="text.secondary"
               gutterBottom
               id="category-heading"
+              sx={{
+                fontSize: { xs: "1rem", sm: "1.25rem" },
+              }}
             >
               Category & Type
             </Typography>
@@ -331,38 +383,70 @@ const ListingDetailPage = () => {
                 label={CATEGORY_LABELS[category] || category}
                 color="primary"
                 variant="outlined"
+                sx={{
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                }}
               />
               <Chip
                 label={type === "product" ? "Product" : "Service"}
                 color="secondary"
                 variant="outlined"
+                sx={{
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                }}
               />
               {isAvailable ? (
-                <Chip label="Available" color="success" size="small" />
+                <Chip
+                  label="Available"
+                  color="success"
+                  size="small"
+                  sx={{
+                    fontSize: { xs: "0.7rem", sm: "0.8125rem" },
+                  }}
+                />
               ) : (
-                <Chip label="Unavailable" color="error" size="small" />
+                <Chip
+                  label="Unavailable"
+                  color="error"
+                  size="small"
+                  sx={{
+                    fontSize: { xs: "0.7rem", sm: "0.8125rem" },
+                  }}
+                />
               )}
             </Box>
           </Box>
 
-          <Divider sx={{ my: 3 }} />
+          <Divider sx={{ my: { xs: 2, md: 3 } }} />
 
           {/* Stock Warning */}
           {type === "product" && stock > 0 && stock <= 5 && (
-            <Alert severity="warning" sx={{ mb: 3 }}>
+            <Alert
+              severity="warning"
+              sx={{
+                mb: { xs: 2, md: 3 },
+                fontSize: { xs: "0.8125rem", sm: "0.875rem" },
+              }}
+            >
               Only {stock} left in stock! Order soon.
             </Alert>
           )}
 
           {/* Action Section */}
-          <Box component="section" aria-label="Purchase actions" sx={{ mb: 4 }}>
+          <Box
+            component="section"
+            aria-label="Purchase actions"
+            sx={{ mb: { xs: 3, md: 4 } }}
+          >
             {/* Action Buttons */}
             <Box
               sx={{
                 display: "flex",
-                gap: 2,
+                flexDirection: { xs: "column", sm: "row" },
+                gap: { xs: 1.5, sm: 2 },
                 flexWrap: "wrap",
-                alignItems: "center",
+                alignItems: "stretch",
+                width: "100%",
               }}
             >
               {isAuthenticated ? (
@@ -376,12 +460,12 @@ const ListingDetailPage = () => {
                     disabled={!canAddToCart || isBuyingNow}
                     color="secondary"
                     sx={{
-                      flex: 1,
-                      minWidth: "200px",
-                      py: 1.5,
+                      flex: { xs: "1 1 100%", sm: "1 1 auto" },
+                      minWidth: { xs: "100%", sm: "180px" },
+                      py: { xs: 1.25, sm: 1.5 },
                       fontWeight: 700,
                       textTransform: "none",
-                      fontSize: "1rem",
+                      fontSize: { xs: "0.875rem", sm: "1rem" },
                     }}
                   >
                     {isBuyingNow ? (
@@ -406,12 +490,12 @@ const ListingDetailPage = () => {
                     onClick={handleAddToCartClick}
                     disabled={!canAddToCart}
                     sx={{
-                      flex: 1,
-                      minWidth: "200px",
-                      py: 1.5,
+                      flex: { xs: "1 1 100%", sm: "1 1 auto" },
+                      minWidth: { xs: "100%", sm: "180px" },
+                      py: { xs: 1.25, sm: 1.5 },
                       fontWeight: 700,
                       textTransform: "none",
-                      fontSize: "1rem",
+                      fontSize: { xs: "0.875rem", sm: "1rem" },
                     }}
                   >
                     {!isAvailable
@@ -434,6 +518,8 @@ const ListingDetailPage = () => {
                         border: "2px solid",
                         borderColor: inWishlist ? "error.main" : "divider",
                         color: inWishlist ? "error.main" : "text.secondary",
+                        alignSelf: { xs: "center", sm: "stretch" },
+                        minWidth: { xs: "48px", sm: "auto" },
                         "&:hover": {
                           borderColor: "error.main",
                           color: "error.main",
@@ -464,14 +550,22 @@ const ListingDetailPage = () => {
         variant="outlined"
         component="aside"
         aria-label="Seller information"
-        sx={{ mt: 4 }}
+        sx={{
+          mt: { xs: 3, md: 4 },
+          width: "100%",
+          maxWidth: "100%",
+        }}
       >
-        <CardContent>
+        <CardContent sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3 } }}>
           <Typography
             variant="h6"
             component="h2"
             fontWeight="700"
-            sx={{ mb: 3, textAlign: "center" }}
+            sx={{
+              mb: { xs: 2, md: 3 },
+              textAlign: "center",
+              fontSize: { xs: "1.125rem", sm: "1.25rem" },
+            }}
           >
             Seller Information
           </Typography>
@@ -479,27 +573,52 @@ const ListingDetailPage = () => {
             display="flex"
             flexDirection="column"
             alignItems="center"
-            gap={2}
+            gap={{ xs: 1.5, sm: 2 }}
           >
             <Avatar
               sx={{
                 bgcolor: theme.palette.primary.main,
-                width: 64,
-                height: 64,
+                width: { xs: 56, sm: 64 },
+                height: { xs: 56, sm: 64 },
               }}
               aria-label={`${displayName}'s avatar`}
             >
-              <StoreIcon sx={{ fontSize: 36 }} />
+              <StoreIcon sx={{ fontSize: { xs: 32, sm: 36 } }} />
             </Avatar>
-            <Box sx={{ textAlign: "center" }}>
-              <Typography variant="h6" fontWeight="600" sx={{ mb: 0.5 }}>
+            <Box sx={{ textAlign: "center", maxWidth: "100%" }}>
+              <Typography
+                variant="h6"
+                fontWeight="600"
+                sx={{
+                  mb: 0.5,
+                  fontSize: { xs: "1rem", sm: "1.25rem" },
+                  wordBreak: "break-word",
+                  overflowWrap: "break-word",
+                }}
+              >
                 {displayName}
               </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
+              <Typography
+                variant="body1"
+                color="text.secondary"
+                sx={{
+                  mb: 1,
+                  fontSize: { xs: "0.875rem", sm: "1rem" },
+                  wordBreak: "break-word",
+                  overflowWrap: "break-word",
+                }}
+              >
                 @{username}
               </Typography>
               {isVerifiedMerchant && (
-                <Chip label="Verified" color="success" size="small" />
+                <Chip
+                  label="Verified"
+                  color="success"
+                  size="small"
+                  sx={{
+                    fontSize: { xs: "0.7rem", sm: "0.8125rem" },
+                  }}
+                />
               )}
             </Box>
             <Button
@@ -507,7 +626,13 @@ const ListingDetailPage = () => {
               size="large"
               onClick={handleViewShop}
               aria-label={`Visit ${shopSlug ? displayName + "'s shop" : displayName + "'s profile"}`}
-              sx={{ mt: 1, minWidth: 200 }}
+              sx={{
+                mt: { xs: 0.5, sm: 1 },
+                minWidth: { xs: "100%", sm: 200 },
+                maxWidth: { xs: "100%", sm: "auto" },
+                py: { xs: 1, sm: 1.5 },
+                fontSize: { xs: "0.875rem", sm: "1rem" },
+              }}
             >
               Visit {shopSlug ? "Shop" : "Profile"}
             </Button>

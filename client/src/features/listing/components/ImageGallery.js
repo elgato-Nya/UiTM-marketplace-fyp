@@ -90,33 +90,43 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
         elevation={3}
         sx={{
           width: "100%",
-          height: 400,
+          maxWidth: "100%",
+          height: { xs: 280, sm: 350, md: 400 },
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
           bgcolor: "background.paper",
           borderRadius: 2,
-          gap: 2,
+          gap: { xs: 1.5, sm: 2 },
+          px: { xs: 2, sm: 3 },
         }}
       >
         <NoImageIcon
           sx={{
-            fontSize: 80,
+            fontSize: { xs: 60, sm: 80 },
             color: "text.disabled",
           }}
         />
         <Typography
           variant="h6"
           color="text.secondary"
-          sx={{ textAlign: "center", px: 2 }}
+          sx={{
+            textAlign: "center",
+            px: 2,
+            fontSize: { xs: "1rem", sm: "1.25rem" },
+          }}
         >
           No Image Available
         </Typography>
         <Typography
           variant="body2"
           color="text.disabled"
-          sx={{ textAlign: "center", px: 2 }}
+          sx={{
+            textAlign: "center",
+            px: 2,
+            fontSize: { xs: "0.8125rem", sm: "0.875rem" },
+          }}
         >
           This listing doesn't have any images yet
         </Typography>
@@ -125,7 +135,14 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
   }
 
   return (
-    <Box sx={{ width: "100%", flexGrow: 1 }}>
+    <Box
+      sx={{
+        width: "100%",
+        maxWidth: "100%",
+        flexGrow: 1,
+        overflow: "hidden",
+      }}
+    >
       {/* Main Image Display */}
       <Paper
         elevation={3}
@@ -133,7 +150,7 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
         sx={{
           position: "relative",
           width: "100%",
-          height: 400,
+          height: { xs: 280, sm: 350, md: 400 },
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -169,7 +186,11 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
             steps={maxSteps}
             position="static"
             activeStep={activeStep}
-            sx={{ mt: 2, bgcolor: "transparent" }}
+            sx={{
+              mt: { xs: 1.5, sm: 2 },
+              bgcolor: "transparent",
+              px: 0,
+            }}
             nextButton={
               <IconButton
                 size="small"
@@ -194,10 +215,29 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
           <Box
             sx={{
               display: "flex",
-              gap: 1,
-              mt: 2,
+              gap: { xs: 0.75, sm: 1 },
+              mt: { xs: 1.5, sm: 2 },
               overflowX: "auto",
+              overflowY: "hidden",
               pb: 1,
+              px: { xs: 0.5, sm: 0 },
+              width: "100%",
+              maxWidth: "100%",
+              // Scrollbar styling
+              "&::-webkit-scrollbar": {
+                height: 6,
+              },
+              "&::-webkit-scrollbar-track": {
+                backgroundColor: "rgba(0,0,0,0.1)",
+                borderRadius: 3,
+              },
+              "&::-webkit-scrollbar-thumb": {
+                backgroundColor: "rgba(0,0,0,0.3)",
+                borderRadius: 3,
+                "&:hover": {
+                  backgroundColor: "rgba(0,0,0,0.4)",
+                },
+              },
             }}
           >
             {images.map((image, index) => (
@@ -205,14 +245,16 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
                 key={index}
                 onClick={() => handleStepChange(index)}
                 sx={{
-                  minWidth: 80,
-                  height: 80,
+                  minWidth: { xs: 64, sm: 80 },
+                  width: { xs: 64, sm: 80 },
+                  height: { xs: 64, sm: 80 },
                   cursor: "pointer",
                   border: 2,
                   borderColor:
                     activeStep === index ? "primary.main" : "transparent",
                   borderRadius: 1,
                   overflow: "hidden",
+                  flexShrink: 0,
                   "&:hover": {
                     borderColor: "primary.light",
                   },
@@ -240,11 +282,12 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
         onClose={handleZoomClose}
         maxWidth="lg"
         fullWidth
+        fullScreen={true} // Make fullscreen on mobile for better experience
         PaperProps={{
           sx: {
             bgcolor: "rgba(0, 0, 0, 0.95)",
             boxShadow: "none",
-            m: 2,
+            m: { xs: 0, sm: 2 },
           },
         }}
       >
@@ -255,7 +298,7 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            minHeight: "80vh",
+            minHeight: { xs: "100vh", sm: "80vh" },
             overflow: "hidden",
           }}
         >
@@ -264,14 +307,16 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
             onClick={handleZoomClose}
             sx={{
               position: "absolute",
-              top: 16,
-              right: 16,
+              top: { xs: 8, sm: 16 },
+              right: { xs: 8, sm: 16 },
               color: "white",
               bgcolor: "rgba(255, 255, 255, 0.1)",
               "&:hover": {
                 bgcolor: "rgba(255, 255, 255, 0.2)",
               },
               zIndex: 1,
+              width: { xs: 40, sm: 48 },
+              height: { xs: 40, sm: 48 },
             }}
             aria-label="Close zoom view"
           >
@@ -286,7 +331,7 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
                 disabled={activeStep === 0}
                 sx={{
                   position: "absolute",
-                  left: 16,
+                  left: { xs: 8, sm: 16 },
                   color: "white",
                   bgcolor: "rgba(255, 255, 255, 0.1)",
                   "&:hover": {
@@ -296,6 +341,8 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
                     color: "rgba(255, 255, 255, 0.3)",
                   },
                   zIndex: 1,
+                  width: { xs: 40, sm: 48 },
+                  height: { xs: 40, sm: 48 },
                 }}
                 aria-label="Previous image"
               >
@@ -307,7 +354,7 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
                 disabled={activeStep === maxSteps - 1}
                 sx={{
                   position: "absolute",
-                  right: 16,
+                  right: { xs: 8, sm: 16 },
                   color: "white",
                   bgcolor: "rgba(255, 255, 255, 0.1)",
                   "&:hover": {
@@ -317,6 +364,8 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
                     color: "rgba(255, 255, 255, 0.3)",
                   },
                   zIndex: 1,
+                  width: { xs: 40, sm: 48 },
+                  height: { xs: 40, sm: 48 },
                 }}
                 aria-label="Next image"
               >
@@ -332,9 +381,10 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
             alt={`${altText} ${activeStep + 1} (zoomed)`}
             sx={{
               maxWidth: "100%",
-              maxHeight: "80vh",
+              maxHeight: { xs: "90vh", sm: "80vh" },
               objectFit: "contain",
               userSelect: "none",
+              px: { xs: 1, sm: 2 },
             }}
           />
 
@@ -343,15 +393,15 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
             <Box
               sx={{
                 position: "absolute",
-                bottom: 16,
+                bottom: { xs: 12, sm: 16 },
                 left: "50%",
                 transform: "translateX(-50%)",
                 color: "white",
                 bgcolor: "rgba(0, 0, 0, 0.6)",
-                px: 2,
-                py: 1,
+                px: { xs: 1.5, sm: 2 },
+                py: { xs: 0.75, sm: 1 },
                 borderRadius: 1,
-                fontSize: "0.875rem",
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
               }}
             >
               {activeStep + 1} / {maxSteps}

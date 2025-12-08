@@ -119,6 +119,33 @@ const validateCreateSubmission = [
     .custom((value) => !value || ContactValidator.isValidWebsite(value))
     .withMessage(contactValidatorMessages.website.invalid),
 
+  // Content report-specific validations
+  body("contentReport.reportedEntityType")
+    .if(body("type").equals("content_report"))
+    .notEmpty()
+    .withMessage(contactValidatorMessages.entityType.required)
+    .custom((value) => ContactValidator.isValidEntityType(value))
+    .withMessage(contactValidatorMessages.entityType.invalid),
+
+  body("contentReport.reportedEntity")
+    .if(body("type").equals("content_report"))
+    .notEmpty()
+    .withMessage(contactValidatorMessages.entityId.required)
+    .isMongoId()
+    .withMessage(contactValidatorMessages.entityId.invalid),
+
+  body("contentReport.category")
+    .if(body("type").equals("content_report"))
+    .notEmpty()
+    .withMessage(contactValidatorMessages.reportCategory.required)
+    .custom((value) => ContactValidator.isValidReportCategory(value))
+    .withMessage(contactValidatorMessages.reportCategory.invalid),
+
+  body("contentReport.evidence")
+    .optional()
+    .isArray()
+    .withMessage("Evidence must be an array of URLs"),
+
   // Handle validation results
   (req, res, next) => {
     const errors = validationResult(req);
@@ -236,12 +263,44 @@ const validateInternalNote = [
 ];
 
 /**
+ * Validate report action
+ */
+const validateReportAction = [
+  body("actionTaken")
+    .trim()
+    .notEmpty()
+    .withMessage(contactValidatorMessages.reportAction.required)
+    .custom((value) => ContactValidator.isValidReportAction(value))
+    .withMessage(contactValidatorMessages.reportAction.invalid),
+
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      throw createValidationError(
+        errors
+          .array()
+          .map((e) => e.msg)
+          .join(", ")
+      );
+    }
+    next();
+  },
+];
+
+/**
  * Validate query filters
  */
 const validateContactFilters = [
   query("type")
     .optional()
-    .isIn(["bug", "enquiry", "feedback", "collaboration", "other"])
+    .isIn([
+      "bug",
+      "enquiry",
+      "feedback",
+      "collaboration",
+      "content_report",
+      "other",
+    ])
     .withMessage("Invalid type filter"),
 
   query("status")
@@ -284,5 +343,6 @@ module.exports = {
   validateStatusUpdate,
   validateAdminResponse,
   validateInternalNote,
+  validateReportAction,
   validateContactFilters,
 };

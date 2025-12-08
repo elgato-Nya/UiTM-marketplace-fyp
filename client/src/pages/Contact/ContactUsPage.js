@@ -82,8 +82,8 @@ function ContactUsPage() {
 
   const handleTypeChange = (newType) => {
     setFormData((prev) => ({ ...prev, type: newType }));
-    // Clear images if switching away from bug/feedback
-    if (!["bug", "feedback"].includes(newType)) {
+    // Clear images if switching away from bug_report/feedback
+    if (!["bug_report", "feedback"].includes(newType)) {
       setImages([]);
     }
   };
@@ -115,7 +115,7 @@ function ContactUsPage() {
     if (!messageValidation.valid) errors.message = messageValidation.error;
 
     // Bug-specific required validations
-    if (formData.type === "bug") {
+    if (formData.type === "bug_report") {
       const expectedBehaviorValidation =
         contactValidator.validateBugDescription(
           formData.expectedBehavior,
@@ -175,7 +175,7 @@ function ContactUsPage() {
     };
 
     // Add type-specific data
-    if (formData.type === "bug") {
+    if (formData.type === "bug_report") {
       baseData.bugDetails = {
         severity: formData.bugSeverity,
         expectedBehavior: formData.expectedBehavior,
@@ -245,7 +245,10 @@ function ContactUsPage() {
     try {
       // Upload images first if present
       let uploadedImages = [];
-      if (images.length > 0 && ["bug", "feedback"].includes(formData.type)) {
+      if (
+        images.length > 0 &&
+        ["bug_report", "feedback"].includes(formData.type)
+      ) {
         uploadedImages = await uploadImages();
       }
 
@@ -328,7 +331,7 @@ function ContactUsPage() {
                 />
 
                 {/* Bug-Specific Fields */}
-                {formData.type === "bug" && (
+                {formData.type === "bug_report" && (
                   <BugDetailsSection
                     formData={formData}
                     images={images}

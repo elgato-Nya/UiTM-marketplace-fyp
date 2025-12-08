@@ -1,23 +1,35 @@
 const BaseController = require("../base.controller");
-const contactService = require("../../services/contact/contact.service");
+const {
+  createContactSubmission,
+  getContactById: getContactByIdService,
+  getAllContacts: getAllContactsService,
+  updateContactStatus,
+  addAdminResponse,
+  addInternalNote,
+  getContactStatistics,
+  deleteContact: deleteContactService,
+  getReportsByEntity,
+  takeReportAction,
+} = require("../../services/contact/contact.service");
 const asyncHandler = require("../../utils/asyncHandler");
 const { sanitizeObject, sanitizeQuery } = require("../../utils/sanitizer");
 const s3Service = require("../../services/upload/s3.service");
 const imageService = require("../../services/upload/image.service");
 const { s3Config } = require("../../config/s3.config");
-const { createValidationError } = require("../../utils/errors");
+const { createValidationError, AppError } = require("../../utils/errors");
 const logger = require("../../utils/logger");
 
 /**
  * Contact Controller
  *
  * PURPOSE: Handle contact form HTTP requests
- * SCOPE: Public submissions and admin management
+ * SCOPE: Public submissions, admin management, content moderation reports
  * FEATURES:
  * - Guest and authenticated submissions
  * - Admin CRUD operations
  * - Status and response management
  * - Statistics retrieval
+ * - Content report submissions and management
  */
 
 const baseController = new BaseController();
@@ -45,10 +57,7 @@ const createSubmission = asyncHandler(async (req, res) => {
   sanitizedData.userAgent = req.headers["user-agent"];
   sanitizedData.referralSource = req.headers.referer || req.headers.referrer;
 
-  const contact = await contactService.createContactSubmission(
-    sanitizedData,
-    userInfo
-  );
+  const contact = await createContactSubmission(sanitizedData, userInfo);
 
   baseController.logAction("create_contact_submission", req, {
     contactId: contact._id,
@@ -77,7 +86,7 @@ const getContactById = asyncHandler(async (req, res) => {
     includeReferences: includeReferences === "true",
   };
 
-  const contact = await contactService.getContactById(id, options);
+  const contact = await getContactByIdService(id, options);
 
   return baseController.sendSuccess(
     res,
@@ -121,7 +130,7 @@ const getAllContacts = asyncHandler(async (req, res) => {
     sort,
   };
 
-  const result = await contactService.getAllContacts(filters, pagination);
+  const result = await getAllContactsService(filters, pagination);
 
   return baseController.sendSuccess(
     res,
@@ -140,11 +149,7 @@ const updateStatus = asyncHandler(async (req, res) => {
   const adminId = req.user._id;
   const sanitizedData = sanitizeObject(req.body);
 
-  const contact = await contactService.updateContactStatus(
-    id,
-    sanitizedData,
-    adminId
-  );
+  const contact = await updateContactStatus(id, sanitizedData, adminId);
 
   baseController.logAction("update_contact_status", req, {
     contactId: contact._id,
@@ -169,11 +174,7 @@ const addResponse = asyncHandler(async (req, res) => {
   const adminId = req.user._id;
   const sanitizedData = sanitizeObject(req.body);
 
-  const contact = await contactService.addAdminResponse(
-    id,
-    sanitizedData,
-    adminId
-  );
+  const contact = await addAdminResponse(id, sanitizedData, adminId);
 
   baseController.logAction("add_contact_response", req, {
     contactId: contact._id,
@@ -197,7 +198,7 @@ const addNote = asyncHandler(async (req, res) => {
   const adminId = req.user._id;
   const { note } = sanitizeObject(req.body);
 
-  const contact = await contactService.addInternalNote(id, note, adminId);
+  const contact = await addInternalNote(id, note, adminId);
 
   return baseController.sendSuccess(
     res,
@@ -223,7 +224,7 @@ const getStatistics = asyncHandler(async (req, res) => {
     ...(status && { status }),
   };
 
-  const stats = await contactService.getContactStatistics(filters);
+  const stats = await getContactStatistics(filters);
 
   return baseController.sendSuccess(
     res,
@@ -237,11 +238,11 @@ const getStatistics = asyncHandler(async (req, res) => {
  * DELETE /api/contact/:id
  * @access Private (Admin only)
  */
-const deleteContact = asyncHandler(async (req, res) => {
+const deleteContactSubmission = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const adminId = req.user._id;
 
-  const contact = await contactService.deleteContact(id);
+  const contact = await deleteContactService(id);
 
   baseController.logAction("delete_contact", req, {
     contactId: contact._id,
@@ -374,14 +375,78 @@ const uploadContactImages = asyncHandler(async (req, res) => {
   );
 });
 
+/**
+ * Get reports by entity (for content moderation)
+ * GET /api/contact/reports/entity/:entityType/:entityId
+ * @access Private (Admin only)
+ */
+const getEntityReports = asyncHandler(async (req, res) => {
+  const { entityType, entityId } = req.params;
+
+  const reports = await getReportsByEntity(entityType, entityId);
+
+  return baseController.sendSuccess(
+    res,
+    { reports, count: reports.length },
+    "Entity reports retrieved successfully"
+  );
+}, "get_entity_reports");
+
+/**
+ * Take action on content report
+ * POST /api/contact/:id/action
+ * @access Private (Admin only)
+ */
+const takeAction = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const adminId = req.user._id;
+  const { actionTaken } = sanitizeObject(req.body);
+
+  if (!actionTaken) {
+    throw new AppError("Action taken is required", 400);
+  }
+
+  const validActions = [
+    "content_removed",
+    "user_warned",
+    "user_suspended",
+    "listing_removed",
+    "shop_suspended",
+    "no_action",
+  ];
+
+  if (!validActions.includes(actionTaken)) {
+    throw new AppError(
+      `Invalid action. Must be one of: ${validActions.join(", ")}`,
+      400
+    );
+  }
+
+  const contact = await takeReportAction(id, actionTaken, adminId);
+
+  baseController.logAction("take_report_action", req, {
+    contactId: contact._id,
+    actionTaken,
+    adminId,
+  });
+
+  return baseController.sendSuccess(
+    res,
+    { contact },
+    `Action taken: ${actionTaken.replace(/_/g, " ")}`
+  );
+}, "take_report_action");
+
 module.exports = {
   createSubmission,
   getContactById,
-  getAllContacts,
+  getAllContacts: getAllContacts,
   updateStatus,
   addResponse,
   addNote,
   getStatistics,
-  deleteContact,
+  deleteContact: deleteContactSubmission,
   uploadContactImages,
+  getEntityReports,
+  takeAction,
 };

@@ -129,8 +129,62 @@ class ContactValidator {
    * @returns {boolean}
    */
   static isValidSubmissionType(type) {
-    const validTypes = ["bug", "enquiry", "feedback", "collaboration", "other"];
+    const validTypes = [
+      "bug_report",
+      "enquiry",
+      "feedback",
+      "collaboration",
+      "content_report",
+      "other",
+    ];
     return validTypes.includes(type);
+  }
+
+  /**
+   * Validates content report category
+   * @param {string} category
+   * @returns {boolean}
+   */
+  static isValidReportCategory(category) {
+    const validCategories = [
+      "spam",
+      "fraud",
+      "scam",
+      "counterfeit",
+      "harassment",
+      "inappropriate_content",
+      "illegal_content",
+      "violence",
+      "hate_speech",
+    ];
+    return validCategories.includes(category);
+  }
+
+  /**
+   * Validates reported entity type
+   * @param {string} entityType
+   * @returns {boolean}
+   */
+  static isValidEntityType(entityType) {
+    const validTypes = ["listing", "user", "shop"];
+    return validTypes.includes(entityType);
+  }
+
+  /**
+   * Validates action taken on report
+   * @param {string} action
+   * @returns {boolean}
+   */
+  static isValidReportAction(action) {
+    const validActions = [
+      "content_removed",
+      "user_warned",
+      "user_suspended",
+      "user_banned",
+      "listing_removed",
+      "no_action",
+    ];
+    return validActions.includes(action);
   }
 
   /**
@@ -246,6 +300,22 @@ const contactValidatorMessages = {
   submissionType: {
     required: "Submission type is required",
     invalid: "Invalid submission type",
+  },
+  reportCategory: {
+    required: "Report category is required for content reports",
+    invalid: "Invalid report category",
+  },
+  entityType: {
+    required: "Entity type is required for content reports",
+    invalid: "Entity type must be one of: listing, user, shop",
+  },
+  entityId: {
+    required: "Entity ID is required for content reports",
+    invalid: "Invalid entity ID format",
+  },
+  reportAction: {
+    required: "Action is required",
+    invalid: "Invalid action type",
   },
   bugSeverity: {
     invalid: "Invalid bug severity level",

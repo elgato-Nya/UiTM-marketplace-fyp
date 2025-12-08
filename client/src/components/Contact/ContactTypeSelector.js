@@ -19,7 +19,7 @@ import {
 
 export const SUBMISSION_TYPES = [
   {
-    value: "bug",
+    value: "bug_report",
     label: "Bug Report",
     icon: <BugReport />,
     description: "Report technical issues or bugs",

@@ -1,17 +1,21 @@
 const Contact = require("../../models/contact/contact.model");
+const { User } = require("../../models/user");
+const Listing = require("../../models/listing/listing.model");
 const logger = require("../../utils/logger");
+const { AppError } = require("../../utils/errors");
 const { handleServiceError, handleNotFoundError } = require("../base.service");
 
 /**
  * Contact Service
  *
  * PURPOSE: Handle contact form submissions and admin management
- * SCOPE: Bug reports, enquiries, feedback, collaboration requests
+ * SCOPE: Bug reports, enquiries, feedback, collaboration requests, content reports
  * FEATURES:
  * - Guest and authenticated user submissions
  * - Status tracking and priority management
  * - Admin response system
  * - Statistics and analytics
+ * - Content moderation (report spam, fraud, harassment)
  */
 
 /**
@@ -59,6 +63,46 @@ const createContactSubmission = async (submissionData, userInfo = null) => {
 
     if (submissionData.type === "feedback" && submissionData.feedbackDetails) {
       contactData.feedbackDetails = submissionData.feedbackDetails;
+    }
+
+    // Content Report: validate entity and check for duplicates
+    if (submissionData.type === "content_report") {
+      if (!userInfo?.userId) {
+        throw new AppError("Content reports require authentication", 401);
+      }
+
+      if (!submissionData.contentReport) {
+        throw new AppError("Content report details are required", 400);
+      }
+
+      const { reportedEntityType, reportedEntityId, category, evidence } =
+        submissionData.contentReport;
+
+      // Validate entity exists
+      await validateReportedEntity(reportedEntityType, reportedEntityId);
+
+      // Check for duplicate reports (same user, same entity, within 24 hours)
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const existingReport = await Contact.findOne({
+        type: "content_report",
+        "submittedBy.userId": userInfo.userId,
+        "contentReport.reportedEntity": reportedEntityId,
+        createdAt: { $gte: twentyFourHoursAgo },
+      });
+
+      if (existingReport) {
+        throw new AppError(
+          "You have already reported this content in the last 24 hours",
+          400
+        );
+      }
+
+      contactData.contentReport = {
+        reportedEntityType,
+        reportedEntity: reportedEntityId,
+        category,
+        evidence: evidence || [],
+      };
     }
 
     // Note: attachments and internalNotes are admin-only fields and should not be populated from client submissions
@@ -407,6 +451,113 @@ const deleteContact = async (contactId) => {
   }
 };
 
+/**
+ * Validate that reported entity exists (for content reports)
+ * @param {string} entityType - Type of entity
+ * @param {string} entityId - Entity ID
+ * @private
+ */
+const validateReportedEntity = async (entityType, entityId) => {
+  let entity;
+
+  switch (entityType) {
+    case "listing":
+      entity = await Listing.findById(entityId);
+      break;
+    case "user":
+    case "shop":
+      entity = await User.findById(entityId);
+      break;
+    default:
+      throw new AppError(`Invalid entity type: ${entityType}`, 400);
+  }
+
+  if (!entity) {
+    handleNotFoundError(
+      entityType,
+      "ENTITY_NOT_FOUND",
+      "validateReportedEntity",
+      {
+        entityType,
+        entityId,
+      }
+    );
+  }
+
+  return entity;
+};
+
+/**
+ * Get all reports for a specific entity (content reports only)
+ * @param {string} entityType - Type: 'listing', 'user', 'shop'
+ * @param {string} entityId - Entity ID
+ * @returns {Array} Reports for entity
+ */
+const getReportsByEntity = async (entityType, entityId) => {
+  try {
+    await validateReportedEntity(entityType, entityId);
+
+    const reports = await Contact.getReportsByEntity(entityType, entityId);
+
+    logger.info("Entity reports retrieved successfully", {
+      action: "getReportsByEntity",
+      entityType,
+      entityId,
+      count: reports.length,
+    });
+
+    return reports;
+  } catch (error) {
+    handleServiceError(error, "getReportsByEntity", { entityType, entityId });
+  }
+};
+
+/**
+ * Take action on reported content
+ * @param {string} contactId - Contact/Report ID
+ * @param {string} actionTaken - Action taken
+ * @param {string} adminId - Admin performing action
+ * @returns {Object} Updated contact
+ */
+const takeReportAction = async (contactId, actionTaken, adminId) => {
+  try {
+    const contact = await Contact.findById(contactId);
+
+    if (!contact) {
+      handleNotFoundError("Contact", "CONTACT_NOT_FOUND", "takeReportAction", {
+        contactId,
+      });
+    }
+
+    if (contact.type !== "content_report") {
+      throw new AppError("This action is only for content reports", 400);
+    }
+
+    contact.contentReport.actionTaken = actionTaken;
+    contact.status = "resolved";
+    contact.resolvedAt = new Date();
+    contact.resolutionSummary = `Action taken: ${actionTaken}`;
+    contact.adminResponse = {
+      respondedBy: adminId,
+      responseMessage: `Content moderation action: ${actionTaken}`,
+      respondedAt: new Date(),
+    };
+
+    await contact.save();
+
+    logger.info("Report action taken", {
+      action: "takeReportAction",
+      contactId,
+      actionTaken,
+      adminId,
+    });
+
+    return contact;
+  } catch (error) {
+    handleServiceError(error, "takeReportAction", { contactId });
+  }
+};
+
 module.exports = {
   createContactSubmission,
   getContactById,
@@ -417,4 +568,6 @@ module.exports = {
   getContactStatistics,
   deleteContact,
   cleanContactForClient,
+  getReportsByEntity,
+  takeReportAction,
 };

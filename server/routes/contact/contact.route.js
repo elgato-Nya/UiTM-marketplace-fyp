@@ -9,19 +9,21 @@ const {
   validateStatusUpdate,
   validateAdminResponse,
   validateInternalNote,
+  validateReportAction,
   validateContactFilters,
 } = require("../../middleware/validations/contact/contact.validation");
 
 /**
  * Contact Routes
  *
- * PURPOSE: Handle contact form submissions and admin management
- * SCOPE: Bug reports, enquiries, feedback, collaboration requests
+ * PURPOSE: Handle contact form submissions, content reports, and admin management
+ * SCOPE: Bug reports, enquiries, feedback, collaboration requests, content moderation
  * AUTHENTICATION: Mixed - public submissions, protected admin operations
  * AUTHORIZATION: Admin-only for management operations
  *
  * ROUTE STRUCTURE:
  * - /api/contact/submit (public submission endpoint)
+ * - /api/contact/reports/* (content report management)
  * - /api/contact (admin list view)
  * - /api/contact/:id (admin detail view and operations)
  * - /api/contact/stats (admin statistics)
@@ -72,6 +74,20 @@ router.use(authorize("admin"));
  * @note    Must come before /:id route to avoid being caught as parameter
  */
 router.get("/stats", contactController.getStatistics);
+
+/**
+ * @route   GET /api/contact/reports/entity/:entityType/:entityId
+ * @desc    Get all reports for a specific entity (listing/user/shop)
+ * @access  Private (Admin only)
+ * @params  entityType - Type of entity (listing, user, shop)
+ * @params  entityId - Entity ID
+ * @returns All content reports for the entity
+ * @note    Used for content moderation - see how many times an entity was reported
+ */
+router.get(
+  "/reports/entity/:entityType/:entityId",
+  contactController.getEntityReports
+);
 
 /**
  * @route   GET /api/contact
@@ -137,6 +153,22 @@ router.post(
   validateContactId,
   validateInternalNote,
   contactController.addNote
+);
+
+/**
+ * @route   POST /api/contact/:id/action
+ * @desc    Take action on content report (remove content, suspend user, etc.)
+ * @access  Private (Admin only)
+ * @params  id - Contact/Report submission ID
+ * @body    actionTaken - Action taken (content_removed, user_suspended, etc.)
+ * @returns Updated contact submission with action taken
+ * @note    Only for content_report type submissions
+ */
+router.post(
+  "/:id/action",
+  validateContactId,
+  validateReportAction,
+  contactController.takeAction
 );
 
 /**

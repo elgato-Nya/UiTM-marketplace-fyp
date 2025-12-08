@@ -62,6 +62,12 @@ const orderItemSchema = new mongoose.Schema(
         message: orderErrorMessages.discount.exceedsPrice,
       },
     },
+    type: {
+      type: String,
+      enum: ["product", "service"],
+      default: "product",
+      // Snapshot of listing type at time of order (for stock management)
+    },
   },
   { _id: false }
 );

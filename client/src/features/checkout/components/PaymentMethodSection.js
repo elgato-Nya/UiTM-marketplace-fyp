@@ -87,35 +87,69 @@ const PaymentMethodSectionContent = ({
     {
       id: PAYMENT_METHOD.CREDIT_CARD,
       label: PAYMENT_METHOD_LABELS[PAYMENT_METHOD.CREDIT_CARD],
-      description: "Visa, Mastercard, American Express",
+      description: "Currently unavailable",
       icon: CardIcon,
+      disabled: true, // Disabled due to Stripe Connect limitation
     },
     {
       id: PAYMENT_METHOD.E_WALLET,
       label: PAYMENT_METHOD_LABELS[PAYMENT_METHOD.E_WALLET],
-      description: "Pay via e-wallet",
+      description: "Currently unavailable",
       icon: BankIcon,
+      disabled: true, // Disabled due to Stripe Connect limitation
     },
     {
       id: PAYMENT_METHOD.COD,
       label: PAYMENT_METHOD_LABELS[PAYMENT_METHOD.COD],
       description: "Pay when you receive",
       icon: CashIcon,
+      disabled: false,
     },
   ];
 
   return (
     <Box component="section" aria-labelledby="payment-method-heading">
       <Card>
-        <CardContent>
+        <CardContent
+          sx={{ p: { xs: 2, sm: 3 }, "&:last-child": { pb: { xs: 2, sm: 3 } } }}
+        >
           <Typography
             id="payment-method-heading"
             variant="h6"
             component="h2"
-            sx={{ mb: 2 }}
+            sx={{
+              mb: 2,
+              fontSize: { xs: "1.1rem", sm: "1.25rem" },
+            }}
           >
             Payment Method
           </Typography>
+
+          {/* Alert for unavailable payment methods */}
+          <Alert severity="info" sx={{ mb: 2, py: { xs: 1, sm: 1.5 } }}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                mb: 0.5,
+                fontSize: { xs: "0.8rem", sm: "0.875rem" },
+              }}
+            >
+              Online Payment Temporarily Unavailable
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                lineHeight: { xs: 1.4, sm: 1.5 },
+              }}
+            >
+              Stripe Connect is not available in Malaysia. Nekodez is currently
+              working on integrating alternative payment gateways to support
+              credit/debit cards and e-wallet payments. For now, only Cash on
+              Delivery (COD) is available.
+            </Typography>
+          </Alert>
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -132,13 +166,14 @@ const PaymentMethodSectionContent = ({
             {paymentMethodOptions.map((method) => {
               const Icon = method.icon;
               const isDisabled =
-                method.id === PAYMENT_METHOD.COD && isCodDisabled;
+                method.disabled ||
+                (method.id === PAYMENT_METHOD.COD && isCodDisabled);
 
               return (
-                <Box key={method.id} sx={{ mb: 2 }}>
+                <Box key={method.id} sx={{ mb: { xs: 1.5, sm: 2 } }}>
                   <Box
                     sx={{
-                      p: 1.5,
+                      p: { xs: 1, sm: 1.5 },
                       border: 1,
                       borderColor:
                         selectedMethod === method.id
@@ -165,6 +200,7 @@ const PaymentMethodSectionContent = ({
                       disabled={isDisabled}
                       control={
                         <Radio
+                          size="small"
                           slotProps={{
                             input: {
                               "aria-describedby": `${method.id}-description`,
@@ -174,13 +210,19 @@ const PaymentMethodSectionContent = ({
                       }
                       label={
                         <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: { xs: 0.75, sm: 1 },
+                            ml: { xs: 0, sm: 0.5 },
+                          }}
                         >
                           <Icon
                             sx={{
                               color: isDisabled
                                 ? "text.disabled"
                                 : "primary.main",
+                              fontSize: { xs: "1.25rem", sm: "1.5rem" },
                             }}
                             aria-hidden="true"
                           />
@@ -193,6 +235,7 @@ const PaymentMethodSectionContent = ({
                                 color: isDisabled
                                   ? "text.disabled"
                                   : "text.primary",
+                                fontSize: { xs: "0.9rem", sm: "1rem" },
                               }}
                             >
                               {method.label}
@@ -203,6 +246,9 @@ const PaymentMethodSectionContent = ({
                               color={
                                 isDisabled ? "text.disabled" : "text.secondary"
                               }
+                              sx={{
+                                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                              }}
                             >
                               {method.description}
                             </Typography>
@@ -213,23 +259,7 @@ const PaymentMethodSectionContent = ({
                     />
                   </Box>
 
-                  {/* Show Stripe Card Element for card payment */}
-                  {method.id === PAYMENT_METHOD.CREDIT_CARD &&
-                    selectedMethod === PAYMENT_METHOD.CREDIT_CARD && (
-                      <Box sx={{ mt: 2 }}>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ mb: 1 }}
-                        >
-                          Enter your card details:
-                        </Typography>
-                        <CardElementWrapper
-                          onReady={onCardReady}
-                          error={error}
-                        />
-                      </Box>
-                    )}
+                  {/* Card input removed - payment methods disabled */}
                 </Box>
               );
             })}

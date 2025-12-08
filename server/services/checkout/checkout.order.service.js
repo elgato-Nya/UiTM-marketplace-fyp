@@ -74,12 +74,25 @@ const confirmCheckoutAndCreateOrders = async (sessionId, userId) => {
     }
 
     // Create orders (one per seller)
-    const createdOrders = await createOrdersFromSession(session, userId);
+    const { createdOrders, failedOrders } = await createOrdersFromSession(
+      session,
+      userId
+    );
 
     if (createdOrders.length === 0) {
+      const errorDetails = {
+        sessionId,
+        sellerCount: session.sellerGroups.length,
+        failedCount: failedOrders.length,
+      };
+
+      if (failedOrders.length > 0) {
+        errorDetails.failures = failedOrders;
+      }
+
       createValidationError(
-        "Failed to create orders",
-        { sessionId },
+        "Failed to create orders. Please check if all items are still available and your delivery address is complete.",
+        errorDetails,
         "ORDER_CREATION_FAILED"
       );
     }
@@ -124,6 +137,7 @@ const confirmCheckoutAndCreateOrders = async (sessionId, userId) => {
  */
 const createOrdersFromSession = async (session, userId) => {
   const createdOrders = [];
+  const failedOrders = [];
 
   for (const sellerGroup of session.sellerGroups) {
     try {
@@ -141,6 +155,22 @@ const createOrdersFromSession = async (session, userId) => {
       // Create order using existing order service
       const order = await createOrder(userId, orderData);
 
+      // Check if order creation returned an error object
+      if (order && order.error) {
+        logger.error("Order creation returned error", {
+          sessionId: session._id,
+          sellerId: sellerGroup.sellerId,
+          errorCode: order.error.code,
+          errorMessage: order.error.message,
+          errorDetails: order.error.details,
+        });
+        failedOrders.push({
+          sellerId: sellerGroup.sellerId,
+          error: order.error.message,
+        });
+        continue;
+      }
+
       if (order && order._id) {
         createdOrders.push(order);
 
@@ -152,10 +182,25 @@ const createOrdersFromSession = async (session, userId) => {
           itemCount: sellerGroup.items.length,
           totalAmount: sellerGroup.totalAmount,
         });
+      } else {
+        logger.error("Order creation returned unexpected result", {
+          sessionId: session._id,
+          sellerId: sellerGroup.sellerId,
+          orderResult: order,
+        });
+        failedOrders.push({
+          sellerId: sellerGroup.sellerId,
+          error: "Unexpected order creation result",
+        });
       }
     } catch (error) {
       logger.error("Failed to create order for seller group", {
         sessionId: session._id,
+        sellerId: sellerGroup.sellerId,
+        error: error.message,
+        stack: error.stack,
+      });
+      failedOrders.push({
         sellerId: sellerGroup.sellerId,
         error: error.message,
       });
@@ -163,7 +208,17 @@ const createOrdersFromSession = async (session, userId) => {
     }
   }
 
-  return createdOrders;
+  // Log summary
+  if (failedOrders.length > 0) {
+    logger.warn("Some orders failed to create", {
+      sessionId: session._id,
+      successCount: createdOrders.length,
+      failedCount: failedOrders.length,
+      failedOrders,
+    });
+  }
+
+  return { createdOrders, failedOrders };
 };
 
 /**

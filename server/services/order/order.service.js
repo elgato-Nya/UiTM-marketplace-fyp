@@ -108,7 +108,8 @@ const createOrder = async (userId, orderData) => {
         );
       }
 
-      if (item.quantity > listing.stock) {
+      // Only check stock for products, not services
+      if (listing.type === "product" && item.quantity > listing.stock) {
         logger.warn(
           `Order creation failed: Insufficient stock for listing ${item.listingId}. Requested: ${item.quantity}, Available: ${listing.stock}`,
           { userId, listingId: item.listingId, requested: item.quantity }
@@ -131,6 +132,7 @@ const createOrder = async (userId, orderData) => {
         quantity: item.quantity,
         images: listing.images || [],
         discount: 0,
+        type: listing.type, // Store type to check later for stock updates
       });
     }
 
@@ -192,14 +194,20 @@ const createOrder = async (userId, orderData) => {
     const order = new Order(orderObject);
     await order.save();
 
-    const stockUpdates = processedItems.map((item) =>
-      Listing.findByIdAndUpdate(
-        item.listingId,
-        { $inc: { stock: -item.quantity } },
-        { new: true }
-      )
-    );
-    await Promise.all(stockUpdates);
+    // Only update stock for products, not services
+    const stockUpdates = processedItems
+      .filter((item) => item.type === "product")
+      .map((item) =>
+        Listing.findByIdAndUpdate(
+          item.listingId,
+          { $inc: { stock: -item.quantity } },
+          { new: true }
+        )
+      );
+
+    if (stockUpdates.length > 0) {
+      await Promise.all(stockUpdates);
+    }
 
     return order;
   } catch (error) {
@@ -476,14 +484,40 @@ const cancelOrder = async (orderId, userId, reason, description = "") => {
       );
     }
 
-    const stockRestorations = order.items.map((item) =>
-      Listing.findByIdAndUpdate(
-        item.listingId,
-        { $inc: { stock: item.quantity } },
-        { new: true }
-      )
-    );
-    await Promise.all(stockRestorations);
+    // Restore stock only for products, not services
+    // For newer orders, the type is stored in the order item
+    // For older orders, fetch it from listings
+    const itemsNeedingTypeCheck = order.items.filter((item) => !item.type);
+
+    let listingTypeMap = new Map();
+    if (itemsNeedingTypeCheck.length > 0) {
+      const listingIds = itemsNeedingTypeCheck.map((item) => item.listingId);
+      const listings = await Listing.find({ _id: { $in: listingIds } }).select(
+        "type"
+      );
+      listingTypeMap = new Map(
+        listings.map((listing) => [listing._id.toString(), listing.type])
+      );
+    }
+
+    const stockRestorations = order.items
+      .filter((item) => {
+        // Use stored type if available, otherwise fetch from map
+        const itemType =
+          item.type || listingTypeMap.get(item.listingId.toString());
+        return itemType === "product"; // Only restore stock for products
+      })
+      .map((item) =>
+        Listing.findByIdAndUpdate(
+          item.listingId,
+          { $inc: { stock: item.quantity } },
+          { new: true }
+        )
+      );
+
+    if (stockRestorations.length > 0) {
+      await Promise.all(stockRestorations);
+    }
 
     // Update status (modifies order in place)
     order.updateStatus(

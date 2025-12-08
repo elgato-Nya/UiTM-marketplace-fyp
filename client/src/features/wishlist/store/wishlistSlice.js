@@ -100,11 +100,6 @@ export const clearWishlist = createAsyncThunk(
 export const moveToCart = createAsyncThunk(
   "wishlist/moveToCart",
   async ({ listingId, quantity }, { rejectWithValue, dispatch }) => {
-    console.log(
-      "999999999999999999999999999999 Moving to cart:",
-      listingId,
-      quantity
-    );
     try {
       const response = await wishlistService.moveToCart(listingId, quantity);
 
@@ -223,10 +218,6 @@ const wishlistSlice = createSlice({
         state.error = null;
       })
       .addCase(moveToCart.fulfilled, (state, action) => {
-        console.log(
-          "2222222222222222222222222222222Moved to cart successfully:",
-          action.payload
-        );
         state.isLoading = false;
         state.success = true;
         const data = action.payload.data || action.payload;
@@ -234,10 +225,6 @@ const wishlistSlice = createSlice({
         state.summary = data.summary;
       })
       .addCase(moveToCart.rejected, (state, action) => {
-        console.log(
-          "33333333333333333333333333333Failed to move to cart:",
-          action.payload
-        );
         state.isLoading = false;
         state.success = false;
         state.error = action.payload || { message: "Failed to move to cart" };

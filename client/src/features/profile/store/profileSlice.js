@@ -120,7 +120,6 @@ const profileSlice = createSlice({
         state.success = null;
       })
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
-        console.log("User profile fetched successfully:", action.payload);
         state.isLoading = false;
         state.user = action.payload.user;
         state.roles = action.payload.roles;
@@ -138,7 +137,6 @@ const profileSlice = createSlice({
         state.success = null;
       })
       .addCase(updateUserProfile.fulfilled, (state, action) => {
-        console.log("User profile updated successfully:", action.payload);
         state.isLoading = false;
         state.user = action.payload.user;
         state.roles = action.payload.roles;

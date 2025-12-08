@@ -78,7 +78,6 @@ function TrustIndicators() {
       try {
         setLoading(true);
         const response = await getPublicStats();
-        console.log("Public stats response:", response);
 
         // Data is spread at root level (not nested in response.data)
         if (response.success) {

@@ -290,10 +290,6 @@ const listingSlice = createSlice({
         state.error = null;
       })
       .addCase(updateListing.fulfilled, (state, action) => {
-        console.log(
-          "✅ Update Listing fulfilled with action.payload:",
-          action.payload
-        );
         state.isLoading = false;
         state.success = true;
         const updatedListing = action.payload.updatedListing;
@@ -312,10 +308,6 @@ const listingSlice = createSlice({
         }
       })
       .addCase(updateListing.rejected, (state, action) => {
-        console.log(
-          "❗ Update Listing rejected with action.payload:",
-          action.payload
-        );
         state.isLoading = false;
         state.error = action.payload || { message: "Failed to update listing" };
       })

@@ -284,8 +284,6 @@ const authSlice = createSlice({
         } catch (error) {
           console.warn("Failed to store login tokens in localStorage:", error);
         }
-
-        console.log("Login successful, tokens stored");
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;

@@ -87,12 +87,7 @@ export function useAuth() {
 
       // Only set up auto-refresh if we have at least 1 minute until refresh time
       if (refreshTime > 60 * 1000) {
-        console.log(
-          `Auto-refresh scheduled in ${Math.round(refreshTime / 1000 / 60)} minutes`
-        );
-
         const timer = setTimeout(() => {
-          console.log("Auto-refresh triggered");
           dispatch(handleRefreshToken()).catch((error) => {
             // Silently handle auto-refresh errors - the API interceptor will handle logout
             console.warn("Auto-refresh failed:", error);
@@ -101,11 +96,7 @@ export function useAuth() {
 
         return () => {
           clearTimeout(timer);
-          console.log("Auto-refresh timer cleared");
         };
-      } else if (timeUntilExpiry < 0) {
-        // Token already expired - let the API interceptor handle it on next request
-        console.log("Token already expired, will refresh on next API call");
       }
     }
   }, [auth.sessionExpiry, auth.token, isAuthenticated, dispatch]);

@@ -10,12 +10,6 @@ export const restoreSession = async (dispatch) => {
       const { token, email, roles, profile } = response.data;
       const user = { email, profile };
 
-      console.log("sessionRestorer: Session restored successfully:", {
-        userEmail: email,
-        hasToken: !!token,
-        roles: roles,
-      });
-
       dispatch({
         type: "auth/restoreSession",
         payload: {
@@ -29,10 +23,6 @@ export const restoreSession = async (dispatch) => {
       return true;
     }
   } catch (error) {
-    console.log(
-      "sessionRestorer: No valid session found:",
-      error.response?.status || error.message
-    );
     return false;
   }
 

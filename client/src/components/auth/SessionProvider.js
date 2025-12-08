@@ -23,23 +23,12 @@ function SessionProvider({ children }) {
       try {
         // Only try to restore session if not already authenticated
         if (!isAuthenticated) {
-          console.log("SessionProvider: Attempting to restore session...");
-
           // Add a small delay to allow any cookies to be set from previous requests
           await new Promise((resolve) => setTimeout(resolve, 50));
 
           const restored = await restoreSession(dispatch);
-
-          if (!restored) {
-            console.log("SessionProvider: No valid session to restore");
-          }
-        } else {
-          console.log(
-            "SessionProvider: User already authenticated, skipping session restore"
-          );
         }
       } catch (error) {
-        console.log("Session restoration failed:", error);
         // Only clear auth if the error is not a 429 (rate limit - refresh in progress)
         if (error?.response?.status !== 429) {
           dispatch({ type: "auth/clearAuth" });

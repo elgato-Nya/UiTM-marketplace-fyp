@@ -30,7 +30,6 @@ api.interceptors.request.use(
 
       // If same request is already pending, return the existing promise
       if (pendingRequests.has(requestKey)) {
-        console.log(`Deduplicating request: ${requestKey}`);
         return pendingRequests.get(requestKey);
       }
 

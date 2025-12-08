@@ -45,7 +45,6 @@ function MerchantSpotlight() {
         if (response.merchants) {
           // Take only first 3 merchants
           const featuredMerchants = response.merchants.slice(0, 3);
-          console.log("Featured Merchants Data:", featuredMerchants);
           setMerchants(featuredMerchants);
         } else {
           setMerchants([]);

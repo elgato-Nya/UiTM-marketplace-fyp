@@ -17,7 +17,6 @@ import RecentlyViewed from "../../components/home/RecentlyViewed";
 import TestimonialsCarousel from "../../components/home/TestimonialsCarousel";
 import TrustIndicators from "../../components/home/TrustIndicators";
 import CTASection from "../../components/home/CTASection";
-import NewsletterSignup from "../../components/home/NewsletterSignup";
 
 function HomePage() {
   const { isAuthenticated } = useAuth();
@@ -118,7 +117,6 @@ function HomePage() {
             return acc;
           }, {});
 
-        console.log("Category Stats:", stats); // Debug log
         setCategoryStats(stats);
       } catch (err) {
         console.error("Error fetching category stats:", err);
@@ -205,9 +203,6 @@ function HomePage() {
 
       {/* Trust and Security Indicators */}
       <TrustIndicators />
-
-      {/* Newsletter Signup */}
-      <NewsletterSignup />
 
       {/* Call to Action Section */}
       <CTASection />

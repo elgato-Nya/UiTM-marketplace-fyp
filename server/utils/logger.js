@@ -104,17 +104,12 @@ class Logger {
 
   // Format metadata for consistent structure
   formatMeta(meta) {
-    const baseContext = {
-      nodeEnv: process.env.NODE_ENV,
-    };
-
     // Clean and standardize the meta object
     const cleanMeta = this.sanitizeMeta(meta);
 
-    return {
-      ...baseContext,
-      ...cleanMeta,
-    };
+    // Don't add nodeEnv automatically - let callers add it if needed
+    // This reduces log verbosity
+    return cleanMeta;
   }
 
   // Sanitize metadata to prevent sensitive data leakage and ensure consistency

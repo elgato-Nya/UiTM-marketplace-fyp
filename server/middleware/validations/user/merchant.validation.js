@@ -193,7 +193,7 @@ const validateShopSlug = [
  */
 const validateSearchMerchants = [
   query("q")
-    .optional()
+    .optional({ checkFalsy: true }) // Skip validation if empty/undefined/null
     .trim()
     .isLength({ min: 1, max: 100 })
     .withMessage("Search query must be between 1 and 100 characters"),

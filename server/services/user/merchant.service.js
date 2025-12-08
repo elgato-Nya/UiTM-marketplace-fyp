@@ -1,5 +1,6 @@
 const { User } = require("../../models/user");
 const Listing = require("../../models/listing/listing.model");
+const mongoose = require("mongoose");
 const logger = require("../../utils/logger");
 const { AppError } = require("../../utils/errors");
 const {
@@ -199,10 +200,52 @@ const getOrCreateShop = async (userId) => {
       return await autoCreateShopFromProfile(userId);
     }
 
-    // Return existing shop
+    // Calculate real-time listing counts
+    const listingStats = await Listing.aggregate([
+      {
+        $match: {
+          "seller.userId": new mongoose.Types.ObjectId(userId),
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalProducts: { $sum: 1 },
+          activeListings: {
+            $sum: { $cond: [{ $eq: ["$isAvailable", true] }, 1, 0] },
+          },
+          inactiveListings: {
+            $sum: { $cond: [{ $eq: ["$isAvailable", false] }, 1, 0] },
+          },
+        },
+      },
+    ]);
+
+    const listingCounts = listingStats[0] || {
+      totalProducts: 0,
+      activeListings: 0,
+      inactiveListings: 0,
+    };
+
+    // Use stored metrics for sales/revenue (updated by analytics job)
+    // Don't aggregate orders on every request - too expensive for t2.micro!
+    const realTimeMetrics = {
+      totalProducts: listingCounts.totalProducts,
+      totalSales: user.merchantDetails.shopMetrics.totalSales || 0,
+      totalRevenue: user.merchantDetails.shopMetrics.totalRevenue || 0,
+      totalViews: user.merchantDetails.shopMetrics.totalViews || 0,
+    };
+
+    // Merge real-time metrics with existing shop data
+    const merchantDetailsWithRealMetrics = {
+      ...user.merchantDetails.toObject(),
+      shopMetrics: realTimeMetrics,
+    };
+
+    // Return existing shop with updated metrics
     return {
       user: sanitizeUserData(user),
-      merchantDetails: user.merchantDetails,
+      merchantDetails: merchantDetailsWithRealMetrics,
       isNew: false,
     };
   } catch (error) {
@@ -410,14 +453,33 @@ const searchMerchants = async (searchQuery, filters = {}, pagination = {}) => {
 
     const total = await User.countDocuments(searchCriteria);
 
+    // Get actual listing counts for each merchant
+    const Listing = require("../../models/listing/listing.model");
+    const merchantsWithListingCounts = await Promise.all(
+      merchants.map(async (user) => {
+        const listingCount = await Listing.countDocuments({
+          "seller.userId": user._id,
+          isAvailable: true,
+        });
+
+        // Create a plain object to modify
+        const merchantData = {
+          merchant: {
+            username: user.profile.username,
+            avatar: user.profile.avatar,
+          },
+          shop: user.merchantDetails.toObject(),
+        };
+
+        // Override totalProducts with actual count
+        merchantData.shop.shopMetrics.totalProducts = listingCount;
+
+        return merchantData;
+      })
+    );
+
     return {
-      merchants: merchants.map((user) => ({
-        merchant: {
-          username: user.profile.username,
-          avatar: user.profile.avatar,
-        },
-        shop: user.merchantDetails,
-      })),
+      merchants: merchantsWithListingCounts,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),
@@ -613,7 +675,7 @@ const {
 const submitMerchantVerification = async (userId, verificationEmail) => {
   try {
     const user = await User.findById(userId).select(
-      "+merchantDetails.verificationEmail +merchantDetails.isUiTMVerified"
+      "email profile roles merchantDetails +merchantDetails.verificationEmail +merchantDetails.isUiTMVerified"
     );
 
     if (!user) {
@@ -749,7 +811,7 @@ const verifyMerchantEmail = async (userId, token) => {
       );
     }
 
-    // Mark as verified
+    // Mark as verified and add merchant role
     const updateData = {
       $set: {
         "merchantDetails.isUiTMVerified": true,
@@ -757,6 +819,9 @@ const verifyMerchantEmail = async (userId, token) => {
         "merchantDetails.permanentVerification": true,
         "merchantDetails.verificationToken": null,
         "merchantDetails.verificationTokenExpires": null,
+      },
+      $addToSet: {
+        roles: "merchant", // Add merchant role if not already present
       },
     };
 
@@ -771,6 +836,25 @@ const verifyMerchantEmail = async (userId, token) => {
     logger.auth("Merchant email verified successfully", userId, {
       verificationEmail: user.merchantDetails.verificationEmail,
     });
+
+    // 🏪 AUTO-CREATE SHOP: Create shop profile if doesn't exist
+    try {
+      const updatedUser = await User.findById(userId);
+      if (!updatedUser.merchantDetails?.shopName) {
+        logger.info("Auto-creating shop after merchant verification", {
+          userId,
+          action: "auto_create_shop_after_verification",
+        });
+        await autoCreateShopFromProfile(userId);
+      }
+    } catch (shopError) {
+      logger.warn("Failed to auto-create shop after verification", {
+        userId,
+        error: shopError.message,
+      });
+      // Don't fail the verification if shop creation fails
+      // User can create shop manually or it will auto-create on first access
+    }
 
     return {
       status: "verified",

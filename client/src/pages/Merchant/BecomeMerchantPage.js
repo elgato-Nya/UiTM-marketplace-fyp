@@ -39,6 +39,8 @@ function BecomeMerchantPage() {
   const navigate = useNavigate();
 
   const isVerified = user?.merchantDetails?.isUiTMVerified;
+  const userEmail = user?.email || "";
+  const isUiTMEmail = userEmail.toLowerCase().includes("uitm.edu.my");
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -102,7 +104,7 @@ function BecomeMerchantPage() {
 
       <Grid container spacing={4}>
         {/* Left Side - Benefits */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Typography variant="h5" fontWeight="bold" gutterBottom>
             Merchant Benefits
           </Typography>
@@ -112,7 +114,7 @@ function BecomeMerchantPage() {
 
           <Grid container spacing={2}>
             {benefits.map((benefit, index) => (
-              <Grid item xs={12} sm={6} key={index}>
+              <Grid size={{ xs: 12, sm: 6 }} key={index}>
                 <Card variant="outlined" sx={{ height: "100%" }}>
                   <CardContent>
                     <Box display="flex" alignItems="center" gap={1} mb={1}>
@@ -132,12 +134,13 @@ function BecomeMerchantPage() {
         </Grid>
 
         {/* Right Side - Verification Card */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <MerchantVerificationCard
             user={user}
+            isUiTMEmail={isUiTMEmail}
+            userEmail={userEmail}
             onVerificationSuccess={() => {
-              // Optionally refresh user data or show success message
-              console.log("Verification submitted successfully");
+              // Verification submitted successfully
             }}
           />
 
@@ -160,17 +163,12 @@ function BecomeMerchantPage() {
                   fontWeight="bold"
                   display="block"
                 >
-                  💡 Already have a UiTM email?
+                  💡 Quick Tip
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  If you registered with a UiTM email, you already have merchant
-                  access! Go to your{" "}
-                  <RouterLink
-                    to="/merchant/store"
-                    style={{ color: theme.palette.primary.main }}
-                  >
-                    Merchant Dashboard
-                  </RouterLink>
+                  {isUiTMEmail
+                    ? "Great! Since you registered with a UiTM email, you can verify instantly by clicking the button above."
+                    : "For fastest verification, use your student@uitm.edu.my or staff@uitm.edu.my email address."}
                 </Typography>
               </Box>
             </CardContent>

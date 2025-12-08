@@ -106,8 +106,6 @@ function ShopBrandingUploader({
       const subfolder = isLogo ? "logos" : "banners";
       const result = await uploadSingle(selectedFile, folder, subfolder);
 
-      console.log(`${type} upload result:`, result);
-
       // Set preview locally
       setPreview(result.url);
 
@@ -155,13 +153,6 @@ function ShopBrandingUploader({
   };
 
   const displayImage = preview || currentImage;
-
-  // Debug logging
-  React.useEffect(() => {
-    console.log(`${type} - currentImage:`, currentImage);
-    console.log(`${type} - preview:`, preview);
-    console.log(`${type} - displayImage:`, displayImage);
-  }, [currentImage, preview, displayImage, type]);
 
   return (
     <Box>

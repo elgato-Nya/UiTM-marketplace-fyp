@@ -76,9 +76,6 @@ function MyStorePage() {
   // Populate form when shop loads
   useEffect(() => {
     if (shop) {
-      console.log("Shop data loaded:", shop); // Debug
-      console.log("Shop logo:", shop.shopLogo); // Debug
-      console.log("Shop banner:", shop.shopBanner); // Debug
       setFormData({
         shopName: shop.shopName || "",
         shopSlug: shop.shopSlug || "",
@@ -144,7 +141,6 @@ function MyStorePage() {
 
   // Handle logo upload complete - just update form state
   const handleLogoUploadComplete = (result) => {
-    console.log("Logo uploaded to S3:", result.url);
     setFormData((prev) => ({
       ...prev,
       shopLogo: result.url,
@@ -167,7 +163,6 @@ function MyStorePage() {
 
   // Handle banner upload complete - just update form state
   const handleBannerUploadComplete = (result) => {
-    console.log("Banner uploaded to S3:", result.url);
     setFormData((prev) => ({
       ...prev,
       shopBanner: result.url,

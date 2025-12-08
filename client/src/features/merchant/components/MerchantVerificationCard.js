@@ -28,10 +28,16 @@ import { useMerchantVerification } from "../hooks/useMerchantVerification";
  * FEATURES:
  * - Show verification status (verified, pending, not verified)
  * - Submit UiTM email for verification
+ * - Auto-verify if registered with UiTM email
  * - Responsive design
  */
 
-function MerchantVerificationCard({ user, onVerificationSuccess }) {
+function MerchantVerificationCard({
+  user,
+  isUiTMEmail,
+  userEmail,
+  onVerificationSuccess,
+}) {
   const { theme } = useTheme();
   const { submitVerification, isLoading } = useMerchantVerification();
   const [showForm, setShowForm] = useState(false);
@@ -47,6 +53,17 @@ function MerchantVerificationCard({ user, onVerificationSuccess }) {
       setShowForm(false);
       if (onVerificationSuccess) {
         onVerificationSuccess(result.data);
+      }
+    }
+  };
+
+  const handleAutoVerify = async () => {
+    if (isUiTMEmail && userEmail) {
+      const result = await submitVerification(userEmail);
+      if (result.success) {
+        if (onVerificationSuccess) {
+          onVerificationSuccess(result.data);
+        }
       }
     }
   };
@@ -154,7 +171,49 @@ function MerchantVerificationCard({ user, onVerificationSuccess }) {
 
         <Divider sx={{ my: 2 }} />
 
-        {!showForm ? (
+        {/* Auto-verify option for users registered with UiTM email */}
+        {isUiTMEmail && !showForm && (
+          <Box>
+            <Alert severity="success" sx={{ mb: 2 }}>
+              <Typography variant="body2" fontWeight="bold" gutterBottom>
+                ✅ UiTM Email Detected!
+              </Typography>
+              <Typography variant="caption">
+                You registered with <strong>{userEmail}</strong>. You can
+                instantly verify your merchant status!
+              </Typography>
+            </Alert>
+
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={handleAutoVerify}
+              disabled={isLoading}
+              startIcon={<VerifiedUser />}
+              sx={{ mb: 2 }}
+            >
+              {isLoading ? "Verifying..." : "Verify with My UiTM Email"}
+            </Button>
+
+            <Divider sx={{ my: 2 }}>
+              <Typography variant="caption" color="text.secondary">
+                OR
+              </Typography>
+            </Divider>
+
+            <Button
+              variant="text"
+              fullWidth
+              size="small"
+              onClick={() => setShowForm(true)}
+            >
+              Use a Different UiTM Email
+            </Button>
+          </Box>
+        )}
+
+        {/* Regular verification for non-UiTM emails */}
+        {!isUiTMEmail && !showForm && (
           <Box>
             <Alert severity="info" sx={{ mb: 2 }}>
               <Typography variant="body2" fontWeight="bold" gutterBottom>
@@ -177,7 +236,10 @@ function MerchantVerificationCard({ user, onVerificationSuccess }) {
               Start Verification
             </Button>
           </Box>
-        ) : (
+        )}
+
+        {/* Verification form */}
+        {showForm && (
           <Box>
             <DynamicForm
               config={merchantVerificationFormConfig}

@@ -154,9 +154,17 @@ const UserSchema = new mongoose.Schema(
 
     // ======================   Activity Tracking & Security   ========================
     lastActive: { type: Date, default: () => Date.now() },
+    lastActivityAt: { type: Date, default: () => Date.now() },
     isActive: { type: Boolean, default: true },
     // TODO: consider hashing refresh tokens, and any other tokens before saving to db
     refreshTokens: { type: [String], default: [], select: false },
+
+    // ======================   Suspension Management   ========================
+    isSuspended: { type: Boolean, default: false, index: true },
+    suspendedAt: { type: Date },
+    suspendedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    suspensionReason: { type: String, trim: true },
+    requirePasswordChange: { type: Boolean, default: false },
 
     emailVerification: {
       isVerified: { type: Boolean, default: false },

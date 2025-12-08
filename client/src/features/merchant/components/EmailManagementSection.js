@@ -81,7 +81,7 @@ function EmailManagementSection({ user, onEmailUpdate }) {
 
       <Grid container spacing={2}>
         {/* Primary Email (Private) */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card variant="outlined">
             <CardContent>
               <Box display="flex" alignItems="center" gap={1} mb={1}>
@@ -103,7 +103,7 @@ function EmailManagementSection({ user, onEmailUpdate }) {
         </Grid>
 
         {/* UiTM Verification Email (Private) */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card variant="outlined">
             <CardContent>
               <Box display="flex" alignItems="center" gap={1} mb={1}>
@@ -130,7 +130,7 @@ function EmailManagementSection({ user, onEmailUpdate }) {
         </Grid>
 
         {/* Business Email (Public) */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card variant="outlined">
             <CardContent>
               <Box display="flex" alignItems="center" gap={1} mb={1}>

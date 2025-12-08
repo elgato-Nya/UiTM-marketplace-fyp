@@ -1,7 +1,9 @@
-name: Deploy to AWS EC2
+name: CI/CD Pipeline
 
 on:
   push:
+    branches: [main, dev]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 
@@ -9,9 +11,84 @@ env:
   NODE_VERSION: "20.x"
 
 jobs:
-  deploy:
-    name: Deploy Full Stack to EC2
+  lint-and-test:
+    name: Lint & Test
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        working-directory: ["server", "client"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: ${{ matrix.working-directory }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.working-directory }}
+        run: npm ci
+
+      - name: Run linter
+        working-directory: ${{ matrix.working-directory }}
+        run: npm run lint --if-present
+
+      - name: Run tests
+        working-directory: ${{ matrix.working-directory }}
+        run: npm test --if-present
+        env:
+          CI: true
+          DISABLE_ESLINT_PLUGIN: false
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: matrix.working-directory == 'server'
+        with:
+          file: ./server/coverage/lcov.info
+          flags: server
+          name: server-coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: matrix.working-directory == 'client'
+        with:
+          file: ./client/coverage/lcov.info
+          flags: client
+          name: client-coverage
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run npm audit (server)
+        working-directory: server
+        run: npm audit --audit-level=moderate || true
+
+      - name: Run npm audit (client)
+        working-directory: client
+        run: npm audit --audit-level=moderate || true
+
+      - name: Check for vulnerabilities
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: lint-and-test
 
     steps:
       - name: Checkout code
@@ -35,6 +112,36 @@ jobs:
           REACT_APP_API_URL: https://nekodez.com/api
           REACT_APP_STRIPE_PUBLISHABLE_KEY: pk_test_51S8W3mJg56CMs4rbFNQy9iOSCDP91SLVMvJwWKIsHULGvp9r6ebVbjQ7vpa5Wn1ru0ZNlwEIkws92kk5Fhdn7fWH0086zCsjgI
 
+      - name: Upload build artifacts
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-build
+          path: client/build
+          retention-days: 1
+
+      - name: Verify server setup
+        working-directory: server
+        run: |
+          npm ci --only=production
+          echo "Server dependencies installed successfully"
+
+  deploy:
+    name: Deploy to AWS EC2
+    runs-on: ubuntu-latest
+    needs: [lint-and-test, security-scan, build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: client-build
+          path: client/build
+
       - name: Upload Build to EC2
         uses: appleboy/scp-action@master
         with:
@@ -53,18 +160,12 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
-            # Set error handling
             set -e
-
-            # Define app directory (customize this to your EC2 path)
             APP_DIR="/home/ubuntu/uitm-marketplace"
 
             echo "🚀 Starting deployment..."
-
-            # Navigate to app directory
             cd $APP_DIR
 
-            # Pull latest code from GitHub (with error recovery)
             echo "📥 Pulling latest code from main branch..."
             git fetch origin main
             git reset --hard origin/main || echo "⚠️ Git reset failed, continuing..."
@@ -73,26 +174,18 @@ jobs:
             echo "🔧 Deploying backend..."
             cd $APP_DIR/server
 
-            # Check if Node.js is available
             if ! command -v node &> /dev/null; then
               echo "❌ Node.js not found! Please install Node.js first."
               exit 1
             fi
 
-            # Install production dependencies
             echo "📦 Installing server dependencies..."
             npm ci --only=production
 
-            # Create/update .env file (optional - if you manage env via GitHub Secrets)
-            # Uncomment if you want to inject .env from GitHub Secrets:
-            # echo "${{ secrets.SERVER_ENV_FILE }}" > .env
-
-            # Check if .env exists
             if [ ! -f .env ]; then
               echo "⚠️ Warning: .env file not found in server directory"
             fi
 
-            # Restart backend with PM2
             echo "🔄 Restarting backend service..."
             if ! command -v pm2 &> /dev/null; then
               echo "📦 Installing PM2 globally..."
@@ -108,11 +201,9 @@ jobs:
             fi
             pm2 save
 
-            # Wait for backend to be ready
             echo "⏳ Waiting for backend to start..."
             sleep 5
 
-            # Check backend is running
             if pm2 describe uitm-marketplace-server | grep -q "online"; then
               echo "✅ Backend is online"
             else
@@ -124,38 +215,29 @@ jobs:
             echo "🎨 Deploying pre-built frontend..."
             cd $APP_DIR/client
 
-            # Verify build folder exists (uploaded via SCP)
             if [ ! -d "build" ]; then
               echo "❌ Build folder not found! SCP upload may have failed."
               exit 1
             fi
 
-            # Client is already built by GitHub Actions
-            # Just install serve if not present
             if ! command -v serve &> /dev/null; then
               echo "📦 Installing serve globally..."
               sudo npm install -g serve
             fi
 
-            # Restart client with PM2
             echo "🔄 Restarting frontend service..."
             if pm2 describe uitm-marketplace-client > /dev/null 2>&1; then
               pm2 delete uitm-marketplace-client
             fi
-            # Force serve to bind to 0.0.0.0 (accept external connections)
             pm2 start "serve -s build -l tcp://0.0.0.0:3000" --name uitm-marketplace-client
             pm2 save
 
-            # Wait for frontend to be ready
             echo "⏳ Waiting for frontend to start..."
             sleep 5
 
             echo "✅ Deployment completed successfully!"
-
-            # Show PM2 status
             pm2 status
 
-            # Show last few log lines
             echo ""
             echo "📋 Recent backend logs:"
             pm2 logs uitm-marketplace-server --lines 10 --nostream
@@ -165,7 +247,6 @@ jobs:
           echo "⏳ Waiting for services to start..."
           sleep 20
 
-          # Check backend health via HTTPS (you have SSL cert)
           echo "🔍 Checking backend at https://nekodez.com/api/health"
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://nekodez.com/api/health 2>/dev/null || echo "000")
 

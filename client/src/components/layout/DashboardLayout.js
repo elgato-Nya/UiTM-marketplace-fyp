@@ -157,8 +157,8 @@ function DashboardLayout({ userRole }) {
         {
           group: "Navigation",
           items: items.map((item) => ({
-            text: item.label,
-            icon: iconMap[item.icon],
+            label: item.label,
+            icon: item.icon,
             path: item.path,
           })),
         },

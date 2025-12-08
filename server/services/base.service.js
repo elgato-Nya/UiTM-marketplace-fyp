@@ -68,13 +68,19 @@ const handleNotFoundError = (resource, customCode, action, context = {}) => {
 
 /**
  * Sanitize user data by removing sensitive fields
- * @param {*} user - The user object to sanitize
+ * @param {*} user - The user object to sanitize (can be Mongoose doc or plain object)
  * @returns {Object} - The sanitized user object
  *
- * PURPOSE: Remove sensitive fields from user object before returning AND set toObject
+ * PURPOSE: Remove sensitive fields from user object before returning
  */
 const sanitizeUserData = (user) => {
-  const { password, refreshTokens, __v, ...sanitizedUser } = user;
+  // Handle both Mongoose documents and plain objects
+  const userObj =
+    user && typeof user.toObject === "function" ? user.toObject() : user;
+
+  if (!userObj) return null;
+
+  const { password, refreshTokens, __v, ...sanitizedUser } = userObj;
   return sanitizedUser;
 };
 

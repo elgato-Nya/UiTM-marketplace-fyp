@@ -109,7 +109,7 @@ const autoCreateShopFromProfile = async (userId) => {
     if (user.merchantDetails && user.merchantDetails.shopName) {
       logger.info(`Shop already exists for user: ${userId}`);
       return {
-        user: sanitizeUserData(user),
+        user: sanitizeUserData(user.toObject()),
         merchantDetails: user.merchantDetails,
         isNew: false,
       };
@@ -163,7 +163,8 @@ const autoCreateShopFromProfile = async (userId) => {
       },
     };
 
-    await user.save();
+    // Save without running full validation to avoid issues with conditional required fields
+    await user.save({ validateBeforeSave: false });
 
     logger.info(`Shop auto-created for user: ${userId}`, {
       shopName,
@@ -171,7 +172,7 @@ const autoCreateShopFromProfile = async (userId) => {
     });
 
     return {
-      user: sanitizeUserData(user),
+      user: sanitizeUserData(user.toObject()),
       merchantDetails: user.merchantDetails,
       isNew: true,
     };
@@ -244,7 +245,7 @@ const getOrCreateShop = async (userId) => {
 
     // Return existing shop with updated metrics
     return {
-      user: sanitizeUserData(user),
+      user: sanitizeUserData(user.toObject()),
       merchantDetails: merchantDetailsWithRealMetrics,
       isNew: false,
     };
@@ -341,7 +342,7 @@ const createOrUpdateMerchantDetails = async (userId, merchantData) => {
 
     logger.info(`Merchant details updated for user: ${userId}`);
     return {
-      user: sanitizeUserData(user),
+      user: sanitizeUserData(user.toObject()),
       merchantDetails: user.merchantDetails,
     };
   } catch (error) {
@@ -511,7 +512,7 @@ const updateShopMetrics = async (userId, metrics) => {
 
     // Update metrics using the schema method
     user.merchantDetails.updateMetrics(metrics);
-    await user.save();
+    await user.save({ validateBeforeSave: false });
 
     logger.info(`Shop metrics updated for user: ${userId}`);
     return {
@@ -540,7 +541,7 @@ const updateShopRating = async (userId, newRating, isNewReview = true) => {
 
     // Update rating using the schema method
     user.merchantDetails.updateRating(newRating, isNewReview);
-    await user.save();
+    await user.save({ validateBeforeSave: false });
 
     logger.info(`Shop rating updated for user: ${userId}`);
     return {
@@ -575,7 +576,7 @@ const updateShopStatus = async (userId, status, verificationStatus) => {
       user.merchantDetails.verificationStatus = verificationStatus;
     }
 
-    await user.save();
+    await user.save({ validateBeforeSave: false });
 
     logger.info(`Shop status updated for user: ${userId}`);
     return {

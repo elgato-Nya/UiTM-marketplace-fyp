@@ -33,6 +33,8 @@ import {
   Category as CategoryIcon,
   TrendingUp,
   FilterList,
+  WhatsApp,
+  Phone,
 } from "@mui/icons-material";
 import { useTheme } from "../../hooks/useTheme";
 import { useMerchant } from "../../features/merchant/hooks/useMerchant";
@@ -82,6 +84,44 @@ function ShopProfilePage() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOption, setSortOption] = useState("-createdAt");
+
+  // Format phone number to Malaysian WhatsApp format
+  const formatWhatsAppNumber = (phoneNumber) => {
+    if (!phoneNumber) return null;
+
+    // Remove all non-digit characters
+    let cleaned = phoneNumber.replace(/\D/g, "");
+
+    // Handle Malaysian formats
+    // If starts with 0, replace with 60
+    if (cleaned.startsWith("0")) {
+      cleaned = "60" + cleaned.substring(1);
+    }
+    // If starts with 6 but not 60, add 0
+    else if (cleaned.startsWith("6") && !cleaned.startsWith("60")) {
+      cleaned = "60" + cleaned;
+    }
+    // If doesn't start with country code, add 60
+    else if (!cleaned.startsWith("60")) {
+      cleaned = "60" + cleaned;
+    }
+
+    return cleaned;
+  };
+
+  // Handle WhatsApp contact
+  const handleWhatsAppContact = () => {
+    const phoneNumber = merchant?.profile?.phoneNumber;
+    const whatsappNumber = formatWhatsAppNumber(phoneNumber);
+
+    if (!whatsappNumber) {
+      return;
+    }
+
+    const message = `Hi! I'm interested in your products at ${shop.shopName}`;
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+  };
 
   // Load shop on mount
   useEffect(() => {
@@ -317,14 +357,60 @@ function ShopProfilePage() {
                 </Box>
               </Stack>
 
+              {/* Contact Information */}
+              <Box sx={{ width: "100%", textAlign: "center" }}>
+                {/* Business Email */}
+                {shop.businessEmail && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 1,
+                      mb: 1,
+                    }}
+                  >
+                    <Email sx={{ fontSize: 16, color: "text.secondary" }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {shop.businessEmail}
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* Phone Number */}
+                {merchant?.profile?.phoneNumber && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 1,
+                      mb: 2,
+                    }}
+                  >
+                    <Phone sx={{ fontSize: 16, color: "text.secondary" }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {merchant.profile.phoneNumber}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+
               {/* Contact Button - Full width */}
               <Button
                 fullWidth
-                variant="outlined"
-                startIcon={<Email />}
+                variant="contained"
+                startIcon={<WhatsApp />}
                 size="large"
+                onClick={handleWhatsAppContact}
+                sx={{
+                  bgcolor: "#25D366",
+                  "&:hover": {
+                    bgcolor: "#128C7E",
+                  },
+                }}
               >
-                Contact Seller
+                Contact via WhatsApp
               </Button>
             </Stack>
           ) : (

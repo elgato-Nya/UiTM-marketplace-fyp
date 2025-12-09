@@ -387,7 +387,9 @@ const getMerchantBySlug = async (shopSlug) => {
     const user = await User.findOne({
       "merchantDetails.shopSlug": shopSlug,
       roles: "merchant",
-    }).select("merchantDetails profile.username profile.avatar");
+    }).select(
+      "merchantDetails profile.username profile.avatar profile.phoneNumber"
+    );
 
     if (!user) {
       throw handleNotFoundError("Shop", shopSlug);
@@ -398,6 +400,9 @@ const getMerchantBySlug = async (shopSlug) => {
         _id: user._id, // Include user ID for fetching seller listings
         username: user.profile.username,
         avatar: user.profile.avatar,
+        profile: {
+          phoneNumber: user.profile.phoneNumber,
+        },
       },
       shop: user.merchantDetails,
     };

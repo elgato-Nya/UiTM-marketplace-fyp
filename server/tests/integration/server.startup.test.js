@@ -27,6 +27,7 @@ jest.mock("express", () => {
     put: jest.fn(),
     delete: jest.fn(),
     disable: jest.fn(), // Add missing disable method
+    set: jest.fn(), // Add missing set method for trust proxy
     listen: jest.fn((port, callback) => {
       // Mock server object
       const mockServer = {

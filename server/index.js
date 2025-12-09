@@ -61,13 +61,25 @@ const app = express();
 
 app.disable("x-powered-by"); // Explicitly remove X-Powered-By header
 
+// Trust proxy - CRITICAL for rate limiting behind AWS ELB/Nginx
+// Use specific value to prevent IP spoofing attacks
+// See: https://express-rate-limit.github.io/ERR_ERL_PERMISSIVE_TRUST_PROXY/
+if (process.env.NODE_ENV === "production") {
+  // Production: Only trust first proxy (AWS ELB/CloudFront)
+  // This prevents users from spoofing X-Forwarded-For
+  app.set("trust proxy", 1);
+} else {
+  // Development: Trust localhost reverse proxies
+  // Use loopback addresses for local testing with Nginx/Docker
+  app.set("trust proxy", "loopback");
+}
+
 // ================== SECURITY MIDDLEWARE ========================
 app.use(helmetConfig);
 
-// set limter for each api route
+// Apply rate limiters BEFORE body parsing to prevent DoS attacks
+// that send large payloads just to consume resources
 app.use("/api/", generalLimiter);
-
-// set limiter for auth routes
 app.use("/api/auth/", authLimiter);
 
 app.use(cors(corsOptions));

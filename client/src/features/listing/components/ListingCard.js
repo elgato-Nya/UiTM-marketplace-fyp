@@ -449,59 +449,55 @@ const ListingCard = ({
             </Tooltip>
           </CardActions>
         ) : (
-          // Consumer Actions
-          <CardActions
-            sx={{
-              px: isMobile ? 1.5 : 2,
-              pb: isMobile ? 1.5 : 2,
-              pt: isMobile ? 1 : 1.5,
-              gap: 1,
-              borderTop: "1px solid",
-              borderColor: "divider",
-              flexShrink: 0,
-            }}
-          >
-            {isAuthenticated && (
-              <>
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={!isMobile && <ShoppingCartIcon />}
-                  onClick={handleAddToCartClick}
-                  disabled={!canAddToCart}
-                  fullWidth
+          // Consumer Actions - Only show for authenticated users
+          isAuthenticated && (
+            <CardActions
+              sx={{
+                px: isMobile ? 1.5 : 2,
+                pb: isMobile ? 1.5 : 2,
+                pt: isMobile ? 1 : 1.5,
+                gap: 1,
+                borderTop: "1px solid",
+                borderColor: "divider",
+                flexShrink: 0,
+              }}
+            >
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={!isMobile && <ShoppingCartIcon />}
+                onClick={handleAddToCartClick}
+                disabled={!canAddToCart}
+                fullWidth
+                sx={{
+                  flex: 1,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  fontSize: isMobile ? "0.8rem" : undefined,
+                  py: isMobile ? 0.75 : undefined,
+                }}
+              >
+                {isMobile ? "Add" : "Add to Cart"}
+              </Button>
+
+              <Tooltip
+                title={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+              >
+                <IconButton
+                  onClick={handleToggleWishlist}
+                  size={isMobile ? "small" : "medium"}
                   sx={{
-                    flex: 1,
-                    textTransform: "none",
-                    fontWeight: 600,
-                    fontSize: isMobile ? "0.8rem" : undefined,
-                    py: isMobile ? 0.75 : undefined,
+                    color: inWishlist ? "error.main" : "text.secondary",
+                    "&:hover": {
+                      color: "error.main",
+                    },
                   }}
                 >
-                  {isMobile ? "Add" : "Add to Cart"}
-                </Button>
-
-                <Tooltip
-                  title={
-                    inWishlist ? "Remove from wishlist" : "Add to wishlist"
-                  }
-                >
-                  <IconButton
-                    onClick={handleToggleWishlist}
-                    size={isMobile ? "small" : "medium"}
-                    sx={{
-                      color: inWishlist ? "error.main" : "text.secondary",
-                      "&:hover": {
-                        color: "error.main",
-                      },
-                    }}
-                  >
-                    {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-                  </IconButton>
-                </Tooltip>
-              </>
-            )}
-          </CardActions>
+                  {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                </IconButton>
+              </Tooltip>
+            </CardActions>
+          )
         )}
       </Card>
 

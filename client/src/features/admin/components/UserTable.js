@@ -509,8 +509,13 @@ const UserTable = ({
                       {/* Last Active */}
                       <TableCell>
                         <Typography variant="body2" color="text.secondary">
-                          {user.lastActive
-                            ? format(new Date(user.lastActive), "MMM dd, yyyy")
+                          {user.lastActivityAt || user.lastActive
+                            ? format(
+                                new Date(
+                                  user.lastActivityAt || user.lastActive
+                                ),
+                                "MMM dd, yyyy"
+                              )
                             : "Never"}
                         </Typography>
                       </TableCell>

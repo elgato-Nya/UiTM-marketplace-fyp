@@ -480,6 +480,7 @@ const ListingCard = ({
                 {isMobile ? "Add" : "Add to Cart"}
               </Button>
 
+              {/* Only show wishlist button for authenticated users */}
               <Tooltip
                 title={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
               >

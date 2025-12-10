@@ -395,6 +395,61 @@ const getMerchantBySlug = async (shopSlug) => {
       throw handleNotFoundError("Shop", shopSlug);
     }
 
+    // Calculate real-time listing counts (separate products and services)
+    const listingStats = await Listing.aggregate([
+      {
+        $match: {
+          "seller.userId": new mongoose.Types.ObjectId(user._id),
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalListings: { $sum: 1 },
+          totalProducts: {
+            $sum: { $cond: [{ $eq: ["$type", "product"] }, 1, 0] },
+          },
+          totalServices: {
+            $sum: { $cond: [{ $eq: ["$type", "service"] }, 1, 0] },
+          },
+          activeListings: {
+            $sum: { $cond: [{ $eq: ["$isAvailable", true] }, 1, 0] },
+          },
+          inactiveListings: {
+            $sum: { $cond: [{ $eq: ["$isAvailable", false] }, 1, 0] },
+          },
+        },
+      },
+    ]);
+
+    const listingCounts = listingStats[0] || {
+      totalListings: 0,
+      totalProducts: 0,
+      totalServices: 0,
+      activeListings: 0,
+      inactiveListings: 0,
+    };
+
+    // Use stored metrics for sales/revenue (updated by analytics job)
+    // Don't aggregate orders on every request - too expensive!
+    const realTimeMetrics = {
+      totalListings: listingCounts.totalListings,
+      totalProducts: listingCounts.totalProducts,
+      totalServices: listingCounts.totalServices,
+      totalSales: user.merchantDetails.shopMetrics?.totalSales || 0,
+      totalRevenue: user.merchantDetails.shopMetrics?.totalRevenue || 0,
+      totalViews: user.merchantDetails.shopMetrics?.totalViews || 0,
+    };
+
+    // Merge real-time metrics with existing shop data
+    const shopData = {
+      ...user.merchantDetails.toObject(),
+      shopMetrics: {
+        ...user.merchantDetails.shopMetrics?.toObject(),
+        ...realTimeMetrics,
+      },
+    };
+
     return {
       merchant: {
         _id: user._id, // Include user ID for fetching seller listings
@@ -404,7 +459,7 @@ const getMerchantBySlug = async (shopSlug) => {
           phoneNumber: user.profile.phoneNumber,
         },
       },
-      shop: user.merchantDetails,
+      shop: shopData,
     };
   } catch (error) {
     return handleServiceError(error, "getMerchantBySlug");

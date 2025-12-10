@@ -33,7 +33,7 @@ import ShopStatusBadge from "./ShopStatusBadge";
  * - Shop information and description
  * - Business statistics (listings, orders)
  * - Registration date
- * - Quick action buttons for unverified merchants
+ * - Action buttons for all merchant statuses (mobile-friendly)
  *
  * ACCESSIBILITY:
  * - Proper dialog semantics
@@ -47,6 +47,8 @@ const MerchantDetailDialog = ({
   merchant,
   onApprove,
   onReject,
+  onSuspend,
+  onReactivate,
 }) => {
   if (!merchant) return null;
 
@@ -251,7 +253,13 @@ const MerchantDetailDialog = ({
         </Stack>
       </DialogContent>
 
-      <DialogActions>
+      <DialogActions sx={{ px: 3, pb: 2, gap: 1, flexWrap: "wrap" }}>
+        {/* Close button - always visible */}
+        <Button onClick={onClose} aria-label="Close dialog">
+          Close
+        </Button>
+
+        {/* Action buttons based on merchant status */}
         {merchant.merchantDetails?.verificationStatus === "unverified" && (
           <>
             <Button
@@ -277,6 +285,52 @@ const MerchantDetailDialog = ({
               Approve
             </Button>
           </>
+        )}
+
+        {/* Verified merchants can be suspended */}
+        {merchant.merchantDetails?.verificationStatus === "verified" &&
+          merchant.merchantDetails?.shopStatus !== "suspended" && (
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => {
+                onClose();
+                onSuspend?.(merchant);
+              }}
+              aria-label="Suspend this merchant"
+            >
+              Suspend
+            </Button>
+          )}
+
+        {/* Suspended merchants can be reactivated */}
+        {merchant.merchantDetails?.shopStatus === "suspended" && (
+          <Button
+            variant="contained"
+            color="success"
+            onClick={() => {
+              onClose();
+              onReactivate?.(merchant);
+            }}
+            aria-label="Reactivate this merchant"
+          >
+            Reactivate
+          </Button>
+        )}
+
+        {/* Rejected merchants can be approved */}
+        {merchant.merchantDetails?.verificationStatus === "rejected" && (
+          <Button
+            variant="contained"
+            color="success"
+            onClick={() => {
+              onClose();
+              onApprove(merchant);
+            }}
+            aria-label="Approve this merchant"
+          >
+            Approve
+          </Button>
         )}
       </DialogActions>
     </Dialog>

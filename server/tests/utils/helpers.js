@@ -40,7 +40,10 @@ const createTestUserData = (overrides = {}) => {
       bio: "Test user bio",
     },
     roles: ["user"],
-    isEmailVerified: true,
+    emailVerification: {
+      isVerified: true,
+      verifiedAt: new Date(),
+    },
     ...overrides,
   };
 

@@ -175,7 +175,7 @@ const CreateListingPage = () => {
           Current images: {existingImageUrls.length} / 10
         </Typography>
         <ListingImageUpload
-          listingId={user?._id || "temp"}
+          listingId="temp"
           existingImages={existingImageUrls}
           onUploadComplete={handleImageUploadComplete}
           onDeleteExisting={(url) => {

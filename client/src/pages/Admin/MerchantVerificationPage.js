@@ -549,6 +549,8 @@ const MerchantVerificationPage = () => {
         merchant={selectedMerchant}
         onApprove={(merchant) => handleOpenAction(merchant, "verify")}
         onReject={(merchant) => handleOpenAction(merchant, "reject")}
+        onSuspend={(merchant) => handleOpenAction(merchant, "suspend")}
+        onReactivate={(merchant) => handleOpenAction(merchant, "reactivate")}
       />
 
       {/* Action Confirmation Dialog */}

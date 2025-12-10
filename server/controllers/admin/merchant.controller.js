@@ -29,7 +29,7 @@ const handleGetMerchants = asyncHandler(async (req, res) => {
   // Build query
   const query = { roles: "merchant" };
 
-  // Filter by verification status
+  // Filter by verification status or shop status
   if (status && status !== "all") {
     if (status === "pending") {
       // Pending = merchants without shop setup (no shopName or empty)
@@ -38,8 +38,11 @@ const handleGetMerchants = asyncHandler(async (req, res) => {
         { "merchantDetails.shopName": null },
         { "merchantDetails.shopName": "" },
       ];
+    } else if (status === "suspended") {
+      // Suspended = shopStatus is suspended
+      query["merchantDetails.shopStatus"] = "suspended";
     } else {
-      // Other statuses filter by verificationStatus
+      // Other statuses filter by verificationStatus (verified, rejected, unverified)
       query["merchantDetails.verificationStatus"] = status;
     }
   }
@@ -204,7 +207,7 @@ const handleVerifyMerchant = asyncHandler(async (req, res) => {
     await emailService.sendMerchantApprovalEmail(merchant, note);
   } catch (emailError) {
     logger.warn("Failed to send merchant approval email", {
-      userId,
+      userId: userId.toString(),
       error: emailError.message,
     });
   }
@@ -212,8 +215,8 @@ const handleVerifyMerchant = asyncHandler(async (req, res) => {
   baseController.logAction("verifyMerchant", req, { userId, note });
 
   logger.info("Merchant verified by admin", {
-    userId,
-    adminId: req.user.userId,
+    userId: userId.toString(),
+    adminId: req.user._id.toString(),
     shopName: merchant.merchantDetails.shopName,
   });
 
@@ -262,7 +265,7 @@ const handleRejectMerchant = asyncHandler(async (req, res) => {
     await emailService.sendMerchantRejectionEmail(merchant, reason);
   } catch (emailError) {
     logger.warn("Failed to send merchant rejection email", {
-      userId,
+      userId: userId.toString(),
       error: emailError.message,
     });
   }
@@ -270,8 +273,8 @@ const handleRejectMerchant = asyncHandler(async (req, res) => {
   baseController.logAction("rejectMerchant", req, { userId, reason });
 
   logger.info("Merchant rejected by admin", {
-    userId,
-    adminId: req.user.userId,
+    userId: userId.toString(),
+    adminId: req.user._id.toString(),
     shopName: merchant.merchantDetails.shopName,
     reason,
   });
@@ -320,7 +323,7 @@ const handleSuspendMerchant = asyncHandler(async (req, res) => {
     await emailService.sendMerchantSuspensionEmail(merchant, reason);
   } catch (emailError) {
     logger.warn("Failed to send merchant suspension email", {
-      userId,
+      userId: userId.toString(),
       error: emailError.message,
     });
   }
@@ -328,8 +331,8 @@ const handleSuspendMerchant = asyncHandler(async (req, res) => {
   baseController.logAction("suspendMerchant", req, { userId, reason });
 
   logger.info("Merchant suspended by admin", {
-    userId,
-    adminId: req.user.userId,
+    userId: userId.toString(),
+    adminId: req.user._id.toString(),
     shopName: merchant.merchantDetails.shopName,
     reason,
   });
@@ -372,7 +375,7 @@ const handleReactivateMerchant = asyncHandler(async (req, res) => {
     await emailService.sendMerchantReactivationEmail(merchant);
   } catch (emailError) {
     logger.warn("Failed to send merchant reactivation email", {
-      userId,
+      userId: userId.toString(),
       error: emailError.message,
     });
   }
@@ -380,8 +383,8 @@ const handleReactivateMerchant = asyncHandler(async (req, res) => {
   baseController.logAction("reactivateMerchant", req, { userId });
 
   logger.info("Merchant reactivated by admin", {
-    userId,
-    adminId: req.user.userId,
+    userId: userId.toString(),
+    adminId: req.user._id.toString(),
     shopName: merchant.merchantDetails.shopName,
   });
 

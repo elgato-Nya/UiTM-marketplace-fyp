@@ -56,13 +56,16 @@ const protect = asyncHandler(async (req, res, next) => {
   // Attach user to request object for use in subsequent middleware/routes
   req.user = user;
 
-  // Update last active directly without causing async issues
+  // Update last activity fields directly without causing async issues
+  // Using setImmediate to avoid blocking the request
   setImmediate(() => {
+    const now = new Date();
     User.findByIdAndUpdate(user._id, {
-      lastActive: new Date(),
+      lastActive: now,
+      lastActivityAt: now,
       isActive: true,
     }).catch((error) => {
-      logger.error("Failed to update last active in auth middleware", {
+      logger.error("Failed to update user activity in auth middleware", {
         userId: user._id.toString(),
         error: error.message,
       });

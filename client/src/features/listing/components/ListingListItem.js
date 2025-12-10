@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 
 import { useTheme } from "../../../hooks/useTheme";
 import { useSnackbarContext as useSnackbar } from "../../../contexts/SnackbarContext";
+import { useAuth } from "../../auth/hooks/useAuth";
 import { CATEGORY_LABELS } from "../../../constants/listingConstant";
 import AddToCartDialog from "../../cart/components/AddToCartDialog";
 import useCart from "../../cart/hook/useCart";
@@ -32,6 +33,7 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { success, error: showError } = useSnackbar();
+  const { isAuthenticated } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const { isInCart, addToCart } = useCart();
@@ -210,25 +212,27 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
 
               {/* Actions */}
               <Stack direction="row" spacing={0.5}>
-                {/* Wishlist Button */}
-                <IconButton
-                  size="small"
-                  onClick={handleWishlistClick}
-                  sx={{
-                    color: inWishlist
-                      ? theme.palette.error.main
-                      : theme.palette.text.secondary,
-                  }}
-                >
-                  {inWishlist ? (
-                    <FavoriteIcon fontSize="small" />
-                  ) : (
-                    <FavoriteBorderIcon fontSize="small" />
-                  )}
-                </IconButton>
+                {/* Wishlist Button - Only show for authenticated users */}
+                {isAuthenticated && (
+                  <IconButton
+                    size="small"
+                    onClick={handleWishlistClick}
+                    sx={{
+                      color: inWishlist
+                        ? theme.palette.error.main
+                        : theme.palette.text.secondary,
+                    }}
+                  >
+                    {inWishlist ? (
+                      <FavoriteIcon fontSize="small" />
+                    ) : (
+                      <FavoriteBorderIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                )}
 
-                {/* Add to Cart Button */}
-                {isAvailable && !isService && (
+                {/* Add to Cart Button - Only show for authenticated users */}
+                {isAuthenticated && isAvailable && !isService && (
                   <IconButton
                     size="small"
                     onClick={handleAddToCartClick}

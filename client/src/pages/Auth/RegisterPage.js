@@ -8,6 +8,7 @@ import { useSnackbar } from "../../hooks/useSnackbar";
 import { register } from "../../features/auth/store/authSlice";
 import DynamicForm from "../../components/common/Form/DynamicForm";
 import DynamicSkeleton from "../../components/ui/Skeleton/DynamicSkeleton";
+import { EmailVerificationModal } from "../../components/common/Modal";
 import { registerFormConfig } from "../../config/forms/authForms";
 import { registerValidator } from "../../validation/authValidator";
 import { ROUTES } from "../../constants/routes";
@@ -23,6 +24,11 @@ function RegisterPage() {
   const [registeredEmail, setRegisteredEmail] = useState("");
   const [showResendOption, setShowResendOption] = useState(false);
   const [isResending, setIsResending] = useState(false);
+
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalStatus, setModalStatus] = useState("idle"); // 'idle' | 'loading' | 'success' | 'error'
+  const [modalError, setModalError] = useState("");
 
   useEffect(() => {
     clearAuthError();
@@ -44,12 +50,11 @@ function RegisterPage() {
     if (!registeredEmail) return;
 
     setIsResending(true);
+    setModalStatus("loading");
+
     try {
       await authService.resendVerificationEmail(registeredEmail);
-      showSnackbar(
-        "Verification email sent! Please check your inbox.",
-        "success"
-      );
+      setModalStatus("success");
       setShowResendOption(false);
     } catch (error) {
       // Extract error from server response structure
@@ -58,7 +63,8 @@ function RegisterPage() {
         responseData?.error?.message || // Development format
         responseData?.message || // Production format
         "Unable to resend verification email. Please try again.";
-      showSnackbar(errorMessage, "error");
+      setModalError(errorMessage);
+      setModalStatus("error");
     } finally {
       setIsResending(false);
     }
@@ -69,6 +75,8 @@ function RegisterPage() {
       setRegisterError("");
       clearAuthError();
       setShowResendOption(false);
+      setModalStatus("loading");
+      setModalOpen(true);
 
       const registrationData = {
         email: data.email.toLowerCase(),
@@ -86,13 +94,10 @@ function RegisterPage() {
 
       // Check if registration was successful
       if (register.fulfilled.match(result)) {
-        showSnackbar(
-          "Registration successful! Please check your email to verify your account.",
-          "success"
-        );
+        setModalStatus("success");
         setShowResendOption(true);
 
-        // Navigate to login after 2 seconds
+        // Navigate to login after showing modal for 5 seconds
         setTimeout(() => {
           navigate(ROUTES.AUTH.LOGIN, {
             state: {
@@ -105,12 +110,24 @@ function RegisterPage() {
       } else if (result.payload?.message) {
         // Handle registration failure - error message from server
         setRegisterError(result.payload.message);
-        showSnackbar(result.payload.message, "error");
+        setModalError(result.payload.message);
+        setModalStatus("error");
       }
     } catch (error) {
       // Error is already set in Redux state and will be handled by useEffect
       console.error("Registration error:", error);
+      setModalError(error.message || "Registration failed");
+      setModalStatus("error");
     }
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    // Reset modal state after a delay
+    setTimeout(() => {
+      setModalStatus("idle");
+      setModalError("");
+    }, 300);
   };
 
   // Show skeleton while loading
@@ -232,6 +249,18 @@ function RegisterPage() {
           </Link>
         </Typography>
       </Box>
+
+      {/* Email Verification Modal */}
+      <EmailVerificationModal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        status={modalStatus}
+        type="register"
+        email={registeredEmail}
+        error={modalError}
+        onResend={handleResendVerification}
+        isResending={isResending}
+      />
     </Box>
   );
 }

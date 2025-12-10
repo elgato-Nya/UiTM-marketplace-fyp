@@ -51,15 +51,23 @@ const getAllUsers = async (filters = {}, pagination = {}) => {
         statusConditions.push({ isSuspended: true });
       }
       if (status.includes("active")) {
-        statusConditions.push({ isSuspended: { $ne: true } });
-      }
-      if (status.includes("inactive")) {
-        // Inactive users: not suspended but haven't been active recently
-        // You can define "inactive" based on lastActivityAt or other criteria
-        // For now, we'll treat it as not suspended and lastActivityAt is old
         statusConditions.push({
           isSuspended: { $ne: true },
-          // Add your inactive logic here if needed
+          isActive: true,
+        });
+      }
+      if (status.includes("inactive")) {
+        // Inactive users: not suspended but haven't been active in last 30 days
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        statusConditions.push({
+          isSuspended: { $ne: true },
+          $or: [
+            { lastActivityAt: { $lt: thirtyDaysAgo } },
+            { lastActivityAt: { $exists: false } },
+            { isActive: false },
+          ],
         });
       }
       if (statusConditions.length > 0) {
@@ -71,6 +79,18 @@ const getAllUsers = async (filters = {}, pagination = {}) => {
         query.isSuspended = true;
       } else if (status === "active") {
         query.isSuspended = { $ne: true };
+        query.isActive = true;
+      } else if (status === "inactive") {
+        // Inactive users: not suspended but haven't been active in last 30 days
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        query.isSuspended = { $ne: true };
+        query.$or = [
+          { lastActivityAt: { $lt: thirtyDaysAgo } },
+          { lastActivityAt: { $exists: false } },
+          { isActive: false },
+        ];
       }
     }
 
@@ -83,7 +103,8 @@ const getAllUsers = async (filters = {}, pagination = {}) => {
 
     // Filter by email verification
     if (verified !== undefined) {
-      query.isEmailVerified = verified === "true" || verified === true;
+      query["emailVerification.isVerified"] =
+        verified === "true" || verified === true;
     }
 
     let users = [];
@@ -94,8 +115,8 @@ const getAllUsers = async (filters = {}, pagination = {}) => {
       // Get all users matching the filters
       const allUsers = await User.find(query)
         .select(
-          "email profile roles isEmailVerified isSuspended " +
-            "suspendedAt suspendedBy suspensionReason lastActivityAt " +
+          "email profile roles emailVerification.isVerified isSuspended isActive " +
+            "suspendedAt suspendedBy suspensionReason lastActive lastActivityAt " +
             "createdAt updatedAt"
         )
         .populate("suspendedBy", "profile.username email")
@@ -132,8 +153,8 @@ const getAllUsers = async (filters = {}, pagination = {}) => {
       [users, total] = await Promise.all([
         User.find(query)
           .select(
-            "email profile roles isEmailVerified isSuspended " +
-              "suspendedAt suspendedBy suspensionReason lastActivityAt " +
+            "email profile roles emailVerification.isVerified isSuspended isActive " +
+              "suspendedAt suspendedBy suspensionReason lastActive lastActivityAt " +
               "createdAt updatedAt"
           )
           .populate("suspendedBy", "profile.username email")
@@ -184,7 +205,7 @@ const getUserStatistics = async (filters = {}) => {
     });
     const suspendedUsers = await User.countDocuments({ isSuspended: true });
     const unverifiedUsers = await User.countDocuments({
-      isEmailVerified: false,
+      "emailVerification.isVerified": false,
     });
 
     // Users by role
@@ -241,7 +262,7 @@ const getUserById = async (userId) => {
   try {
     const user = await User.findById(userId)
       .select(
-        "email profile roles isEmailVerified isSuspended " +
+        "email profile roles emailVerification.isVerified isSuspended " +
           "suspendedAt suspendedBy suspensionReason lastActivityAt " +
           "merchantDetails createdAt updatedAt"
       )
@@ -283,7 +304,7 @@ const updateUserStatus = async (userId, suspend, reason, adminId) => {
     }
 
     // Prevent admins from suspending themselves
-    if (userId === adminId) {
+    if (userId.toString() === adminId.toString()) {
       throw new AppError("Cannot suspend your own account", 400);
     }
 
@@ -341,7 +362,7 @@ const updateUserRoles = async (userId, roles, adminId) => {
     }
 
     // Prevent admins from modifying their own roles
-    if (userId === adminId) {
+    if (userId.toString() === adminId.toString()) {
       throw new AppError("Cannot modify your own roles", 400);
     }
 
@@ -359,6 +380,26 @@ const updateUserRoles = async (userId, roles, adminId) => {
 
     const oldRoles = [...user.roles];
     user.roles = roles;
+
+    // If admin role is being added and user doesn't have adminLevel, set default
+    if (roles.includes("admin") && !user.adminLevel) {
+      user.adminLevel = "moderator"; // Default to moderator level
+      logger.info("Setting default adminLevel to moderator", {
+        userId,
+        roles,
+      });
+    }
+
+    // If admin role is being removed, remove adminLevel
+    if (!roles.includes("admin") && user.adminLevel) {
+      user.adminLevel = undefined;
+      logger.info("Removing adminLevel as admin role removed", {
+        userId,
+        oldRoles,
+        newRoles: roles,
+      });
+    }
+
     await user.save();
 
     logger.info("User roles updated", {
@@ -366,6 +407,7 @@ const updateUserRoles = async (userId, roles, adminId) => {
       userId,
       oldRoles,
       newRoles: roles,
+      adminLevel: user.adminLevel,
       adminId,
     });
 
@@ -393,11 +435,12 @@ const verifyUserEmail = async (userId, adminId) => {
       return handleNotFoundError("User");
     }
 
-    if (user.isEmailVerified) {
+    if (user.emailVerification?.isVerified) {
       throw new AppError("Email already verified", 400);
     }
 
-    user.isEmailVerified = true;
+    user.emailVerification.isVerified = true;
+    user.emailVerification.verifiedAt = new Date();
     await user.save();
 
     logger.info("User email manually verified by admin", {
@@ -487,10 +530,11 @@ const searchUsers = async (query, filters = {}) => {
     } else if (filters.status === "active") {
       baseQuery.isSuspended = { $ne: true };
     }
-
     // Get all users matching base filters
     const allUsers = await User.find(baseQuery)
-      .select("email profile roles isEmailVerified isSuspended createdAt")
+      .select(
+        "email profile roles emailVerification.isVerified isSuspended createdAt"
+      )
       .limit(100) // Limit for performance
       .lean();
 
@@ -533,7 +577,8 @@ const bulkUpdateUsers = async (userIds, action, adminId) => {
     }
 
     // Prevent admin from including themselves
-    if (userIds.includes(adminId)) {
+    const adminIdString = adminId.toString();
+    if (userIds.some((id) => id.toString() === adminIdString)) {
       throw new AppError("Cannot perform bulk action on your own account", 400);
     }
 

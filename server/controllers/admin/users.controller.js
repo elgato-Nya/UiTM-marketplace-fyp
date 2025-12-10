@@ -98,7 +98,7 @@ const handleGetUserById = asyncHandler(async (req, res) => {
 const handleUpdateUserStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { suspend, reason } = req.body;
-  const adminId = req.user.id;
+  const adminId = req.user._id;
 
   if (suspend === undefined) {
     throw new AppError("Suspend status is required", 400);
@@ -131,7 +131,7 @@ const handleUpdateUserStatus = asyncHandler(async (req, res) => {
 const handleUpdateUserRoles = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { roles } = req.body;
-  const adminId = req.user.id;
+  const adminId = req.user._id;
 
   if (!Array.isArray(roles) || roles.length === 0) {
     throw new AppError("Valid roles array is required", 400);
@@ -157,7 +157,7 @@ const handleUpdateUserRoles = asyncHandler(async (req, res) => {
  */
 const handleVerifyUserEmail = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const adminId = req.user.id;
+  const adminId = req.user._id;
 
   const user = await verifyUserEmail(id, adminId);
 
@@ -176,7 +176,7 @@ const handleVerifyUserEmail = asyncHandler(async (req, res) => {
  */
 const handleResetUserPassword = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const adminId = req.user.id;
+  const adminId = req.user._id;
 
   const result = await resetUserPassword(id, adminId);
 
@@ -241,7 +241,7 @@ const handleSearchUsers = asyncHandler(async (req, res) => {
  */
 const handleBulkUpdateUsers = asyncHandler(async (req, res) => {
   const { userIds, action } = req.body;
-  const adminId = req.user.id;
+  const adminId = req.user._id;
 
   if (!Array.isArray(userIds) || userIds.length === 0) {
     throw new AppError("User IDs array is required", 400);

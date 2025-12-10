@@ -19,13 +19,27 @@ class DatabaseManager {
   // Method to connect to database
   async connect() {
     try {
+      // Disable mongoose command buffering so operations fail fast when
+      // there is no active connection. This prevents long "buffering timed out"
+      // errors and surfaces connection problems immediately.
+      mongoose.set("bufferCommands", false);
+      // Use recommended connection options and a short server selection
+      // timeout so failed connections return quickly in development.
+      const connectOptions = {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000,
+      };
       this.connectionAttempts++;
       logger.database("Attempting MongoDB connection", {
         attempt: this.connectionAttempts,
         uri: this.sanitizeUri(process.env.MONGO_URI),
       });
 
-      const conn = await mongoose.connect(process.env.MONGO_URI);
+      const conn = await mongoose.connect(
+        process.env.MONGO_URI,
+        connectOptions
+      );
 
       this.isConnected = true;
       this.setupEventListeners();

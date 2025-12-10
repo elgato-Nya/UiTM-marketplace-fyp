@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import api from "../../services/api";
+import { EmailVerificationModal } from "../../components/common/Modal";
 
 const forgotPasswordSchema = yup.object().shape({
   email: yup
@@ -28,6 +29,11 @@ const ForgotPasswordPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalStatus, setModalStatus] = useState("idle");
+  const [modalError, setModalError] = useState("");
 
   // Clear error when component unmounts
   React.useEffect(() => {
@@ -48,6 +54,8 @@ const ForgotPasswordPage = () => {
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     setError("");
+    setModalStatus("loading");
+    setModalOpen(true);
 
     try {
       await api.post("/auth/forgot-password", {
@@ -55,6 +63,7 @@ const ForgotPasswordPage = () => {
       });
 
       setSubmitted(true);
+      setModalStatus("success");
     } catch (err) {
       const serverError = err.response?.data?.error;
       const errorMessage =
@@ -62,6 +71,8 @@ const ForgotPasswordPage = () => {
         err.response?.data?.message ||
         "Failed to send password reset email. Please try again.";
       setError(errorMessage);
+      setModalError(errorMessage);
+      setModalStatus("error");
     } finally {
       setIsSubmitting(false);
     }
@@ -70,6 +81,7 @@ const ForgotPasswordPage = () => {
   const handleResendEmail = async () => {
     setIsSubmitting(true);
     setError("");
+    setModalStatus("loading");
 
     try {
       await api.post("/auth/forgot-password", {
@@ -78,6 +90,7 @@ const ForgotPasswordPage = () => {
 
       setError("");
       setSubmitted(true);
+      setModalStatus("success");
     } catch (err) {
       const serverError = err.response?.data?.error;
       const errorMessage =
@@ -85,9 +98,19 @@ const ForgotPasswordPage = () => {
         err.response?.data?.message ||
         "Failed to resend email. Please wait a moment and try again.";
       setError(errorMessage);
+      setModalError(errorMessage);
+      setModalStatus("error");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setTimeout(() => {
+      setModalStatus("idle");
+      setModalError("");
+    }, 300);
   };
 
   if (submitted) {
@@ -246,6 +269,18 @@ const ForgotPasswordPage = () => {
             </Box>
           </form>
         </Paper>
+
+        {/* Email Verification Modal */}
+        <EmailVerificationModal
+          open={modalOpen}
+          onClose={handleCloseModal}
+          status={modalStatus}
+          type="forgot-password"
+          email={getValues("email")}
+          error={modalError}
+          onResend={handleResendEmail}
+          isResending={isSubmitting}
+        />
       </Box>
     </Container>
   );

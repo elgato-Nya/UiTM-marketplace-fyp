@@ -412,11 +412,14 @@ const UserDetailModal = ({ open, onClose, user }) => {
                   <AccessTime sx={{ color: theme.palette.text.secondary }} />
                   <Box>
                     <Typography variant="caption" color="text.secondary">
-                      Last Active
+                      Last Activity
                     </Typography>
                     <Typography variant="body2">
-                      {user.lastActive
-                        ? format(new Date(user.lastActive), "PPP")
+                      {user.lastActivityAt || user.lastActive
+                        ? format(
+                            new Date(user.lastActivityAt || user.lastActive),
+                            "PPP 'at' p"
+                          )
                         : "Never"}
                     </Typography>
                   </Box>

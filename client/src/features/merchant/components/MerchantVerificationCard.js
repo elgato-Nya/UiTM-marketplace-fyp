@@ -17,6 +17,7 @@ import {
 } from "@mui/icons-material";
 import { useTheme } from "../../../hooks/useTheme";
 import DynamicForm from "../../../components/common/Form/DynamicForm";
+import { EmailVerificationModal } from "../../../components/common/Modal";
 import { merchantVerificationFormConfig } from "../../../config/forms/merchantForms";
 import { merchantVerificationSchema } from "../../../validation/merchantValidator";
 import { useMerchantVerification } from "../hooks/useMerchantVerification";
@@ -43,29 +44,59 @@ function MerchantVerificationCard({
   const [showForm, setShowForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalStatus, setModalStatus] = useState("idle");
+  const [modalError, setModalError] = useState("");
+  const [verificationEmail, setVerificationEmail] = useState("");
+
   const isVerified = user?.merchantDetails?.isUiTMVerified;
-  const verificationEmail = user?.merchantDetails?.verificationEmail;
+  const existingVerificationEmail = user?.merchantDetails?.verificationEmail;
 
   const handleSubmit = async (data) => {
+    setModalStatus("loading");
+    setModalOpen(true);
+    setVerificationEmail(data.verificationEmail);
+
     const result = await submitVerification(data.verificationEmail);
     if (result.success) {
+      setModalStatus("success");
       setSubmitted(true);
       setShowForm(false);
       if (onVerificationSuccess) {
         onVerificationSuccess(result.data);
       }
+    } else {
+      setModalError(result.error || "Verification failed");
+      setModalStatus("error");
     }
   };
 
   const handleAutoVerify = async () => {
     if (isUiTMEmail && userEmail) {
+      setModalStatus("loading");
+      setModalOpen(true);
+      setVerificationEmail(userEmail);
+
       const result = await submitVerification(userEmail);
       if (result.success) {
+        setModalStatus("success");
         if (onVerificationSuccess) {
           onVerificationSuccess(result.data);
         }
+      } else {
+        setModalError(result.error || "Verification failed");
+        setModalStatus("error");
       }
     }
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setTimeout(() => {
+      setModalStatus("idle");
+      setModalError("");
+    }, 300);
   };
 
   // Already verified
@@ -259,6 +290,21 @@ function MerchantVerificationCard({
           </Box>
         )}
       </CardContent>
+
+      {/* Email Verification Modal */}
+      <EmailVerificationModal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        status={modalStatus}
+        type="merchant"
+        email={verificationEmail}
+        error={modalError}
+        onResend={() => {
+          setModalStatus("loading");
+          handleSubmit({ verificationEmail });
+        }}
+        isResending={isLoading}
+      />
     </Card>
   );
 }

@@ -331,10 +331,14 @@ function ShopProfilePage() {
                 </Box>
                 <Box sx={{ textAlign: "center" }}>
                   <Typography variant="body2">
-                    <strong>{shop.shopMetrics?.totalProducts || 0}</strong>
+                    <strong>
+                      {shop.shopMetrics?.totalListings ||
+                        shop.shopMetrics?.totalProducts ||
+                        0}
+                    </strong>
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Products
+                    Listings
                   </Typography>
                 </Box>
                 <Box sx={{ textAlign: "center" }}>
@@ -394,24 +398,26 @@ function ShopProfilePage() {
                     </Typography>
                   </Box>
                 )}
-              </Box>
 
-              {/* Contact Button - Full width */}
-              <Button
-                fullWidth
-                variant="contained"
-                startIcon={<WhatsApp />}
-                size="large"
-                onClick={handleWhatsAppContact}
-                sx={{
-                  bgcolor: "#25D366",
-                  "&:hover": {
-                    bgcolor: "#128C7E",
-                  },
-                }}
-              >
-                Contact via WhatsApp
-              </Button>
+                {/* WhatsApp Contact Button */}
+                {merchant?.profile?.phoneNumber && (
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    startIcon={<WhatsApp />}
+                    size="large"
+                    onClick={handleWhatsAppContact}
+                    sx={{
+                      bgcolor: "#25D366",
+                      "&:hover": {
+                        bgcolor: "#128C7E",
+                      },
+                    }}
+                  >
+                    Contact via WhatsApp
+                  </Button>
+                )}
+              </Box>
             </Stack>
           ) : (
             // Desktop Layout - Horizontal
@@ -487,8 +493,12 @@ function ShopProfilePage() {
                   </Grid>
                   <Grid>
                     <Typography variant="body2" color="text.secondary">
-                      <strong>{shop.shopMetrics?.totalProducts || 0}</strong>{" "}
-                      Products
+                      <strong>
+                        {shop.shopMetrics?.totalListings ||
+                          shop.shopMetrics?.totalProducts ||
+                          0}
+                      </strong>{" "}
+                      Listings
                     </Typography>
                   </Grid>
                   <Grid>
@@ -506,10 +516,60 @@ function ShopProfilePage() {
                   </Grid>
                 </Grid>
 
-                {/* Contact Button */}
-                <Button variant="outlined" startIcon={<Email />}>
-                  Contact Seller
-                </Button>
+                {/* Contact Information */}
+                {(shop.businessEmail || merchant?.profile?.phoneNumber) && (
+                  <Box sx={{ mb: 2 }}>
+                    {/* Business Email */}
+                    {shop.businessEmail && (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                          mb: 1,
+                        }}
+                      >
+                        <Email sx={{ fontSize: 18, color: "text.secondary" }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {shop.businessEmail}
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {/* Phone Number */}
+                    {merchant?.profile?.phoneNumber && (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                        }}
+                      >
+                        <Phone sx={{ fontSize: 18, color: "text.secondary" }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {merchant.profile.phoneNumber}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                )}
+
+                {/* WhatsApp Contact Button */}
+                {merchant?.profile?.phoneNumber && (
+                  <Button
+                    variant="contained"
+                    startIcon={<WhatsApp />}
+                    onClick={handleWhatsAppContact}
+                    sx={{
+                      bgcolor: "#25D366",
+                      "&:hover": {
+                        bgcolor: "#128C7E",
+                      },
+                    }}
+                  >
+                    Contact via WhatsApp
+                  </Button>
+                )}
               </Box>
             </Box>
           )}
@@ -813,12 +873,12 @@ function ShopProfilePage() {
             <Box sx={{ py: 8, textAlign: "center" }}>
               <Store sx={{ fontSize: 64, color: "text.disabled", mb: 2 }} />
               <Typography variant="h6" color="text.secondary" gutterBottom>
-                No products found
+                No listings found
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {searchQuery || selectedCategory
                   ? "Try adjusting your search or filters"
-                  : "This shop hasn't listed any products yet"}
+                  : "This shop hasn't listed any products or services yet"}
               </Typography>
             </Box>
           )}

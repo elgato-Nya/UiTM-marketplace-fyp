@@ -33,6 +33,7 @@ const calculatePlatformAnalytics = async (period = "week") => {
       userCounts,
       activeUsers,
       listingsByCategory,
+      totalListings,
       usersByCampus,
       gmv,
       merchantStats,
@@ -40,6 +41,7 @@ const calculatePlatformAnalytics = async (period = "week") => {
       countUsersByRole(),
       countActiveUsers(start, end),
       countListingsByCategory(),
+      require("../../models/listing/listing.model").countDocuments({}), // Total listings (all)
       countUsersByCampus(),
       calculatePlatformGMV(start, end),
       countMerchantsByStatus(),
@@ -86,8 +88,8 @@ const calculatePlatformAnalytics = async (period = "week") => {
 
       // Listing metrics
       listings: {
-        total: listingsByCategory.reduce((sum, cat) => sum + cat.count, 0),
-        active: listingsByCategory.reduce((sum, cat) => sum + cat.count, 0),
+        total: totalListings, // All listings (including inactive)
+        active: listingsByCategory.reduce((sum, cat) => sum + cat.count, 0), // Only available listings
         byCategory: listingsByCategory,
       },
 

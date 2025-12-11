@@ -40,9 +40,9 @@ function CallToAction() {
               lineHeight: { xs: 1.6, md: 1.8 },
             }}
           >
-            Whether you're looking to buy, sell, or trade, UiTM Marketplace
-            provides the tools and security you need. Start your journey today
-            and be part of our thriving campus economy.
+            Whether you're looking to buy, sell, or trade, MarKet provides the
+            tools and security you need. Start your journey today and be part of
+            our thriving campus economy.
           </Typography>
 
           <Box

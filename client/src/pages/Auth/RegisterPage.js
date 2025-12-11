@@ -165,7 +165,7 @@ function RegisterPage() {
         color="text.secondary"
         sx={{ mb: { xs: 2.5, sm: 3 }, textAlign: "center" }}
       >
-        Join UiTM Marketplace today
+        Join MarKet today
       </Typography>
 
       <DynamicForm

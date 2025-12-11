@@ -128,7 +128,7 @@ function TrustIndicators() {
               color: theme.palette.text.primary,
             }}
           >
-            Why Choose UiTM Marketplace?
+            Why Choose MarKet?
           </Typography>
           <Typography
             variant="h6"

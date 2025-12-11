@@ -148,7 +148,7 @@ const sendVerificationEmail = async (user, token) => {
     const mailOptions = {
       from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_FROM}>`,
       to: user.email,
-      subject: "Verify Your Email - UiTM Marketplace",
+      subject: "Verify Your Email - MarKet",
       html: getVerificationTemplate(user, verificationUrl),
     };
 
@@ -272,7 +272,7 @@ const sendMerchantVerificationEmail = async (
     const mailOptions = {
       from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_FROM}>`,
       to: verificationEmail,
-      subject: "Verify Your Merchant Status - UiTM Marketplace",
+      subject: "Verify Your Merchant Status - MarKet",
       html: getMerchantVerificationTemplate(user, verificationUrl),
     };
 
@@ -365,7 +365,7 @@ const sendPasswordResetEmail = async (user, token) => {
     const mailOptions = {
       from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_FROM}>`,
       to: user.email,
-      subject: "Password Reset - UiTM Marketplace",
+      subject: "Password Reset - MarKet",
       html: getPasswordResetTemplate(user, resetUrl),
     };
 
@@ -421,7 +421,7 @@ const getVerificationTemplate = (user, url) => {
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #f9f9f9; border-radius: 8px;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <h1 style="color: #007bff; margin: 0;">UiTM Marketplace</h1>
+        <h1 style="color: #007bff; margin: 0;">MarKet</h1>
       </div>
       <h2 style="color: #333;">Email Verification</h2>
       <p>Hi <strong>${username}</strong>,</p>
@@ -443,7 +443,7 @@ const getVerificationTemplate = (user, url) => {
       </div>
       <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
       <p style="color: #999; font-size: 12px; text-align: center;">
-        This is an automated message from UiTM Marketplace. Please do not reply to this email.
+        This is an automated message from MarKet. Please do not reply to this email.
       </p>
     </div>
   `;
@@ -461,11 +461,11 @@ const getMerchantVerificationTemplate = (user, url) => {
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #f9f9f9; border-radius: 8px;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <h1 style="color: #007bff; margin: 0;">UiTM Marketplace</h1>
+        <h1 style="color: #007bff; margin: 0;">MarKet</h1>
       </div>
       <h2 style="color: #333;">Merchant Verification</h2>
       <p>Hi <strong>${username}</strong>,</p>
-      <p>You've requested to verify your merchant status with your UiTM email. Click the button below to complete verification:</p>
+      <p>You've requested to verify your merchant status with your email. Click the button below to complete verification:</p>
       <div style="text-align: center; margin: 32px 0;">
         <a href="${url}" aria-label="Verify Merchant Status" style="background: #28a745; color: white; padding: 14px 32px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
           Verify Merchant Status
@@ -488,13 +488,13 @@ const getMerchantVerificationTemplate = (user, url) => {
         <p style="margin: 0; color: #856404;">
           <strong>⚠️ Important:</strong><br>
           • This link expires in <strong>24 hours</strong><br>
-          • This email was sent to your UiTM email for verification<br>
+          • This email was sent to your email for verification<br>
           • If you didn't request this, please ignore this email
         </p>
       </div>
       <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
       <p style="color: #999; font-size: 12px; text-align: center;">
-        This is an automated message from UiTM Marketplace. Please do not reply to this email.
+        This is an automated message from MarKet. Please do not reply to this email.
       </p>
     </div>
   `;
@@ -511,14 +511,14 @@ const getPasswordResetTemplate = (user, resetUrl) => {
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #333; margin: 0;">UiTM Marketplace</h1>
+        <h1 style="color: #333; margin: 0;">MarKet</h1>
       </div>
       
       <h2 style="color: #d32f2f;">Password Reset Request</h2>
       
       <p>Hi <strong>${username}</strong>,</p>
       
-      <p>We received a request to reset your password for your UiTM Marketplace account.</p>
+      <p>We received a request to reset your password for your MarKet account.</p>
       
       <div style="text-align: center; margin: 30px 0;">
         <a href="${resetUrl}" 
@@ -544,7 +544,7 @@ const getPasswordResetTemplate = (user, resetUrl) => {
       <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
       
       <p style="color: #666; font-size: 12px; text-align: center;">
-        This is an automated message from UiTM Marketplace. Please do not reply to this email.
+        This is an automated message from MarKet. Please do not reply to this email.
       </p>
     </div>
   `;

@@ -114,7 +114,7 @@ function Header({ onMenuClick, userRole, isMobile }) {
               fontSize: { xs: "1rem", sm: "1.25rem" },
             }}
           >
-            🎓 UiTM Marketplace
+            🐱 MarKet
           </Typography>
         </Box>
 

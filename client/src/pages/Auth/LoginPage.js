@@ -202,7 +202,7 @@ function LoginPage() {
           color="text.secondary"
           sx={{ fontSize: { xs: "0.875rem", sm: "0.9375rem" } }}
         >
-          New to UiTM Marketplace?{" "}
+          New to MarKet?{" "}
           <Link
             component={RouterLink}
             to="/auth/register"

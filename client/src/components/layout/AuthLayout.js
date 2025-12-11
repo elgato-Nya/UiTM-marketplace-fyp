@@ -66,7 +66,7 @@ function AuthLayout() {
             maxWidth: { xs: "60%", sm: "auto" },
           }}
         >
-          🎓 UiTM Marketplace
+          🐱 MarKet
         </Typography>
 
         <ThemeToggle />
@@ -112,7 +112,7 @@ function AuthLayout() {
           color="text.secondary"
           sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
         >
-          © {new Date().getFullYear()} UiTM Marketplace. All rights reserved.
+          © {new Date().getFullYear()} MarKet. All rights reserved.
         </Typography>
       </Box>
     </Box>

@@ -181,7 +181,7 @@ const config = {
       pass: requireEnv("SMTP_PASS", IS_PRODUCTION ? null : "dummy-pass"),
     },
     from: requireEnv("EMAIL_FROM", IS_PRODUCTION ? null : "noreply@localhost"),
-    fromName: getEnv("EMAIL_FROM_NAME", "UiTM Marketplace"),
+    fromName: getEnv("EMAIL_FROM_NAME", "MarKet"),
     clientUrl: requireEnv(
       "CLIENT_URL",
       IS_PRODUCTION ? null : "http://localhost:3000"

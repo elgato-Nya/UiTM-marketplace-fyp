@@ -127,7 +127,7 @@ const createPaymentIntent = async (userId, sessionId) => {
         sellerCount: session.sellerGroups.length.toString(),
         sessionType: session.sessionType,
       },
-      description: `UiTM Marketplace - ${session.items.length} item(s)`,
+      description: `MarKet - ${session.items.length} item(s)`,
       receipt_email: user.email,
       automatic_payment_methods: {
         enabled: true,

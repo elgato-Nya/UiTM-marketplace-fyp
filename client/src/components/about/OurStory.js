@@ -48,10 +48,9 @@ function OurStory() {
               mb: { xs: 2, md: 3 },
             }}
           >
-            The UiTM Marketplace was born from a simple observation: students,
-            faculty, and staff across UiTM's campuses needed a reliable, secure
-            platform to connect, trade, and support each other's entrepreneurial
-            endeavors.
+            MarKet was born from a simple observation: students, faculty, and
+            staff across campuses needed a reliable, secure platform to connect,
+            trade, and support each other's entrepreneurial endeavors.
           </Typography>
           <Typography
             variant="body1"

@@ -182,7 +182,7 @@ function CTASection() {
                 Platform Overview
               </Typography>
               <Typography variant="h6" sx={{ mb: 3, opacity: 0.9 }}>
-                Monitor and manage the UiTM Marketplace ecosystem
+                Monitor and manage the MarKet ecosystem
               </Typography>
               <Button
                 component={Link}

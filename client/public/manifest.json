@@ -1,7 +1,7 @@
 {
-  "short_name": "UiTM Marketplace",
-  "name": "UiTM Student Marketplace - Buy & Sell",
-  "description": "Marketplace for members of UiTM community to buy, sell products and services",
+  "short_name": "MarKet",
+  "name": "MarKet - UiTM Campus Marketplace",
+  "description": "Independent marketplace for UiTM community to buy, sell products and services",
   "icons": [
     {
       "src": "favicon.ico",

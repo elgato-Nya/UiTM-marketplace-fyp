@@ -14,6 +14,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 
 import { useTheme } from "../../../hooks/useTheme";
+import { useSnackbar } from "../../../hooks/useSnackbar";
 import DynamicFormField from "./DynamicFormField";
 
 function DynamicForm({
@@ -28,6 +29,7 @@ function DynamicForm({
   customContent = null, // Custom content to render before submit button
 }) {
   const { theme } = useTheme();
+  const { showSnackbar } = useSnackbar();
   const [activeStep, setActiveStep] = useState(0);
   const [passwordVisibility, setPasswordVisibility] = useState({});
 
@@ -89,9 +91,32 @@ function DynamicForm({
     const fieldsToValidate = getFieldNamesForStep(activeStep);
     const isStepValid = await trigger(fieldsToValidate);
 
-    if (isStepValid) {
-      setActiveStep((prev) => prev + 1);
+    if (!isStepValid) {
+      // Get the first error to show in toast
+      const stepErrors = fieldsToValidate
+        .map((fieldName) => {
+          const keys = fieldName.split(".");
+          let error = errors;
+          for (const key of keys) {
+            if (error?.[key]) error = error[key];
+            else return null;
+          }
+          return error?.message;
+        })
+        .filter(Boolean);
+
+      if (stepErrors.length > 0) {
+        showSnackbar(
+          stepErrors.length === 1
+            ? stepErrors[0]
+            : `Please fix ${stepErrors.length} error${stepErrors.length > 1 ? "s" : ""} before continuing`,
+          "error"
+        );
+      }
+      return;
     }
+
+    setActiveStep((prev) => prev + 1);
   };
 
   // Handle previous step
@@ -102,6 +127,29 @@ function DynamicForm({
   // Handle form submission
   const handleFormSubmit = async (data) => {
     try {
+      // Validate all fields before submission
+      const isValid = await trigger();
+
+      if (!isValid) {
+        // Count total errors
+        const countErrors = (obj) => {
+          let count = 0;
+          for (const key in obj) {
+            if (obj[key]?.message) count++;
+            else if (typeof obj[key] === "object")
+              count += countErrors(obj[key]);
+          }
+          return count;
+        };
+
+        const errorCount = countErrors(errors);
+        showSnackbar(
+          `Please fix ${errorCount} validation error${errorCount > 1 ? "s" : ""} before submitting`,
+          "error"
+        );
+        return;
+      }
+
       await onSubmit(data);
     } catch (error) {
       console.error("Form submission error:", error);

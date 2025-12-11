@@ -85,11 +85,12 @@ function Footer() {
               gutterBottom
               sx={{ fontWeight: "bold" }}
             >
-              🎓 UiTM Marketplace
+              🐱 MarKet
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Your trusted platform connecting UiTM students and merchants.
-              Discover amazing products and services from your campus community.
+              Your trusted platform connecting members of UiTM community through
+              e-commerce. Discover amazing products and services from your
+              campus community.
             </Typography>
 
             {/* Contact Info */}
@@ -97,13 +98,13 @@ function Footer() {
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <Email sx={{ fontSize: 16, color: "text.secondary" }} />
                 <Typography variant="body2" color="text.secondary">
-                  support@uitm-marketplace.edu.my
+                  support@nekodez.com
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <Phone sx={{ fontSize: 16, color: "text.secondary" }} />
                 <Typography variant="body2" color="text.secondary">
-                  +60 3-5544 2000
+                  +60 11-6203 3072
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -279,7 +280,15 @@ function Footer() {
           }}
         >
           <Typography variant="body2" color="text.secondary">
-            © {new Date().getFullYear()} UiTM Marketplace. All rights reserved.
+            © {new Date().getFullYear()} MarKet. All rights reserved.
+          </Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ mt: 0.5, display: "block", opacity: 0.8 }}
+          >
+            Independent platform for UiTM community. Not officially affiliated
+            with Universiti Teknologi MARA.
           </Typography>
         </Box>
       </Container>

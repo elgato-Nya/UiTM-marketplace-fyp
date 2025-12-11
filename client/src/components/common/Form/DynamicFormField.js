@@ -45,8 +45,29 @@ function DynamicFormField({
   ...otherProps
 }) {
   const { theme } = useTheme();
-  const hasError = !!errors?.[name];
-  const errorMessage = errors?.[name]?.message;
+
+  // Helper function to get nested error
+  const getNestedError = (errors, path) => {
+    if (!errors || !path) return null;
+
+    // Handle nested paths like "profile.username"
+    const keys = path.split(".");
+    let error = errors;
+
+    for (const key of keys) {
+      if (error?.[key]) {
+        error = error[key];
+      } else {
+        return null;
+      }
+    }
+
+    return error;
+  };
+
+  const errorObject = getNestedError(errors, name);
+  const hasError = !!errorObject;
+  const errorMessage = errorObject?.message;
 
   const baseStyles = {
     "& .MuiOutlinedInput-root": {

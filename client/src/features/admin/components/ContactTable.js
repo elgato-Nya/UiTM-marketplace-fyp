@@ -314,13 +314,14 @@ const ContactTable = ({
                   component="button"
                   onClick={() => onRowClick(contact)}
                   sx={{
-                    py: 1.5,
+                    py: 2,
                     px: 2,
                     cursor: "pointer",
                     border: "none",
                     backgroundColor: "transparent",
                     textAlign: "left",
                     width: "100%",
+                    display: "block",
                     "&:hover": {
                       backgroundColor: theme.palette.action.hover,
                     },
@@ -352,11 +353,12 @@ const ContactTable = ({
                         variant="body2"
                         sx={{
                           fontWeight: 600,
-                          fontSize: "0.875rem",
+                          fontSize: "0.9375rem",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
-                          mb: 0.5,
+                          mb: 0.75,
+                          color: theme.palette.text.primary,
                         }}
                       >
                         {contact.subject || "No subject"}
@@ -365,17 +367,21 @@ const ContactTable = ({
                       {/* Submitter - Single Line */}
                       <Typography
                         variant="caption"
-                        color="text.secondary"
                         sx={{
-                          fontSize: "0.75rem",
+                          fontSize: "0.8125rem",
                           display: "block",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
-                          mb: 0.5,
+                          mb: 1,
+                          color: theme.palette.text.secondary,
                         }}
                       >
-                        {contact.name} • {contact.email}
+                        {contact.submittedBy?.name || contact.name || "Unknown"}{" "}
+                        •{" "}
+                        {contact.submittedBy?.email ||
+                          contact.email ||
+                          "No email"}
                       </Typography>
 
                       {/* Chips Row - Compact */}
@@ -383,8 +389,8 @@ const ContactTable = ({
                         sx={{
                           display: "flex",
                           flexWrap: "wrap",
-                          gap: 0.5,
-                          mb: 0.5,
+                          gap: 0.75,
+                          mb: 1,
                         }}
                       >
                         {/* Status */}
@@ -393,20 +399,27 @@ const ContactTable = ({
                           size="small"
                           sx={{
                             textTransform: "capitalize",
-                            fontSize: "0.65rem",
-                            height: "20px",
+                            fontSize: "0.6875rem",
+                            height: "22px",
+                            fontWeight: 500,
                             bgcolor:
                               contact.status === "resolved"
                                 ? theme.palette.success.light
-                                : contact.status === "in_progress"
+                                : contact.status === "in-progress" ||
+                                    contact.status === "in_progress"
                                   ? theme.palette.info.light
-                                  : theme.palette.grey[300],
+                                  : contact.status === "pending"
+                                    ? theme.palette.warning.light
+                                    : theme.palette.grey[300],
                             color:
                               contact.status === "resolved"
                                 ? theme.palette.success.dark
-                                : contact.status === "in_progress"
+                                : contact.status === "in-progress" ||
+                                    contact.status === "in_progress"
                                   ? theme.palette.info.dark
-                                  : theme.palette.text.primary,
+                                  : contact.status === "pending"
+                                    ? theme.palette.warning.dark
+                                    : theme.palette.text.primary,
                           }}
                         />
 
@@ -416,20 +429,25 @@ const ContactTable = ({
                           size="small"
                           sx={{
                             textTransform: "capitalize",
-                            fontSize: "0.65rem",
-                            height: "20px",
+                            fontSize: "0.6875rem",
+                            height: "22px",
+                            fontWeight: 500,
                             bgcolor:
                               contact.priority === "urgent"
                                 ? theme.palette.error.light
                                 : contact.priority === "high"
                                   ? theme.palette.warning.light
-                                  : theme.palette.grey[300],
+                                  : contact.priority === "normal"
+                                    ? theme.palette.info.light
+                                    : theme.palette.grey[300],
                             color:
                               contact.priority === "urgent"
                                 ? theme.palette.error.dark
                                 : contact.priority === "high"
                                   ? theme.palette.warning.dark
-                                  : theme.palette.text.primary,
+                                  : contact.priority === "normal"
+                                    ? theme.palette.info.dark
+                                    : theme.palette.text.primary,
                           }}
                         />
 
@@ -442,8 +460,9 @@ const ContactTable = ({
                                 .replace(/\b\w/g, (l) => l.toUpperCase())}
                               size="small"
                               sx={{
-                                fontSize: "0.65rem",
-                                height: "20px",
+                                fontSize: "0.6875rem",
+                                height: "22px",
+                                fontWeight: 500,
                                 bgcolor: theme.palette.warning.light,
                                 color: theme.palette.warning.dark,
                               }}
@@ -458,10 +477,21 @@ const ContactTable = ({
                               size="small"
                               sx={{
                                 textTransform: "capitalize",
-                                fontSize: "0.65rem",
-                                height: "20px",
-                                bgcolor: theme.palette.error.light,
-                                color: theme.palette.error.dark,
+                                fontSize: "0.6875rem",
+                                height: "22px",
+                                fontWeight: 500,
+                                bgcolor:
+                                  contact.bugDetails.severity === "critical"
+                                    ? theme.palette.error.light
+                                    : contact.bugDetails.severity === "high"
+                                      ? theme.palette.warning.light
+                                      : theme.palette.info.light,
+                                color:
+                                  contact.bugDetails.severity === "critical"
+                                    ? theme.palette.error.dark
+                                    : contact.bugDetails.severity === "high"
+                                      ? theme.palette.warning.dark
+                                      : theme.palette.info.dark,
                               }}
                             />
                           )}
@@ -473,12 +503,15 @@ const ContactTable = ({
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
+                          mt: 0.5,
                         }}
                       >
                         <Typography
                           variant="caption"
-                          color="text.secondary"
-                          sx={{ fontSize: "0.7rem" }}
+                          sx={{
+                            fontSize: "0.75rem",
+                            color: theme.palette.text.secondary,
+                          }}
                         >
                           {format(
                             new Date(contact.createdAt),
@@ -608,10 +641,14 @@ const ContactTable = ({
                     <TableCell>
                       <Box>
                         <Typography variant="body2" fontWeight={600}>
-                          {contact.name}
+                          {contact.submittedBy?.name ||
+                            contact.name ||
+                            "Unknown"}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {contact.email}
+                          {contact.submittedBy?.email ||
+                            contact.email ||
+                            "No email"}
                         </Typography>
                       </Box>
                     </TableCell>
@@ -639,16 +676,27 @@ const ContactTable = ({
                           {getCategoryBadge(contact.contentReport.category)}
                           {renderEntityLink(contact)}
                         </Box>
-                      ) : contact.type === "bug" && contact.bugDetails ? (
+                      ) : contact.type === "bug_report" &&
+                        contact.bugDetails ? (
                         <Chip
                           label={contact.bugDetails.severity}
                           size="small"
-                          variant="outlined"
-                          color={
-                            contact.bugDetails.severity === "critical"
-                              ? "error"
-                              : "default"
-                          }
+                          sx={{
+                            textTransform: "capitalize",
+                            fontWeight: 500,
+                            bgcolor:
+                              contact.bugDetails.severity === "critical"
+                                ? theme.palette.error.light
+                                : contact.bugDetails.severity === "high"
+                                  ? theme.palette.warning.light
+                                  : theme.palette.info.light,
+                            color:
+                              contact.bugDetails.severity === "critical"
+                                ? theme.palette.error.dark
+                                : contact.bugDetails.severity === "high"
+                                  ? theme.palette.warning.dark
+                                  : theme.palette.info.dark,
+                          }}
                         />
                       ) : (
                         <Typography variant="caption" color="text.secondary">

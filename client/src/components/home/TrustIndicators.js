@@ -20,6 +20,62 @@ import {
 import { useTheme } from "../../hooks/useTheme";
 import { getPublicStats } from "../../services/analyticsService";
 
+/**
+ * TrustIndicators Component
+ *
+ * PURPOSE: Display platform statistics and trust features to build credibility
+ * CURRENT: Shows real-time platform stats (users, listings, merchants)
+ *
+ * TODO: Enhanced Transaction-Based Social Proof (Future Implementation)
+ * =====================================================================
+ * Once sufficient transactional data is available, enhance this component with:
+ *
+ * 1. REAL TRANSACTION METRICS:
+ *    - Total completed orders/transactions
+ *    - Success rate percentage (completed/total orders)
+ *    - Total transaction volume (GMV - Gross Merchandise Value)
+ *    - Average order fulfillment time
+ *
+ * 2. CUSTOMER SATISFACTION METRICS:
+ *    - Average customer rating from order feedback
+ *    - Percentage of 5-star ratings
+ *    - Customer satisfaction score (from order ratings)
+ *    - Repeat purchase rate
+ *
+ * 3. DELIVERY METRICS:
+ *    - Average delivery time (calculated from orders)
+ *    - On-time delivery rate
+ *    - Campus delivery success rate
+ *
+ * 4. MERCHANT METRICS:
+ *    - Average merchant response time
+ *    - Top-rated merchants count (rating >= 4.5)
+ *    - Verified merchant percentage
+ *
+ * 5. API ENDPOINT (to create):
+ *    GET /api/analytics/public/transaction-stats
+ *    Response: {
+ *      totalOrders: number,
+ *      completedOrders: number,
+ *      successRate: number,
+ *      averageRating: number,
+ *      averageDeliveryDays: number,
+ *      onTimeDeliveryRate: number,
+ *      totalGMV: number
+ *    }
+ *
+ * 6. DISPLAY STRATEGY:
+ *    - Show transaction metrics alongside current platform stats
+ *    - Use animated counters for impressive numbers
+ *    - Add trend indicators (↑ 12% this month)
+ *    - Implement real-time updates (refresh every 60s)
+ *
+ * WHY THIS MATTERS:
+ * Enterprise marketplaces (Amazon, eBay, Shopify) prominently display
+ * transaction metrics as they provide stronger social proof than user counts.
+ * Real transaction data = platform is actively used and trusted.
+ */
+
 const notUsedForNow = [
   {
     id: 1,
@@ -118,13 +174,14 @@ function TrustIndicators() {
       }}
     >
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-        <Box sx={{ textAlign: "center", mb: 5 }}>
+        <Box sx={{ textAlign: "center", mb: { xs: 3, sm: 4, md: 5 } }}>
           <Typography
             variant="h4"
             component="h2"
             sx={{
               fontWeight: "bold",
-              mb: 2,
+              mb: { xs: 1, sm: 1.5, md: 2 },
+              fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
               color: theme.palette.text.primary,
             }}
           >
@@ -134,8 +191,10 @@ function TrustIndicators() {
             variant="h6"
             sx={{
               color: theme.palette.text.secondary,
+              fontSize: { xs: "0.95rem", sm: "1.125rem", md: "1.25rem" },
               maxWidth: 600,
               mx: "auto",
+              px: { xs: 2, sm: 0 },
             }}
           >
             Your trusted platform for safe, secure, and convenient campus
@@ -160,18 +219,16 @@ function TrustIndicators() {
               <Grid
                 grow={1}
                 size={{
-                  xs: 12,
+                  xs: 6,
                   sm: 6,
                   md: 4,
                 }}
                 key={feature.id}
-                sx={{
-                  height: 225,
-                }}
               >
                 <Card
                   sx={{
                     height: "100%",
+                    minHeight: { xs: 160, sm: 200, md: 225 },
                     bgcolor: theme.palette.background.paper,
                     border: isAccessible
                       ? `1px solid ${theme.palette.divider}`
@@ -192,19 +249,21 @@ function TrustIndicators() {
                       flexDirection: "column",
                       alignItems: "center",
                       textAlign: "center",
-                      p: 3,
+                      p: { xs: 2, sm: 2.5, md: 3 },
+                      height: "100%",
+                      justifyContent: "center",
                     }}
                   >
                     <Box
                       sx={{
                         bgcolor: `${colorValue}15`,
                         borderRadius: isAccessible ? 0 : "50%",
-                        width: 80,
-                        height: 80,
+                        width: { xs: 56, sm: 70, md: 80 },
+                        height: { xs: 56, sm: 70, md: 80 },
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        mb: 2,
+                        mb: { xs: 1.5, sm: 2 },
                         border: isAccessible
                           ? `2px solid ${colorValue}`
                           : "none",
@@ -212,7 +271,7 @@ function TrustIndicators() {
                     >
                       <Icon
                         sx={{
-                          fontSize: 40,
+                          fontSize: { xs: 28, sm: 36, md: 40 },
                           color: colorValue,
                         }}
                       />
@@ -223,7 +282,8 @@ function TrustIndicators() {
                       component="h3"
                       sx={{
                         fontWeight: "bold",
-                        mb: 1,
+                        mb: { xs: 0.5, sm: 0.75, md: 1 },
+                        fontSize: { xs: "0.9rem", sm: "1.1rem", md: "1.25rem" },
                         color: theme.palette.text.primary,
                       }}
                     >
@@ -234,7 +294,16 @@ function TrustIndicators() {
                       variant="body2"
                       sx={{
                         color: theme.palette.text.secondary,
-                        lineHeight: 1.6,
+                        lineHeight: 1.5,
+                        fontSize: {
+                          xs: "0.75rem",
+                          sm: "0.8125rem",
+                          md: "0.875rem",
+                        },
+                        display: "-webkit-box",
+                        WebkitLineClamp: { xs: 2, md: 3 },
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
                       }}
                     >
                       {feature.description}

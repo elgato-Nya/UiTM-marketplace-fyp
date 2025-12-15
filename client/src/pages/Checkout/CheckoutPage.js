@@ -178,7 +178,11 @@ const CheckoutPage = () => {
             payment_method: {
               card: elements.getElement(CardElement),
               billing_details: {
-                name: session.shippingAddress.recipientName,
+                name:
+                  selectedAddress?.recipientName ||
+                  selectedAddress?.fullName ||
+                  session.shippingAddress?.recipientName ||
+                  "Customer",
               },
             },
           });

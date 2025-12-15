@@ -201,6 +201,18 @@ const merchantSchema = new mongoose.Schema(
       },
       default: "unverified",
     },
+    isArchived: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    archivedAt: {
+      type: Date,
+    },
+    archivedReason: {
+      type: String,
+      trim: true,
+    },
     shopRating: {
       averageRating: {
         type: Number,

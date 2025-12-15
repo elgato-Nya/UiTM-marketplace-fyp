@@ -130,11 +130,18 @@ const ContactManagementPage = () => {
           <Typography
             variant="h4"
             component="h1"
-            sx={{ fontWeight: 700, mb: 0.5 }}
+            sx={{
+              fontWeight: 700,
+              mb: 0.5,
+              color: theme.palette.text.primary,
+            }}
           >
             Contact & Report Management
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography
+            variant="body2"
+            sx={{ color: theme.palette.text.secondary }}
+          >
             Manage bug reports, enquiries, feedback, collaboration requests, and
             content moderation reports
           </Typography>
@@ -161,7 +168,10 @@ const ContactManagementPage = () => {
       {/* Total Count */}
       {!loading && (
         <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography
+            variant="body2"
+            sx={{ color: theme.palette.text.secondary }}
+          >
             {totalItems} {totalItems === 1 ? "submission" : "submissions"} found
           </Typography>
         </Box>

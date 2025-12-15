@@ -1,7 +1,7 @@
 {
   "short_name": "MarKet",
-  "name": "MarKet - UiTM Campus Marketplace",
-  "description": "Independent marketplace for UiTM community to buy, sell products and services",
+  "name": "MarKet — Campus Marketplace for UiTM Community",
+  "description": "A campus-focused digital marketplace for UiTM students, lecturers, and vendors to buy and sell products and services.",
   "icons": [
     {
       "src": "favicon.ico",

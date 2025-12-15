@@ -364,6 +364,24 @@ const handleReactivateMerchant = asyncHandler(async (req, res) => {
     throw new AppError("User is not a merchant", 400);
   }
 
+  // Check verification status - rejected merchants cannot be reactivated
+  if (merchant.merchantDetails.verificationStatus === "rejected") {
+    throw new AppError(
+      "Cannot reactivate a rejected merchant. They must resubmit verification.",
+      400,
+      "MERCHANT_REJECTED"
+    );
+  }
+
+  // Check if merchant needs verification setup
+  if (merchant.merchantDetails.verificationStatus === "pending_setup") {
+    throw new AppError(
+      "Merchant has not completed verification setup yet",
+      400,
+      "PENDING_SETUP"
+    );
+  }
+
   // Update shop status
   merchant.merchantDetails.shopStatus = "active";
 

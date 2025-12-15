@@ -1,21 +1,20 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 import {
   Box,
-  Container,
   Typography,
   TextField,
   Button,
-  Paper,
-  Alert,
+  Link,
   CircularProgress,
 } from "@mui/material";
-import { Email, ArrowBack } from "@mui/icons-material";
+import { ArrowBack } from "@mui/icons-material";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import api from "../../services/api";
 import { EmailVerificationModal } from "../../components/common/Modal";
+import { useTheme } from "../../hooks/useTheme";
 
 const forgotPasswordSchema = yup.object().shape({
   email: yup
@@ -26,21 +25,13 @@ const forgotPasswordSchema = yup.object().shape({
 
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState("");
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState("idle");
   const [modalError, setModalError] = useState("");
-
-  // Clear error when component unmounts
-  React.useEffect(() => {
-    return () => {
-      setError("");
-    };
-  }, []);
 
   const {
     register,
@@ -51,28 +42,102 @@ const ForgotPasswordPage = () => {
     resolver: yupResolver(forgotPasswordSchema),
   });
 
+  // Helper function to parse technical errors into user-friendly messages
+  const parseErrorMessage = (error) => {
+    const serverError = error.response?.data?.error;
+    let errorMessage =
+      serverError?.message ||
+      error.response?.data?.message ||
+      error.message ||
+      "";
+
+    // Parse technical error messages into user-friendly text
+    if (
+      errorMessage.includes("ECONNRESET") ||
+      errorMessage.includes("read ECONNRESET")
+    ) {
+      return "Connection was interrupted. Please check your internet connection and try again.";
+    }
+    if (
+      errorMessage.includes("ETIMEDOUT") ||
+      errorMessage.includes("timed out")
+    ) {
+      return "Request timed out. The server might be experiencing issues. Please try again.";
+    }
+    if (
+      errorMessage.includes("ENOTFOUND") ||
+      errorMessage.includes("not found")
+    ) {
+      return "Unable to reach the server. Please check your internet connection.";
+    }
+    if (
+      errorMessage.includes("ECONNREFUSED") ||
+      errorMessage.includes("connection refused")
+    ) {
+      return "Unable to connect to the server. Please try again later.";
+    }
+
+    return (
+      errorMessage || "Unable to send password reset email. Please try again."
+    );
+  };
+
   const onSubmit = async (data) => {
     setIsSubmitting(true);
-    setError("");
-    setModalStatus("loading");
-    setModalOpen(true);
 
     try {
-      await api.post("/auth/forgot-password", {
+      const response = await api.post("/auth/forgot-password", {
         email: data.email,
       });
 
-      setSubmitted(true);
+      // Check if rate limited
+      if (response.data?.rateLimited) {
+        const message =
+          response.data?.message ||
+          "Email was already sent, please wait for 5 minutes before requesting again";
+        setModalError(message);
+        setModalStatus("error");
+        setModalOpen(true);
+        return;
+      }
+
+      // Success - show success modal, will redirect to login on close
       setModalStatus("success");
+      setModalOpen(true);
     } catch (err) {
-      const serverError = err.response?.data?.error;
-      const errorMessage =
-        serverError?.message ||
-        err.response?.data?.message ||
-        "Failed to send password reset email. Please try again.";
-      setError(errorMessage);
+      // Handle network errors
+      if (err.code === "ECONNABORTED" || err.code === "ERR_NETWORK") {
+        setModalError(
+          "Network error. Please check your connection and try again."
+        );
+        setModalStatus("error");
+        setModalOpen(true);
+        return;
+      }
+
+      // Handle cancelled requests
+      if (err.message === "canceled" || err.message?.includes("cancel")) {
+        setModalError("Request was cancelled. Please try again.");
+        setModalStatus("error");
+        setModalOpen(true);
+        return;
+      }
+
+      // Handle timeouts
+      if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
+        setModalError(
+          "Request timed out. The server might be experiencing issues. Please try again."
+        );
+        setModalStatus("error");
+        setModalOpen(true);
+        return;
+      }
+
+      // Parse technical errors into user-friendly messages
+      const errorMessage = parseErrorMessage(err);
       setModalError(errorMessage);
       setModalStatus("error");
+      setModalOpen(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -80,26 +145,54 @@ const ForgotPasswordPage = () => {
 
   const handleResendEmail = async () => {
     setIsSubmitting(true);
-    setError("");
-    setModalStatus("loading");
 
     try {
-      await api.post("/auth/forgot-password", {
+      const response = await api.post("/auth/forgot-password", {
         email: getValues("email"),
       });
 
-      setError("");
-      setSubmitted(true);
+      if (response.data?.rateLimited) {
+        const message =
+          response.data?.message ||
+          "Email was already sent, please wait for 5 minutes before requesting again";
+        setModalError(message);
+        setModalStatus("error");
+        setModalOpen(true);
+        return;
+      }
+
       setModalStatus("success");
+      setModalOpen(true);
     } catch (err) {
-      const serverError = err.response?.data?.error;
-      const errorMessage =
-        serverError?.message ||
-        err.response?.data?.message ||
-        "Failed to resend email. Please wait a moment and try again.";
-      setError(errorMessage);
+      if (err.code === "ECONNABORTED" || err.code === "ERR_NETWORK") {
+        setModalError(
+          "Network error. Please check your connection and try again."
+        );
+        setModalStatus("error");
+        setModalOpen(true);
+        return;
+      }
+
+      if (err.message === "canceled" || err.message?.includes("cancel")) {
+        setModalError("Request was cancelled. Please try again.");
+        setModalStatus("error");
+        setModalOpen(true);
+        return;
+      }
+
+      if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
+        setModalError(
+          "Request timed out. The server might be experiencing issues. Please try again."
+        );
+        setModalStatus("error");
+        setModalOpen(true);
+        return;
+      }
+
+      const errorMessage = parseErrorMessage(err);
       setModalError(errorMessage);
       setModalStatus("error");
+      setModalOpen(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -107,182 +200,111 @@ const ForgotPasswordPage = () => {
 
   const handleCloseModal = () => {
     setModalOpen(false);
-    setTimeout(() => {
-      setModalStatus("idle");
-      setModalError("");
-    }, 300);
+
+    // If success, redirect to login page
+    if (modalStatus === "success") {
+      setTimeout(() => {
+        navigate("/auth/login");
+      }, 300);
+    } else {
+      // For errors, just reset modal state
+      setTimeout(() => {
+        setModalStatus("idle");
+        setModalError("");
+      }, 300);
+    }
   };
 
-  if (submitted) {
-    return (
-      <Container maxWidth="sm">
-        <Box
-          sx={{
-            minHeight: "100vh",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            py: 4,
-          }}
-        >
-          <Paper
-            elevation={3}
-            sx={{
-              p: 4,
-              width: "100%",
-              textAlign: "center",
-              borderRadius: 2,
-            }}
-          >
-            <Email
-              sx={{
-                fontSize: 80,
-                color: "primary.main",
-                mb: 2,
-              }}
-            />
-            <Typography variant="h5" gutterBottom>
-              Check Your Email
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              If an account exists with <strong>{getValues("email")}</strong>,
-              you will receive a password reset link shortly.
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              The link will expire in 15 minutes for security reasons.
-            </Typography>
-
-            <Alert severity="info" sx={{ mb: 3, textAlign: "left" }}>
-              <Typography variant="body2">
-                <strong>Didn't receive the email?</strong>
-                <br />
-                • Check your spam/junk folder
-                <br />
-                • Make sure you entered the correct email
-                <br />• Wait a few minutes before trying again
-              </Typography>
-            </Alert>
-
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={handleResendEmail}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? <CircularProgress size={24} /> : "Resend Email"}
-              </Button>
-              <Button
-                variant="text"
-                startIcon={<ArrowBack />}
-                onClick={() => navigate("/auth/login")}
-              >
-                Back to Login
-              </Button>
-            </Box>
-
-            {error && (
-              <Alert severity="error" sx={{ mt: 2 }}>
-                {error}
-              </Alert>
-            )}
-          </Paper>
-        </Box>
-      </Container>
-    );
-  }
-
   return (
-    <Container maxWidth="sm">
-      <Box
+    <Box>
+      <Typography
+        variant="h4"
+        component="h1"
         sx={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          py: 4,
+          mb: { xs: 1, sm: 1.5 },
+          fontWeight: 600,
+          fontSize: { xs: "1.75rem", sm: "2rem" },
+          color: theme.palette.text.primary,
         }}
       >
-        <Paper
-          elevation={3}
+        Forgot Password?
+      </Typography>
+
+      <Typography
+        variant="body2"
+        sx={{
+          mb: { xs: 3, sm: 4 },
+          color: theme.palette.text.secondary,
+          fontSize: { xs: "0.875rem", sm: "0.938rem" },
+        }}
+      >
+        Enter your email address and we'll send you a link to reset your
+        password.
+      </Typography>
+
+      <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <TextField
+          fullWidth
+          label="Email Address"
+          type="email"
+          {...register("email")}
+          error={!!errors.email}
+          helperText={errors.email?.message}
+          disabled={isSubmitting}
+          autoFocus
+          sx={{ mb: { xs: 2, sm: 3 } }}
+        />
+
+        <Button
+          type="submit"
+          fullWidth
+          variant="contained"
+          size="large"
+          disabled={isSubmitting}
           sx={{
-            p: 4,
-            width: "100%",
-            borderRadius: 2,
+            mb: { xs: 2, sm: 2.5 },
+            py: { xs: 1.25, sm: 1.5 },
+            textTransform: "none",
+            fontSize: { xs: "0.938rem", sm: "1rem" },
+            fontWeight: 500,
           }}
         >
-          <Typography variant="h4" gutterBottom align="center">
-            Forgot Password?
-          </Typography>
-          <Typography
-            variant="body1"
-            color="text.secondary"
-            align="center"
-            sx={{ mb: 4 }}
+          {isSubmitting ? <CircularProgress size={24} /> : "Send Reset Link"}
+        </Button>
+
+        <Box sx={{ textAlign: "center" }}>
+          <Link
+            component={RouterLink}
+            to="/auth/login"
+            variant="body2"
+            sx={{
+              color: theme.palette.primary.main,
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.5,
+              fontSize: { xs: "0.85rem", sm: "0.875rem" },
+              "&:hover": { textDecoration: "underline" },
+            }}
           >
-            Enter your email address and we'll send you a link to reset your
-            password.
-          </Typography>
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
-
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <TextField
-              fullWidth
-              label="Email Address"
-              type="email"
-              {...register("email")}
-              error={!!errors.email}
-              helperText={errors.email?.message}
-              disabled={isSubmitting}
-              sx={{ mb: 3 }}
-              autoFocus
-            />
-
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              size="large"
-              disabled={isSubmitting}
-              sx={{ mb: 2 }}
-            >
-              {isSubmitting ? (
-                <CircularProgress size={24} />
-              ) : (
-                "Send Reset Link"
-              )}
-            </Button>
-
-            <Box sx={{ textAlign: "center" }}>
-              <Button
-                component={Link}
-                to="/auth/login"
-                startIcon={<ArrowBack />}
-                sx={{ textTransform: "none" }}
-              >
-                Back to Login
-              </Button>
-            </Box>
-          </form>
-        </Paper>
-
-        {/* Email Verification Modal */}
-        <EmailVerificationModal
-          open={modalOpen}
-          onClose={handleCloseModal}
-          status={modalStatus}
-          type="forgot-password"
-          email={getValues("email")}
-          error={modalError}
-          onResend={handleResendEmail}
-          isResending={isSubmitting}
-        />
+            <ArrowBack sx={{ fontSize: 18 }} />
+            Back to Login
+          </Link>
+        </Box>
       </Box>
-    </Container>
+
+      {/* Email Verification Modal */}
+      <EmailVerificationModal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        status={modalStatus}
+        type="forgot-password"
+        email={getValues("email")}
+        error={modalError}
+        onResend={handleResendEmail}
+        isResending={isSubmitting}
+      />
+    </Box>
   );
 };
 

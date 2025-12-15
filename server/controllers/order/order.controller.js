@@ -20,14 +20,14 @@ const handleCreateOrder = asyncHandler(async (req, res) => {
   const order = await createOrder(userId, sanitizedOrderData);
 
   baseController.logAction("create_order", req, {
-    buyerId: userId,
-    orderId: order._id,
+    buyerId: userId.toString(),
+    orderId: order._id.toString(),
     orderNumber: order.orderNumber,
     itemCount: order.items.length,
     totalAmount: order.pricing.totalAmount,
     paymentMethod: order.payment.method,
     deliveryMethod: order.delivery.method,
-    sellerId: order.seller.userId,
+    sellerId: order.seller.userId.toString(),
   });
 
   return baseController.sendSuccess(
@@ -269,7 +269,7 @@ const handleGetSellerOrders = asyncHandler(async (req, res) => {
   };
 
   baseController.logAction("get_seller_orders", req, {
-    sellerId: userId,
+    sellerId: userId.toString(),
     filters: { status, paymentStatus, deliveryStatus, urgent },
     metrics,
   });

@@ -1,11 +1,12 @@
 import React from "react";
 import { Chip } from "@mui/material";
-import { VerifiedUser, HourglassEmpty, Cancel } from "@mui/icons-material";
+import { VerifiedUser, HourglassEmpty } from "@mui/icons-material";
+import { useTheme } from "../../../hooks/useTheme";
 
 /**
  * VerificationStatusBadge Component
  *
- * PURPOSE: Display merchant verification status as a badge
+ * PURPOSE: Display merchant verification status as a badge with UiTM Gold accent
  * USAGE: Shop profiles, merchant dashboard, listings
  */
 
@@ -14,14 +15,22 @@ function VerificationStatusBadge({
   size = "small",
   showIcon = true,
 }) {
+  const { theme } = useTheme();
+
   if (isVerified) {
     return (
       <Chip
         icon={showIcon ? <VerifiedUser /> : undefined}
         label="UiTM Verified"
-        color="success"
         size={size}
-        sx={{ fontWeight: 600 }}
+        sx={{
+          bgcolor: "accent.main",
+          color: "accent.contrastText",
+          fontWeight: 600,
+          "& .MuiChip-icon": {
+            color: "accent.contrastText",
+          },
+        }}
       />
     );
   }

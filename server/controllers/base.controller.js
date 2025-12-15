@@ -195,7 +195,7 @@ class BaseController {
       action,
       method: req.method,
       url: req.originalUrl,
-      userId,
+      userId: userId.toString(),
       ip: req.ip,
       userAgent: req.headers?.["user-agent"] || "unknown",
       ...additionalContext,

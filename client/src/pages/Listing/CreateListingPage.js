@@ -5,7 +5,7 @@ import { Box, Typography, Container, Button, Paper } from "@mui/material";
 import DynamicForm from "../../components/common/Form/DynamicForm";
 import { ListingImageUpload } from "../../components/common/ImageUpload";
 import { createListingFormConfig } from "../../config/forms/listingForm";
-import useListingActions from "../../features/listing/hooks/useListingActions";
+import { useCreateListingMutation } from "../../features/listing/api/listingApi";
 import { useAuth } from "../../features/auth/hooks/useAuth";
 import { useImageUpload } from "../../hooks/useImageUpload";
 import { BackButton } from "../../components/common/Navigation";
@@ -14,41 +14,36 @@ import {
   SuccessAlert,
   InfoAlert,
 } from "../../components/common/Alert";
+import { useSnackbarContext as useSnackbar } from "../../contexts/SnackbarContext";
+import { ROUTES } from "../../constants/routes";
 
 const CreateListingPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { success: showSuccess, error: showError } = useSnackbar();
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [existingImageUrls, setExistingImageUrls] = useState([]);
-  const {
-    isLoading,
-    error,
-    success,
-    handleCreateListing,
-    goToMyListings,
-    clearMessages,
-  } = useListingActions();
+  const [createListing, { isLoading, error, isSuccess }] =
+    useCreateListingMutation();
   const { uploadListing, isUploading, uploadProgress } = useImageUpload();
 
   useEffect(() => {
-    if (success) {
-      // Redirect to My Listings after successful creation
+    if (isSuccess) {
+      showSuccess("Listing created successfully!");
+      // Redirect to My Listings - RTK Query will auto-refetch
       setTimeout(() => {
-        goToMyListings();
-        clearMessages();
+        navigate(ROUTES.MERCHANT.LISTINGS.MY_LISTINGS, { replace: true });
       }, 500);
     }
-  }, [success, goToMyListings, clearMessages]);
+  }, [isSuccess, navigate, showSuccess]);
 
   // Cleanup on unmount only
   useEffect(() => {
     return () => {
-      clearMessages();
       setSelectedFiles([]);
       setExistingImageUrls([]);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty array means this only runs on mount/unmount
+  }, []);
 
   const handleFilesSelected = (files) => {
     setSelectedFiles(files);
@@ -84,10 +79,11 @@ const CreateListingPage = () => {
       // Convert price to number
       listingData.price = parseFloat(listingData.price) || 0;
 
-      // Create listing with image URLs (images already uploaded above)
-      await handleCreateListing(listingData, []);
+      // Create listing - RTK Query will auto-invalidate cache
+      await createListing(listingData).unwrap();
     } catch (error) {
       console.error("Failed to create listing:", error);
+      showError(error?.data?.message || "Failed to create listing");
     }
   };
 
@@ -136,10 +132,6 @@ const CreateListingPage = () => {
         aria-atomic="true"
         sx={{ mb: 3 }}
       >
-        <SuccessAlert
-          message="Listing created successfully! Redirecting..."
-          show={success}
-        />
         <ErrorAlert
           error={error}
           show={!!error}

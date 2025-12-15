@@ -66,6 +66,37 @@ const ListingCard = ({
     seller,
   } = listing;
 
+  // Format price with spaces (e.g., 1 234 567.89)
+  const formatPrice = (price) => {
+    if (isFree) return "FREE";
+    if (price >= 100000) {
+      // Use prefix for 100k+
+      if (price >= 1000000000) {
+        return `RM${(price / 1000000000).toFixed(1)}b`;
+      }
+      if (price >= 1000000) {
+        return `RM${(price / 1000000).toFixed(1)}m`;
+      }
+      return `RM${(price / 1000).toFixed(1)}k`;
+    }
+    // Format with spaces for numbers < 100k
+    const parts = price.toFixed(2).split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    return `RM${parts.join(".")}`;
+  };
+
+  // Format stock with prefix for large numbers
+  const formatStock = (stock) => {
+    if (stock === 0) return "Out";
+    if (stock >= 1000000) {
+      return `${(stock / 1000000).toFixed(1)}m stock`;
+    }
+    if (stock >= 1000) {
+      return `${(stock / 1000).toFixed(1)}k stock`;
+    }
+    return `${stock} stock`;
+  };
+
   const handleCardClick = () => {
     navigate(`/listings/${_id}`);
   };
@@ -303,7 +334,7 @@ const ListingCard = ({
             minHeight: 0,
           }}
         >
-          {/* Title - 2 lines max */}
+          {/* Title - 2 lines max with ellipsis */}
           <Typography
             variant={isMobile ? "subtitle2" : "h6"}
             sx={{
@@ -316,35 +347,39 @@ const ListingCard = ({
               lineHeight: 1.3,
               height: isMobile ? "2.6em" : "2.6em",
               wordBreak: "break-word",
-              fontSize: isMobile ? "0.875rem" : undefined,
-              mb: 0.5,
+              overflowWrap: "break-word",
+              hyphens: "auto",
+              fontSize: isMobile ? "0.8rem" : "0.95rem",
+              mb: isMobile ? 0.5 : 0.75,
             }}
+            title={name}
           >
             {name}
           </Typography>
 
-          {/* Description - Hidden on mobile, 2 lines max on desktop */}
-          {!isMobile && (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                lineHeight: 1.4,
-                height: "2.8em",
-                wordBreak: "break-word",
-                mb: 0.5,
-              }}
-            >
-              {description || "\u00A0"}
-            </Typography>
-          )}
+          {/* Description - 2 lines max with ellipsis */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              lineHeight: 1.4,
+              height: "2.8em",
+              wordBreak: "break-word",
+              overflowWrap: "break-word",
+              fontSize: isMobile ? "0.7rem" : "0.8rem",
+              mb: isMobile ? 0.5 : 0.75,
+            }}
+            title={description || "No description"}
+          >
+            {description || "\u00A0"}
+          </Typography>
 
-          {/* Category */}
+          {/* Category - Single line with ellipsis */}
           <Typography
             variant="caption"
             color="text.secondary"
@@ -352,9 +387,12 @@ const ListingCard = ({
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
-              fontSize: isMobile ? "0.7rem" : undefined,
-              mb: 0.5,
+              fontSize: isMobile ? "0.65rem" : "0.75rem",
+              mb: isMobile ? 0.5 : 0.75,
+              display: "block",
+              maxWidth: "100%",
             }}
+            title={CATEGORY_LABELS[category] || category}
           >
             {CATEGORY_LABELS[category] || category}
           </Typography>
@@ -368,6 +406,8 @@ const ListingCard = ({
               flexDirection: "row",
               mt: "auto",
               pt: 1,
+              gap: 1,
+              minWidth: 0, // Allow flex items to shrink
             }}
           >
             <Typography
@@ -375,18 +415,16 @@ const ListingCard = ({
               sx={{
                 color: theme.palette.primary.main,
                 fontWeight: 700,
-                fontSize: isMobile ? "0.95rem" : undefined,
+                fontSize: isMobile ? "0.8rem" : "0.9rem",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                maxWidth: isMobile ? "60%" : "70%",
+                maxWidth: isMobile ? "55%" : "60%",
+                flexShrink: 1,
+                minWidth: 0,
               }}
             >
-              {isFree
-                ? "FREE"
-                : price >= 99999.99
-                  ? "RM99999+"
-                  : `RM${price.toFixed(2)}`}
+              {formatPrice(price)}
             </Typography>
 
             {/* Stock Info - Only for products */}
@@ -396,17 +434,15 @@ const ListingCard = ({
                 sx={{
                   color: stock < 5 ? "error.main" : "text.secondary",
                   fontWeight: stock < 5 ? 700 : 600,
-                  fontSize: isMobile ? "0.7rem" : "0.75rem",
+                  fontSize: isMobile ? "0.65rem" : "0.7rem",
                   flexShrink: 0,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: isMobile ? "42%" : "38%",
                 }}
               >
-                {stock > 0
-                  ? stock >= 1000000
-                    ? `${(stock / 1000000).toFixed(1)}m left`
-                    : stock >= 1000
-                      ? `${(stock / 1000).toFixed(1)}k left`
-                      : `${stock} left`
-                  : "Out of stock"}
+                {formatStock(stock)}
               </Typography>
             )}
           </Box>
@@ -414,37 +450,104 @@ const ListingCard = ({
 
         {/* Actions Section */}
         {showActions ? (
-          // Seller Actions
+          // Seller Actions - Compact mobile-friendly design
           <CardActions
             sx={{
-              justifyContent: "space-between",
-              px: isMobile ? 1.5 : 2,
-              pb: isMobile ? 1.5 : 2,
-              pt: isMobile ? 1 : 1.5,
+              px: isMobile ? 1 : 2,
+              pb: isMobile ? 1 : 2,
+              pt: isMobile ? 0.75 : 1.5,
               borderTop: "1px solid",
               borderColor: "divider",
               flexShrink: 0,
+              display: "flex",
+              gap: isMobile ? 0.5 : 1,
+              flexWrap: "nowrap",
             }}
           >
-            <Box>
-              <Tooltip title="Edit">
-                <IconButton size="small" onClick={handleEdit} color="primary">
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Delete">
-                <IconButton size="small" onClick={handleDelete} color="error">
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-            <Tooltip title={isAvailable ? "Hide" : "Show"}>
-              <IconButton size="small" onClick={handleToggle}>
-                {isAvailable ? (
-                  <VisibilityIcon fontSize="small" />
-                ) : (
-                  <VisibilityOffIcon fontSize="small" />
-                )}
+            {/* Edit Button - Compact on mobile */}
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleEdit}
+              sx={{
+                flex: 1,
+                textTransform: "none",
+                fontWeight: 500,
+                fontSize: isMobile ? "0.7rem" : "0.875rem",
+                py: isMobile ? 0.5 : 0.75,
+                px: isMobile ? 0.75 : 1.5,
+                minWidth: isMobile ? 0 : "auto",
+                borderColor: "primary.main",
+                color: "primary.main",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                "&:hover": {
+                  borderColor: "primary.dark",
+                  backgroundColor: "primary.main",
+                  color: "white",
+                },
+              }}
+            >
+              Edit
+            </Button>
+
+            {/* Toggle Availability Button - Compact icon */}
+            <Tooltip
+              title={isAvailable ? "Hide listing" : "Show listing"}
+              placement="top"
+            >
+              <IconButton
+                size="small"
+                onClick={handleToggle}
+                sx={{
+                  color: isAvailable ? "warning.main" : "success.main",
+                  border: "1px solid",
+                  borderColor: isAvailable ? "warning.main" : "success.main",
+                  borderRadius: 1,
+                  p: isMobile ? 0.4 : 0.5,
+                  minWidth: isMobile ? 28 : 32,
+                  width: isMobile ? 28 : 32,
+                  height: isMobile ? 28 : 32,
+                  "&:hover": {
+                    backgroundColor: isAvailable
+                      ? "warning.main"
+                      : "success.main",
+                    color: "white",
+                  },
+                  "& .MuiSvgIcon-root": {
+                    fontSize: isMobile ? "0.9rem" : "1.25rem",
+                  },
+                }}
+              >
+                {isAvailable ? <VisibilityOffIcon /> : <VisibilityIcon />}
+              </IconButton>
+            </Tooltip>
+
+            {/* Delete Button - Compact icon */}
+            <Tooltip title="Delete listing" placement="top">
+              <IconButton
+                size="small"
+                onClick={handleDelete}
+                sx={{
+                  color: "error.main",
+                  border: "1px solid",
+                  borderColor: "error.main",
+                  borderRadius: 1,
+                  p: isMobile ? 0.4 : 0.5,
+                  minWidth: isMobile ? 28 : 32,
+                  width: isMobile ? 28 : 32,
+                  height: isMobile ? 28 : 32,
+                  "&:hover": {
+                    backgroundColor: "error.main",
+                    color: "white",
+                  },
+                  "& .MuiSvgIcon-root": {
+                    fontSize: isMobile ? "0.9rem" : "1.25rem",
+                  },
+                }}
+              >
+                <DeleteIcon />
               </IconButton>
             </Tooltip>
           </CardActions>
@@ -473,8 +576,12 @@ const ListingCard = ({
                   flex: 1,
                   textTransform: "none",
                   fontWeight: 600,
-                  fontSize: isMobile ? "0.8rem" : undefined,
+                  fontSize: isMobile ? "0.75rem" : undefined,
                   py: isMobile ? 0.75 : undefined,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  minWidth: 0,
                 }}
               >
                 {isMobile ? "Add" : "Add to Cart"}

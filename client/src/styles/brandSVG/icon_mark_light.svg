@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" aria-label="Nekodez">
+  <path d="M24 48 L44 24 L50 24 L50 42 L32 54 Z" fill="#000"/>
+  <path d="M104 48 L84 24 L78 24 L78 42 L96 54 Z" fill="#000"/>
+  <rect x="28" y="48" width="72" height="56" rx="8" fill="#000"/>
+  <rect x="44" y="66" width="12" height="16" fill="#fff"/>
+  <rect x="72" y="66" width="12" height="16" fill="#fff"/>
+  <rect x="61" y="90" width="6" height="6" rx="1" fill="#fff"/>
+</svg>

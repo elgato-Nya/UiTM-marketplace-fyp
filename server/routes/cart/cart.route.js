@@ -82,8 +82,9 @@ router.patch("/item/:listingId", validateUpdateCartItem, updateCartItem);
  * @route   DELETE /api/cart/item/:listingId
  * @desc    Remove item from cart
  * @access  Private
- * @params  listingId - Listing ID to remove
+ * @params  listingId - Cart item ID (preferred) or Listing ID (fallback)
  * @returns Updated cart without removed item
+ * @note    Accepts item._id for null listings or listing._id for backwards compatibility
  */
 router.delete("/item/:listingId", validateRemoveFromCart, removeFromCart);
 

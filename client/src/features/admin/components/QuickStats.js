@@ -4,9 +4,10 @@ import {
   PersonAdd,
   Store,
   AttachMoney,
-  Warning,
   TrendingUp,
   TrendingDown,
+  Inventory,
+  VerifiedUser,
 } from "@mui/icons-material";
 import { useTheme } from "../../../hooks/useTheme";
 import {
@@ -51,34 +52,44 @@ const QuickStats = ({
       title: "Total Users",
       value: formatNumber(safeData.users?.total || 0),
       icon: People,
-      color: theme.palette.primary.main,
-      bgColor: theme.palette.primary.light + "20",
+      iconColor: theme.palette.primary.main,
+      iconBg: theme.palette.primary.main + "15",
       growth: safeData.users?.growthRate,
       ariaLabel: `Total users: ${safeData.users?.total || 0}. Growth rate: ${safeData.users?.growthRate || 0}%`,
+    },
+    {
+      title: "Active Listings",
+      value: formatNumber(safeData.listings?.active || 0),
+      icon: Inventory,
+      iconColor: theme.palette.success.main,
+      iconBg: theme.palette.success.main + "15",
+      subtitle: safeData.listings?.total
+        ? `${((safeData.listings.active / safeData.listings.total) * 100).toFixed(0)}% available`
+        : "No listings",
+      ariaLabel: `Active listings: ${safeData.listings?.active || 0} out of ${safeData.listings?.total || 0} total`,
+    },
+    {
+      title: "Verified Merchants",
+      value: formatNumber(safeData.merchants?.verified || 0),
+      icon: VerifiedUser,
+      iconColor: theme.palette.info.main,
+      iconBg: theme.palette.info.main + "15",
+      subtitle: `${safeData.merchants?.pendingVerification || 0} pending`,
+      badge: pendingVerifications?.pendingVerifications > 0 && {
+        count: pendingVerifications.pendingVerifications,
+      },
+      ariaLabel: `Verified merchants: ${safeData.merchants?.verified || 0}. ${safeData.merchants?.pendingVerification || 0} pending verification`,
     },
     {
       title: "Active Today",
       value: formatNumber(safeData.users?.activeToday || 0),
       icon: PersonAdd,
-      color: theme.palette.success.main,
-      bgColor: theme.palette.success.light + "20",
+      iconColor: theme.palette.warning.main,
+      iconBg: theme.palette.warning.main + "15",
       subtitle: safeData.users?.total
-        ? `${((safeData.users.activeToday / safeData.users.total) * 100).toFixed(1)}% of total`
+        ? `${((safeData.users.activeToday / safeData.users.total) * 100).toFixed(1)}% engagement`
         : "No data",
       ariaLabel: `Active users today: ${safeData.users?.activeToday || 0}`,
-    },
-    {
-      title: "Total Merchants",
-      value: formatNumber(safeData.users?.merchants || 0),
-      icon: Store,
-      color: theme.palette.info.main,
-      bgColor: theme.palette.info.light + "20",
-      subtitle: `${safeData.merchants?.pendingVerification || 0} pending`,
-      badge: pendingVerifications?.pendingVerifications > 0 && {
-        count: pendingVerifications.pendingVerifications,
-        color: "warning",
-      },
-      ariaLabel: `Total merchants: ${safeData.users?.merchants || 0}. ${safeData.merchants?.pendingVerification || 0} pending verification`,
     },
   ];
 
@@ -88,8 +99,8 @@ const QuickStats = ({
       title: "GMV (Total Revenue)",
       value: formatCurrency(safeData.orders.gmv),
       icon: AttachMoney,
-      color: theme.palette.secondary.main,
-      bgColor: theme.palette.secondary.light + "20",
+      iconColor: theme.palette.secondary.main,
+      iconBg: theme.palette.secondary.main + "15",
       growth: safeData.orders.gmvGrowthRate,
       ariaLabel: `Gross Merchandise Value: ${formatCurrency(safeData.orders.gmv)}. Growth rate: ${safeData.orders.gmvGrowthRate || 0}%`,
     });
@@ -105,14 +116,14 @@ const QuickStats = ({
         Platform Overview
       </Typography>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 1.5, md: 2 }}>
         {stats.map((stat, index) => {
           const IconComponent = stat.icon;
           const hasGrowth = stat.growth !== undefined && stat.growth !== null;
           const isPositiveGrowth = hasGrowth && stat.growth > 0;
 
           return (
-            <Grid size={{ xs: 6, md: 4 }} key={index}>
+            <Grid size={{ xs: 6, md: 3 }} key={index}>
               <Card
                 component="article"
                 elevation={0}
@@ -120,122 +131,146 @@ const QuickStats = ({
                 sx={{
                   height: "100%",
                   border: `1px solid ${theme.palette.divider}`,
-                  transition: "all 0.3s ease",
+                  borderRadius: 1,
+                  transition: "all 0.2s ease",
                   "&:hover": {
-                    transform: "translateY(-4px)",
-                    boxShadow: theme.shadows[4],
-                    borderColor: stat.color,
+                    borderColor: theme.palette.primary.main,
+                    boxShadow: `0 0 0 1px ${theme.palette.primary.main}`,
                   },
                 }}
               >
-                <CardContent>
-                  {/* Icon and Badge Row */}
+                <CardContent
+                  sx={{
+                    p: { xs: 2, md: 2.5 },
+                    "&:last-child": { pb: { xs: 2, md: 2.5 } },
+                  }}
+                >
                   <Box
                     sx={{
                       display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      mb: 2,
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
                     }}
                   >
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        borderRadius: 2,
-                        backgroundColor: stat.bgColor,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                      role="img"
-                      aria-label={`${stat.title} icon`}
-                    >
-                      <IconComponent sx={{ color: stat.color, fontSize: 28 }} />
-                    </Box>
-
-                    {/* Alert Badge for Pending Verifications */}
-                    {stat.badge && (
-                      <Chip
-                        icon={<Warning sx={{ fontSize: 16 }} />}
-                        label={stat.badge.count}
-                        size="small"
-                        color={stat.badge.color}
-                        aria-label={`${stat.badge.count} items requiring attention`}
-                        sx={{ fontWeight: 600 }}
-                      />
-                    )}
-                  </Box>
-
-                  {/* Title */}
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mb: 0.5, fontWeight: 500, textAlign: "center" }}
-                  >
-                    {stat.title}
-                  </Typography>
-
-                  {/* Value */}
-                  <Typography
-                    variant="h4"
-                    sx={{
-                      fontWeight: 700,
-                      color: theme.palette.text.primary,
-                      mb: hasGrowth || stat.subtitle ? 1 : 0,
-                      textAlign: "center",
-                    }}
-                  >
-                    {stat.value}
-                  </Typography>
-
-                  {/* Growth Indicator or Subtitle */}
-                  {hasGrowth && (
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        gap: 0.5,
-                      }}
-                      role="status"
-                      aria-label={`Growth: ${isPositiveGrowth ? "up" : "down"} ${Math.abs(stat.growth)} percent`}
-                    >
-                      {isPositiveGrowth ? (
-                        <TrendingUp
-                          sx={{
-                            fontSize: 16,
-                            color: theme.palette.success.main,
-                          }}
-                        />
-                      ) : (
-                        <TrendingDown
-                          sx={{ fontSize: 16, color: theme.palette.error.main }}
-                        />
-                      )}
+                    {/* Left side - Content */}
+                    <Box sx={{ flex: 1, minWidth: 0, pr: 1.5 }}>
+                      {/* Title */}
                       <Typography
                         variant="body2"
+                        color="text.secondary"
                         sx={{
-                          color: isPositiveGrowth
-                            ? theme.palette.success.main
-                            : theme.palette.error.main,
-                          fontWeight: 600,
-                          textAlign: "center",
+                          mb: 1,
+                          fontWeight: 500,
+                          fontSize: { xs: "0.75rem", md: "0.8125rem" },
+                          letterSpacing: 0.5,
+                          textTransform: "uppercase",
                         }}
                       >
-                        {Math.abs(stat.growth).toFixed(1)}%
+                        {stat.title}
                       </Typography>
-                    </Box>
-                  )}
 
-                  {stat.subtitle && !hasGrowth && (
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ fontSize: "0.875rem", textAlign: "center" }}
+                      {/* Value */}
+                      <Typography
+                        variant="h4"
+                        sx={{
+                          fontWeight: 700,
+                          color: theme.palette.text.primary,
+                          mb: hasGrowth || stat.subtitle ? 0.75 : 0,
+                          fontSize: { xs: "1.5rem", md: "1.75rem" },
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {stat.value}
+                      </Typography>
+
+                      {/* Growth Indicator */}
+                      {hasGrowth && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                          }}
+                        >
+                          {isPositiveGrowth ? (
+                            <TrendingUp
+                              sx={{
+                                fontSize: { xs: 14, md: 16 },
+                                color: theme.palette.success.main,
+                              }}
+                            />
+                          ) : (
+                            <TrendingDown
+                              sx={{
+                                fontSize: { xs: 14, md: 16 },
+                                color: theme.palette.error.main,
+                              }}
+                            />
+                          )}
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: isPositiveGrowth
+                                ? theme.palette.success.main
+                                : theme.palette.error.main,
+                              fontWeight: 600,
+                              fontSize: { xs: "0.75rem", md: "0.8125rem" },
+                            }}
+                          >
+                            {Math.abs(stat.growth).toFixed(1)}%
+                          </Typography>
+                        </Box>
+                      )}
+
+                      {/* Subtitle */}
+                      {stat.subtitle && !hasGrowth && (
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ fontSize: { xs: "0.7rem", md: "0.75rem" } }}
+                        >
+                          {stat.subtitle}
+                        </Typography>
+                      )}
+
+                      {/* Badge for pending items */}
+                      {stat.badge && (
+                        <Chip
+                          label={`${stat.badge.count} pending`}
+                          size="small"
+                          sx={{
+                            mt: 0.5,
+                            height: { xs: 20, md: 22 },
+                            fontSize: { xs: "0.65rem", md: "0.7rem" },
+                            fontWeight: 600,
+                            bgcolor: theme.palette.warning.light + "30",
+                            color: theme.palette.warning.dark,
+                          }}
+                        />
+                      )}
+                    </Box>
+
+                    {/* Right side - Icon */}
+                    <Box
+                      sx={{
+                        width: { xs: 44, md: 52 },
+                        height: { xs: 44, md: 52 },
+                        borderRadius: 1.5,
+                        bgcolor: stat.iconBg,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
                     >
-                      {stat.subtitle}
-                    </Typography>
-                  )}
+                      <IconComponent
+                        sx={{
+                          fontSize: { xs: 24, md: 28 },
+                          color: stat.iconColor,
+                        }}
+                      />
+                    </Box>
+                  </Box>
                 </CardContent>
               </Card>
             </Grid>

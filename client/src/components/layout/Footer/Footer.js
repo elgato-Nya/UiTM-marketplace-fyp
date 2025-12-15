@@ -21,6 +21,7 @@ import {
   LocationOn,
 } from "@mui/icons-material";
 import { useTheme } from "../../../hooks/useTheme";
+import { Logo } from "../../common/Logo";
 
 function Footer() {
   const { theme } = useTheme();
@@ -79,14 +80,9 @@ function Footer() {
         <Grid container spacing={4}>
           {/* Brand Section */}
           <Grid size={{ xs: 12, md: 4 }}>
-            <Typography
-              variant="h5"
-              color="primary"
-              gutterBottom
-              sx={{ fontWeight: "bold" }}
-            >
-              🐱 MarKet
-            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Logo variant="horizontal" type="platform" height={32} />
+            </Box>
             <Typography variant="body2" color="text.secondary" paragraph>
               Your trusted platform connecting members of UiTM community through
               e-commerce. Discover amazing products and services from your

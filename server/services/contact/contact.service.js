@@ -4,6 +4,7 @@ const Listing = require("../../models/listing/listing.model");
 const logger = require("../../utils/logger");
 const { AppError } = require("../../utils/errors");
 const { handleServiceError, handleNotFoundError } = require("../base.service");
+const { sendContactResponseEmail } = require("../email.service");
 
 /**
  * Contact Service
@@ -43,7 +44,7 @@ const createContactSubmission = async (submissionData, userInfo = null) => {
     };
 
     // Add type-specific details
-    if (submissionData.type === "bug" && submissionData.bugDetails) {
+    if (submissionData.type === "bug_report" && submissionData.bugDetails) {
       contactData.bugDetails = submissionData.bugDetails;
       // Auto-set priority based on bug severity
       if (submissionData.bugDetails.severity === "critical") {
@@ -142,7 +143,7 @@ const cleanContactForClient = (contact) => {
 
   // Remove empty type-specific details that don't apply to this submission
   if (
-    contactObj.type !== "bug" ||
+    contactObj.type !== "bug_report" ||
     !contactObj.bugDetails ||
     Object.keys(contactObj.bugDetails).length === 0
   ) {
@@ -242,7 +243,12 @@ const getAllContacts = async (filters = {}, pagination = {}) => {
     // Build query filters
     const query = {};
 
-    if (filters.type) query.type = filters.type;
+    // Support multiple types (comma-separated: "feedback,enquiry")
+    if (filters.type) {
+      const types = filters.type.split(",").map((t) => t.trim());
+      query.type = types.length > 1 ? { $in: types } : types[0];
+    }
+
     if (filters.status) query.status = filters.status;
     if (filters.priority) query.priority = filters.priority;
     if (filters.assignedTo) query.assignedTo = filters.assignedTo;
@@ -263,7 +269,7 @@ const getAllContacts = async (filters = {}, pagination = {}) => {
 
     const [contacts, totalItems] = await Promise.all([
       Contact.find(query)
-        .populate("submittedBy.userId", "profile.username")
+        .populate("submittedBy.userId", "profile.username profile.avatar")
         .populate("adminResponse.respondedBy", "profile.username")
         .populate("assignedTo", "profile.username")
         .sort(sort)
@@ -341,9 +347,11 @@ const addAdminResponse = async (contactId, responseData, adminId) => {
       throw handleNotFoundError("Contact submission", contactId);
     }
 
+    const responseMessage = responseData.response || responseData.message;
+
     contact.adminResponse = {
       respondedBy: adminId,
-      responseMessage: responseData.message,
+      responseMessage: responseMessage,
       respondedAt: new Date(),
     };
 
@@ -358,6 +366,28 @@ const addAdminResponse = async (contactId, responseData, adminId) => {
       contactId: contact._id,
       respondedBy: adminId,
     });
+
+    // Send email notification to submitter
+    if (contact.submittedBy && contact.submittedBy.email) {
+      try {
+        await sendContactResponseEmail(contact, responseMessage);
+        logger.info("Email notification sent to contact submitter", {
+          contactId: contact._id,
+          email: contact.submittedBy.email,
+        });
+      } catch (emailError) {
+        // Log email error but don't fail the response operation
+        logger.error(
+          "Failed to send email notification, but response was saved",
+          {
+            contactId: contact._id,
+            email: contact.submittedBy.email,
+            error: emailError.message,
+          }
+        );
+        // Continue - response was still saved successfully
+      }
+    }
 
     return contact;
   } catch (error) {

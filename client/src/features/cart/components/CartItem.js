@@ -35,6 +35,70 @@ const CartItem = ({
   const [loadingAction, setLoadingAction] = useState(null);
 
   const listing = item.listing;
+
+  // Handle null/deleted listings - Professional minimalist design
+  if (!listing) {
+    return (
+      <Card
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 2,
+          p: 2.5,
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "error.main",
+          bgcolor: "error.lighter",
+          boxShadow: "0 2px 8px rgba(211, 47, 47, 0.08)",
+        }}
+      >
+        <Box sx={{ flex: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                bgcolor: "error.main",
+              }}
+            />
+            <Typography variant="subtitle2" fontWeight={600} color="error.main">
+              Item No Longer Available
+            </Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ pl: 3.5 }}>
+            This listing has been removed by the seller or is no longer
+            available.
+          </Typography>
+        </Box>
+        <IconButton
+          size="small"
+          onClick={async () => {
+            setLoadingAction("remove");
+            try {
+              await onRemove(item._id);
+            } catch (error) {
+              console.error("Error removing item:", error);
+            } finally {
+              setLoadingAction(null);
+            }
+          }}
+          disabled={isLoading || loadingAction === "remove"}
+          sx={{
+            ml: 2,
+            "&:hover": {
+              bgcolor: "error.main",
+              color: "white",
+            },
+          }}
+        >
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </Card>
+    );
+  }
+
   const currentPrice = listing.price;
   const priceWhenAdded = item.priceWhenAdded;
   const quantity = item.quantity;
@@ -42,6 +106,7 @@ const CartItem = ({
   const isAvailable = listing.isAvailable;
   const listingType = listing.type || "product";
   const isService = listingType === "service";
+  const isOutOfStock = !isService && maxStock === 0;
 
   const handleQuantityChange = async (action) => {
     setLoadingAction(action);
@@ -62,7 +127,7 @@ const CartItem = ({
   const handleRemove = async () => {
     setLoadingAction("remove");
     try {
-      await onRemove(listing._id);
+      await onRemove(item._id); // Use cart item ID, not listing ID
     } catch (error) {
       console.error("Error removing item:", error);
     } finally {
@@ -97,12 +162,36 @@ const CartItem = ({
         flexDirection: "row",
         mb: 2,
         minHeight: 200,
-        opacity: !isAvailable ? 0.6 : 1,
+        opacity: !isAvailable ? 0.5 : isOutOfStock ? 0.65 : 1,
         borderRadius: 2,
         border: "1px solid",
-        borderColor: "divider",
+        borderColor: isOutOfStock ? "warning.main" : "divider",
+        position: "relative",
+        overflow: "hidden",
+        transition: "all 0.2s ease",
       }}
     >
+      {/* Out of Stock Overlay Badge */}
+      {isOutOfStock && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: 16,
+            right: 16,
+            zIndex: 2,
+            bgcolor: "warning.main",
+            color: "warning.contrastText",
+            px: 2,
+            py: 0.5,
+            borderRadius: 1,
+            fontWeight: 600,
+            fontSize: "0.75rem",
+            boxShadow: "0 2px 8px rgba(237, 108, 2, 0.3)",
+          }}
+        >
+          OUT OF STOCK
+        </Box>
+      )}
       <CardMedia
         component="img"
         sx={{

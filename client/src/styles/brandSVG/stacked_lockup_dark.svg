@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 224" aria-label="Nekodez">
+  <g transform="translate(64, 0)">
+    <path d="M24 48 L44 24 L50 24 L50 42 L32 54 Z" fill="#fff"/>
+    <path d="M104 48 L84 24 L78 24 L78 42 L96 54 Z" fill="#fff"/>
+    <rect x="28" y="48" width="72" height="56" rx="8" fill="#fff"/>
+    <rect x="44" y="66" width="12" height="16" fill="#0a0a0a"/>
+    <rect x="72" y="66" width="12" height="16" fill="#0a0a0a"/>
+    <rect x="61" y="90" width="6" height="6" rx="1" fill="#0a0a0a"/>
+  </g>
+  <text x="128" y="168" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="40" font-weight="600" letter-spacing="2" fill="#fff">NEKODEZ</text>
+</svg>

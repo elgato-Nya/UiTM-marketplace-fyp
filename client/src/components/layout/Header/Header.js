@@ -23,10 +23,12 @@ import { useAuth } from "../../../features/auth/hooks/useAuth";
 import useCart from "../../../features/cart/hook/useCart";
 import useWishlist from "../../../features/wishlist/hook/useWishlist";
 import { ROUTES } from "../../../constants/routes";
+import { Logo } from "../../common/Logo";
 import ThemeToggle from "../../common/ThemeToggle";
 import UserMenu from "./UserMenu";
 import BrowseMenu from "./navigation/BrowseMenu";
 import MerchantMenu from "./navigation/MerchantMenu";
+import AdminMenu from "./navigation/AdminMenu";
 import AboutMenu from "./navigation/AboutMenu";
 import ActionButtons from "./navigation/ActionButtons";
 
@@ -40,6 +42,7 @@ function Header({ onMenuClick, userRole, isMobile }) {
   const [userMenuAnchor, setUserMenuAnchor] = useState(null);
   const [browseMenuAnchor, setBrowseMenuAnchor] = useState(null);
   const [merchantMenuAnchor, setMerchantMenuAnchor] = useState(null);
+  const [adminMenuAnchor, setAdminMenuAnchor] = useState(null);
   const [aboutMenuAnchor, setAboutMenuAnchor] = useState(null);
 
   const handleUserMenuOpen = (event) => {
@@ -64,6 +67,14 @@ function Header({ onMenuClick, userRole, isMobile }) {
 
   const handleMerchantMenuClose = () => {
     setMerchantMenuAnchor(null);
+  };
+
+  const handleAdminMenuOpen = (event) => {
+    setAdminMenuAnchor(event.currentTarget);
+  };
+
+  const handleAdminMenuClose = () => {
+    setAdminMenuAnchor(null);
   };
 
   const handleAboutMenuOpen = (event) => {
@@ -99,23 +110,21 @@ function Header({ onMenuClick, userRole, isMobile }) {
         {/* Left Side: Logo */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           {/* Logo */}
-          <Typography
-            variant="h6"
+          <Box
             component={Link}
             to={ROUTES.HOME}
             sx={{
               textDecoration: "none",
-              color: theme.palette.primary.main,
-              fontWeight: "bold",
               display: "flex",
               alignItems: "center",
-              gap: 1,
-              minWidth: "fit-content",
-              fontSize: { xs: "1rem", sm: "1.25rem" },
             }}
           >
-            🐱 MarKet
-          </Typography>
+            <Logo
+              variant="horizontal"
+              type="platform"
+              height={{ xs: 28, sm: 32 }}
+            />
+          </Box>
         </Box>
 
         {/* Spacer to push navigation to the right */}
@@ -205,22 +214,29 @@ function Header({ onMenuClick, userRole, isMobile }) {
               </>
             )}
 
-            {/* Admin Dashboard Button - Only for admins */}
+            {/* Admin Dashboard Dropdown - Only for admins */}
             {isAdmin && (
-              <Button
-                component={Link}
-                to={ROUTES.ADMIN.DASHBOARD}
-                sx={{
-                  color: theme.palette.error.main,
-                  textTransform: "none",
-                  fontWeight: 600,
-                  "&:hover": {
-                    backgroundColor: alpha(theme.palette.error.main, 0.1),
-                  },
-                }}
-              >
-                Admin Dashboard
-              </Button>
+              <>
+                <Button
+                  onClick={handleAdminMenuOpen}
+                  endIcon={<KeyboardArrowDown />}
+                  sx={{
+                    color: theme.palette.error.main,
+                    textTransform: "none",
+                    fontWeight: 600,
+                    "&:hover": {
+                      backgroundColor: alpha(theme.palette.error.main, 0.1),
+                    },
+                  }}
+                >
+                  Admin
+                </Button>
+                <AdminMenu
+                  anchorEl={adminMenuAnchor}
+                  open={Boolean(adminMenuAnchor)}
+                  onClose={handleAdminMenuClose}
+                />
+              </>
             )}
 
             {/* About Us Dropdown */}

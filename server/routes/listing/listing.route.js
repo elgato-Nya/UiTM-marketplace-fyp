@@ -71,6 +71,26 @@ router.get(
   handleGetSellerListings
 );
 
+// ==================== AUTHENTICATED ROUTES (Must be before /:id) ====================
+
+// Apply authentication middleware to specific routes that need it
+/**
+ * @route   GET /api/listings/my-listings
+ * @desc    Get current user's listings with pagination and filtering
+ * @access  Private
+ * @query   page, limit, sort, includeUnavailable, type, category, fields
+ * @returns Paginated user listings with metadata
+ * @note    Shows both available and unavailable listings for owner
+ * @note    MUST be before /:id route to avoid matching "my-listings" as an ID
+ */
+router.get(
+  "/my-listings",
+  protect,
+  validateGetListings,
+  validatePagination,
+  handleGetMyListings
+);
+
 /**
  * @route   GET /api/listings/:id
  * @desc    Get listing by ID with optional seller details
@@ -78,7 +98,7 @@ router.get(
  * @params  id - Listing ID
  * @query   includeSeller (boolean), fields (comma-separated)
  * @returns Listing data with optional seller information
- * @note    Must come AFTER /seller/:sellerId to avoid route conflict
+ * @note    Must come AFTER /seller/:sellerId and /my-listings to avoid route conflict
  * @note    Public access allows guest browsing, but owners see enhanced details
  */
 router.get("/:id", validateGetListing, handleGetListing);
@@ -101,21 +121,6 @@ router.post(
   authorize("merchant"),
   validateCreateListing,
   handleCreateListing
-);
-
-/**
- * @route   GET /api/listings/my-listings
- * @desc    Get current user's listings with pagination and filtering
- * @access  Private
- * @query   page, limit, sort, includeUnavailable, type, category, fields
- * @returns Paginated user listings with metadata
- * @note    Shows both available and unavailable listings for owner
- */
-router.get(
-  "/my-listings",
-  validateGetListings,
-  validatePagination,
-  handleGetMyListings
 );
 
 // ==================== OWNERSHIP-PROTECTED ROUTES ====================

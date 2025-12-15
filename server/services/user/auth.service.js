@@ -273,7 +273,7 @@ const generateEmailVerificationToken = async (user) => {
 const verifyEmail = async (email, token) => {
   try {
     const user = await User.findOne({ email: email.toLowerCase() }).select(
-      "+emailVerification.token +emailVerification.tokenExpires"
+      "+email +emailVerification.token +emailVerification.tokenExpires"
     );
 
     if (!user) {
@@ -331,7 +331,7 @@ const verifyEmail = async (email, token) => {
 const generatePasswordResetToken = async (email) => {
   try {
     const user = await User.findOne({ email: email.toLowerCase() }).select(
-      "+passwordReset.requestedAt +passwordReset.lastResetAt"
+      "+email +passwordReset.requestedAt +passwordReset.lastResetAt"
     );
     if (!user) {
       logger.security("Password reset requested for non-existent email", {
@@ -363,13 +363,19 @@ const generatePasswordResetToken = async (email) => {
     const { token, expiresAt } = generateTokenWithExpiry(32, 15); // 15 minute expiry
     const hashedToken = await hashToken(token);
 
+    // Update token and expiry, but NOT requestedAt yet (only after successful send)
     await User.findByIdAndUpdate(user._id, {
       "passwordReset.token": hashedToken,
       "passwordReset.tokenExpires": expiresAt,
-      "passwordReset.requestedAt": now,
     });
 
+    // Send email - if this fails, we don't want to save requestedAt
     await sendPasswordResetEmail(user, token);
+
+    // Only update requestedAt after successful email send
+    await User.findByIdAndUpdate(user._id, {
+      "passwordReset.requestedAt": now,
+    });
 
     logger.info("Password reset token generated and email sent", {
       action: "generatePasswordResetToken",
@@ -392,7 +398,7 @@ const generatePasswordResetToken = async (email) => {
 const validateResetToken = async (email, token) => {
   try {
     const user = await User.findOne({ email: email.toLowerCase() }).select(
-      "+passwordReset.token +passwordReset.tokenExpires"
+      "+email +passwordReset.token +passwordReset.tokenExpires"
     );
     if (!user) {
       handleNotFoundError("User", "USER_NOT_FOUND", "validateResetToken", {

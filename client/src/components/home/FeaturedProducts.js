@@ -69,24 +69,32 @@ function FeaturedProducts({
   }
 
   return (
-    <Box sx={{ mb: 6, width: "100%", overflow: "hidden" }}>
+    <Box
+      sx={{
+        py: { xs: 3, sm: 4, md: 5 },
+        bgcolor: "background.default",
+        width: "100%",
+        overflow: "hidden",
+      }}
+    >
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
         <Box
           sx={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            mb: 3,
+            mb: { xs: 2.5, sm: 3, md: 4 },
           }}
         >
           <Box>
             <Typography
-              variant="h4"
+              variant="h5"
               component="h2"
               sx={{
-                fontWeight: "bold",
-                mb: 1,
-                fontSize: { xs: "1.5rem", sm: "2rem" },
+                fontWeight: 600,
+                mb: 0.5,
+                fontSize: { xs: "1rem", sm: "1.125rem", md: "1.375rem" },
+                letterSpacing: "-0.01em",
               }}
             >
               Featured{" "}
@@ -97,9 +105,11 @@ function FeaturedProducts({
                   : "Services"}
             </Typography>
             <Typography
-              variant="body1"
+              variant="body2"
               color="text.secondary"
-              sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+              sx={{
+                fontSize: { xs: "0.75rem", sm: "0.8125rem", md: "0.875rem" },
+              }}
             >
               Handpicked {listingType === "all" ? "items" : listingType + "s"}{" "}
               just for you

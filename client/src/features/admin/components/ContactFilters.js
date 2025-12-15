@@ -92,6 +92,7 @@ const ContactFilters = ({ filters, onFilterChange, onSearch }) => {
       sx={{
         mb: 3,
         border: `1px solid ${theme.palette.divider}`,
+        backgroundColor: theme.palette.background.paper,
       }}
     >
       <CardContent>
@@ -106,7 +107,13 @@ const ContactFilters = ({ filters, onFilterChange, onSearch }) => {
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <FilterList sx={{ color: theme.palette.text.secondary }} />
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                color: theme.palette.text.primary,
+              }}
+            >
               Filters
             </Typography>
             {activeFilterCount > 0 && (
@@ -280,7 +287,10 @@ const ContactFilters = ({ filters, onFilterChange, onSearch }) => {
         {/* Info text when content_report is selected */}
         {showReportFilters && (
           <Box sx={{ mt: 2 }}>
-            <Typography variant="caption" color="text.secondary">
+            <Typography
+              variant="caption"
+              sx={{ color: theme.palette.text.secondary }}
+            >
               ℹ️ Content report filters are now visible. Use category and entity
               type to narrow down specific report types.
             </Typography>

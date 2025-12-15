@@ -73,6 +73,10 @@ const initializeTransporter = () => {
           // Allow connections even if certificate doesn't match hostname
           rejectUnauthorized: false,
         },
+        // Connection pooling for better performance
+        pool: true,
+        maxConnections: 5,
+        maxMessages: 100,
       };
 
       // Add AWS SES specific settings for better performance
@@ -85,8 +89,6 @@ const initializeTransporter = () => {
         config.connectionTimeout = 60000; // 60 seconds
         config.greetingTimeout = 30000; // 30 seconds
         config.socketTimeout = 60000; // 60 seconds
-        config.maxConnections = 5; // Connection pooling
-        config.maxMessages = 100; // Messages per connection
         config.rateLimit = 14; // Messages per second (SES limit is 14/sec by default)
 
         logger.info("AWS SES specific configuration applied", {
@@ -333,80 +335,121 @@ const sendMerchantVerificationEmail = async (
  * @throws {AppError} Validation or server error
  */
 const sendPasswordResetEmail = async (user, token) => {
-  try {
-    // Validate input parameters
-    if (!user || !user.email) {
-      createValidationError(
-        "User email is required",
-        [{ field: "user.email", message: "Email is required" }],
-        "INVALID_USER_EMAIL"
-      );
-    }
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 2000; // 2 seconds
 
-    if (!token) {
-      createValidationError(
-        "Reset token is required",
-        [{ field: "token", message: "Token is required" }],
-        "MISSING_RESET_TOKEN"
-      );
-    }
+  const attemptSend = async (attempt = 1) => {
+    try {
+      // Validate input parameters
+      if (!user || !user.email) {
+        createValidationError(
+          "User email is required",
+          [{ field: "user.email", message: "Email is required" }],
+          "INVALID_USER_EMAIL"
+        );
+      }
 
-    if (!process.env.CLIENT_URL) {
-      createValidationError(
-        "CLIENT_URL environment variable is required",
-        [{ field: "CLIENT_URL", message: "Required for reset URL" }],
-        "MISSING_CLIENT_URL"
-      );
-    }
+      if (!token) {
+        createValidationError(
+          "Reset token is required",
+          [{ field: "token", message: "Token is required" }],
+          "MISSING_RESET_TOKEN"
+        );
+      }
 
-    const emailTransporter = initializeTransporter();
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${token}&email=${user.email}`;
+      if (!process.env.CLIENT_URL) {
+        createValidationError(
+          "CLIENT_URL environment variable is required",
+          [{ field: "CLIENT_URL", message: "Required for reset URL" }],
+          "MISSING_CLIENT_URL"
+        );
+      }
 
-    const mailOptions = {
-      from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_FROM}>`,
-      to: user.email,
-      subject: "Password Reset - MarKet",
-      html: getPasswordResetTemplate(user, resetUrl),
-    };
+      const emailTransporter = initializeTransporter();
+      const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${token}&email=${user.email}`;
 
-    const result = await emailTransporter.sendMail(mailOptions);
-    logger.info(`Password reset email sent successfully to ${user.email}`, {
-      messageId: result.messageId,
-      response: result.response,
-      accepted: result.accepted,
-      rejected: result.rejected,
-    });
-  } catch (error) {
-    logger.error(
-      `Failed to send password reset email to ${user?.email || "unknown"}: ${
-        error.message
-      }`
-    );
+      const mailOptions = {
+        from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_FROM}>`,
+        to: user.email,
+        subject: "Password Reset - MarKet",
+        html: getPasswordResetTemplate(user, resetUrl),
+      };
 
-    // Check for SES sandbox restriction errors
-    if (error.message && error.message.includes("MessageRejected")) {
+      const result = await emailTransporter.sendMail(mailOptions);
+      logger.info(`Password reset email sent successfully to ${user.email}`, {
+        messageId: result.messageId,
+        response: result.response,
+        accepted: result.accepted,
+        rejected: result.rejected,
+        attempt,
+      });
+      return result;
+    } catch (error) {
+      const isConnectionError =
+        error.code === "ECONNRESET" ||
+        error.code === "ETIMEDOUT" ||
+        error.code === "ENOTFOUND" ||
+        error.code === "ESOCKET";
+
       logger.error(
-        "SES Sandbox Restriction: Email address not verified. Please verify the recipient email in AWS SES Console or request production access.",
-        { recipientEmail: user?.email }
+        `Failed to send password reset email (attempt ${attempt}/${MAX_RETRIES}) to ${
+          user?.email || "unknown"
+        }: ${error.message}`,
+        {
+          errorCode: error.code,
+          isConnectionError,
+          willRetry: isConnectionError && attempt < MAX_RETRIES,
+        }
+      );
+
+      // Retry logic for connection errors
+      if (isConnectionError && attempt < MAX_RETRIES) {
+        logger.info(
+          `Retrying password reset email in ${RETRY_DELAY}ms (attempt ${
+            attempt + 1
+          }/${MAX_RETRIES})...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+        return attemptSend(attempt + 1);
+      }
+
+      // Check for SES sandbox restriction errors
+      if (error.message && error.message.includes("MessageRejected")) {
+        logger.error(
+          "SES Sandbox Restriction: Email address not verified. Please verify the recipient email in AWS SES Console or request production access.",
+          { recipientEmail: user?.email }
+        );
+      }
+
+      // If it's already an AppError, re-throw it
+      if (error.isOperational) {
+        throw new AppError(
+          error.message,
+          error.statusCode,
+          error.errorCode,
+          error.isOperational
+        );
+      }
+
+      // User-friendly error message for connection/platform errors
+      if (isConnectionError) {
+        throw new AppError(
+          "We're experiencing technical difficulties with our email service. This is not your fault. Please try again in a few minutes or contact support if the issue persists.",
+          503,
+          "EMAIL_SERVICE_UNAVAILABLE",
+          true
+        );
+      }
+
+      // Otherwise, wrap in generic server error
+      createServerError(
+        "Failed to send password reset email. Please try again later.",
+        "EMAIL_SEND_FAILED"
       );
     }
+  };
 
-    // If it's already an AppError, re-throw it
-    if (error.isOperational) {
-      throw new AppError(
-        error.message,
-        error.statusCode,
-        error.errorCode,
-        error.isOperational
-      );
-    }
-
-    // Otherwise, wrap in server error
-    createServerError(
-      "Failed to send password reset email",
-      "EMAIL_SEND_FAILED"
-    );
-  }
+  return attemptSend();
 };
 
 /**
@@ -465,7 +508,7 @@ const getMerchantVerificationTemplate = (user, url) => {
       </div>
       <h2 style="color: #333;">Merchant Verification</h2>
       <p>Hi <strong>${username}</strong>,</p>
-      <p>You've requested to verify your merchant status with your email. Click the button below to complete verification:</p>
+      <p>You've requested to verify your merchant status with your UiTM email. Click the button below to complete verification:</p>
       <div style="text-align: center; margin: 32px 0;">
         <a href="${url}" aria-label="Verify Merchant Status" style="background: #28a745; color: white; padding: 14px 32px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
           Verify Merchant Status
@@ -488,7 +531,7 @@ const getMerchantVerificationTemplate = (user, url) => {
         <p style="margin: 0; color: #856404;">
           <strong>⚠️ Important:</strong><br>
           • This link expires in <strong>24 hours</strong><br>
-          • This email was sent to your email for verification<br>
+          • This email was sent to your UiTM email for verification<br>
           • If you didn't request this, please ignore this email
         </p>
       </div>
@@ -642,10 +685,234 @@ const isSandboxMode = () => {
   return indicators.some(Boolean);
 };
 
+/**
+ * Send admin response notification email to contact submitter
+ * @param {Object} contact - Contact submission object
+ * @param {String} response - Admin's response message
+ * @throws {AppError} Validation or server error
+ */
+const sendContactResponseEmail = async (contact, response) => {
+  try {
+    // Validate input parameters
+    if (!contact || !contact.submittedBy || !contact.submittedBy.email) {
+      createValidationError(
+        "Contact submitter email is required",
+        [{ field: "contact.submittedBy.email", message: "Email is required" }],
+        "INVALID_CONTACT_EMAIL"
+      );
+    }
+
+    if (!response || typeof response !== "string" || !response.trim()) {
+      createValidationError(
+        "Admin response message is required",
+        [{ field: "response", message: "Response message is required" }],
+        "MISSING_RESPONSE_MESSAGE"
+      );
+    }
+
+    const emailTransporter = initializeTransporter();
+    const submitterName = contact.submittedBy.name || "User";
+    const submitterEmail = contact.submittedBy.email;
+
+    // Determine the contact type label
+    const typeLabels = {
+      bug_report: "Bug Report",
+      enquiry: "Enquiry",
+      feedback: "Feedback",
+      collaboration: "Collaboration Request",
+      content_report: "Content Report",
+    };
+    const typeLabel = typeLabels[contact.type] || contact.type;
+
+    // Build email HTML content
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+          .response-box { background: white; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0; border-radius: 4px; }
+          .submission-details { background: white; padding: 15px; margin: 15px 0; border-radius: 4px; }
+          .detail-row { display: flex; padding: 8px 0; border-bottom: 1px solid #eee; }
+          .detail-label { font-weight: bold; min-width: 120px; color: #666; }
+          .detail-value { color: #333; }
+          .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+          .button { display: inline-block; padding: 12px 24px; background: #667eea; color: white; text-decoration: none; border-radius: 4px; margin: 10px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0;">Response to Your ${typeLabel}</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">MarKet Platform</p>
+          </div>
+          <div class="content">
+            <p>Dear ${submitterName},</p>
+            <p>Thank you for contacting us. We have reviewed your submission and would like to provide the following response:</p>
+            
+            <div class="response-box">
+              <h3 style="margin-top: 0; color: #667eea;">Admin Response</h3>
+              <p style="white-space: pre-wrap; margin: 0;">${response}</p>
+            </div>
+
+            <div class="submission-details">
+              <h3 style="margin-top: 0; color: #333;">Your Submission Details</h3>
+              <div class="detail-row">
+                <span class="detail-label">Subject:</span>
+                <span class="detail-value">${contact.subject}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Type:</span>
+                <span class="detail-value">${typeLabel}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Status:</span>
+                <span class="detail-value" style="text-transform: capitalize;">${
+                  contact.status
+                }</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Priority:</span>
+                <span class="detail-value" style="text-transform: capitalize;">${
+                  contact.priority
+                }</span>
+              </div>
+              <div class="detail-row" style="border-bottom: none;">
+                <span class="detail-label">Submitted:</span>
+                <span class="detail-value">${new Date(
+                  contact.createdAt
+                ).toLocaleString()}</span>
+              </div>
+            </div>
+
+            ${
+              process.env.CLIENT_URL
+                ? `<p style="text-align: center;">
+                    <a href="${process.env.CLIENT_URL}/contact" class="button">Contact Us Again</a>
+                   </p>`
+                : ""
+            }
+
+            <p>If you have any further questions or concerns, please don't hesitate to reach out to us again.</p>
+            
+            <p style="margin-top: 30px;">Best regards,<br><strong>MarKet Support Team</strong></p>
+          </div>
+          <div class="footer">
+            <p>This is an automated message. Please do not reply directly to this email.</p>
+            <p>&copy; ${new Date().getFullYear()} MarKet Platform. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const mailOptions = {
+      from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_FROM}>`,
+      to: submitterEmail,
+      subject: `Response to Your ${typeLabel}: ${contact.subject}`,
+      html: emailHtml,
+    };
+
+    let result;
+
+    // Try SMTP first (unless we know it's blocked)
+    if (!smtpBlocked) {
+      try {
+        const emailTransporter = initializeTransporter();
+        result = await emailTransporter.sendMail(mailOptions);
+        logger.info(
+          `Contact response email sent via SMTP to ${submitterEmail}`,
+          {
+            messageId: result.messageId,
+            contactId: contact._id,
+            type: contact.type,
+          }
+        );
+      } catch (smtpError) {
+        // Check if error is network-related (SMTP blocked)
+        if (
+          smtpError.code === "ESOCKET" ||
+          smtpError.code === "ECONNRESET" ||
+          smtpError.code === "ETIMEDOUT"
+        ) {
+          logger.warn("SMTP blocked, switching to AWS SDK permanently", {
+            error: smtpError.code,
+          });
+          smtpBlocked = true;
+
+          // Fallback to AWS SDK
+          result = await sendEmailViaSdk(mailOptions);
+          logger.info(
+            `Contact response email sent via AWS SDK to ${submitterEmail}`,
+            {
+              messageId: result.messageId,
+              contactId: contact._id,
+              type: contact.type,
+            }
+          );
+        } else {
+          throw smtpError;
+        }
+      }
+    } else {
+      // SMTP is known to be blocked, use AWS SDK directly
+      result = await sendEmailViaSdk(mailOptions);
+      logger.info(
+        `Contact response email sent via AWS SDK to ${submitterEmail}`,
+        {
+          messageId: result.messageId,
+          contactId: contact._id,
+          type: contact.type,
+        }
+      );
+    }
+
+    return result;
+  } catch (error) {
+    logger.error(
+      `Failed to send contact response email to ${
+        contact?.submittedBy?.email || "unknown"
+      }: ${error.message}`,
+      {
+        contactId: contact?._id,
+        type: contact?.type,
+      }
+    );
+
+    // Check for SES sandbox restriction errors
+    if (error.message && error.message.includes("MessageRejected")) {
+      logger.error(
+        "SES Sandbox Restriction: Email address not verified. Please verify the recipient email in AWS SES Console or request production access.",
+        { recipientEmail: contact?.submittedBy?.email }
+      );
+    }
+
+    // If it's already an AppError, re-throw it
+    if (error.isOperational) {
+      throw new AppError(
+        error.message,
+        error.statusCode,
+        error.errorCode,
+        error.isOperational
+      );
+    }
+
+    // Otherwise, wrap in server error
+    createServerError(
+      "Failed to send contact response email",
+      "EMAIL_SEND_FAILED"
+    );
+  }
+};
+
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendMerchantVerificationEmail,
+  sendContactResponseEmail,
   initializeTransporter,
   testConnection,
   handleSesError,

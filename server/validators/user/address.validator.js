@@ -26,10 +26,10 @@ class AddressValidator {
   static isValidRecipientName(recipientName) {
     if (!recipientName || typeof recipientName !== "string") return false;
     const trimmedName = recipientName.trim();
-    // Accepts only alphabet (lower/uppercase), only one "@" symbol, and only one "/" symbol, and max length 100
+    // Accepts alphanumeric (lower/uppercase), numbers, only one "@" symbol, and only one "/" symbol, and max length 100
     if ((trimmedName.match(/@/g) || []).length > 1) return false;
     if ((trimmedName.match(/\//g) || []).length > 1) return false;
-    return /^[A-Za-z@\/ ]{4,100}$/.test(trimmedName);
+    return /^[A-Za-z0-9@\/ ]{4,100}$/.test(trimmedName);
   }
 
   static isValidCampusAddress(address) {

@@ -6,20 +6,12 @@ import {
   Card,
   CardContent,
   Grid,
-  Avatar,
   Chip,
   Paper,
-  Divider,
 } from "@mui/material";
-import {
-  Code,
-  Psychology,
-  Lightbulb,
-  Speed,
-  Security,
-  CloudDone,
-} from "@mui/icons-material";
+import { Code, Lightbulb, Speed, Security } from "@mui/icons-material";
 import { useTheme } from "../../hooks/useTheme";
+import { Logo } from "../../components/common/Logo";
 
 function NekodezPage() {
   const { theme } = useTheme();
@@ -81,33 +73,17 @@ function NekodezPage() {
       >
         <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
           <Box sx={{ textAlign: "center" }}>
-            <Avatar
-              sx={{
-                width: { xs: 120, md: 160 },
-                height: { xs: 120, md: 160 },
-                mx: "auto",
-                mb: 3,
-                fontSize: { xs: "3rem", md: "4rem" },
-                bgcolor: "rgba(255,255,255,0.2)",
-                backdropFilter: "blur(10px)",
-                border: "4px solid rgba(255,255,255,0.3)",
-                boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
-              }}
-            >
-              🐱
-            </Avatar>
-            <Typography
-              variant="h2"
-              component="h1"
-              sx={{
-                fontWeight: 800,
-                mb: 2,
-                fontSize: { xs: "2.5rem", md: "3.5rem" },
-                textShadow: "2px 2px 8px rgba(0,0,0,0.3)",
-              }}
-            >
-              Nekodez
-            </Typography>
+            <Box sx={{ mb: 3 }}>
+              <Logo
+                variant="stacked"
+                type="brand"
+                height={{ xs: 140, md: 180 }}
+                sx={{
+                  filter: "drop-shadow(2px 2px 8px rgba(0,0,0,0.3))",
+                }}
+              />
+            </Box>
+
             <Typography
               variant="h5"
               sx={{

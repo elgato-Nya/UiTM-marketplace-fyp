@@ -286,21 +286,51 @@ const getAllListings = async (options = {}) => {
       selectFields = buildSelect(fields);
     }
 
-    // If search exists, use Fuse.js for fuzzy search (typo-tolerant)
+    // If search exists, use aggregation with lookup to filter suspended merchants
     if (search && search.trim()) {
-      // First, get all matching listings without search filter
-      const allListings = await Listing.find(query)
-        .select(selectFields)
-        .sort(sort)
-        .populate("seller.userId", "name email")
-        .exec();
+      // Use MongoDB aggregation to join with User collection and filter at query level
+      const aggregationPipeline = [
+        { $match: query },
+        {
+          $lookup: {
+            from: "users",
+            localField: "seller.userId",
+            foreignField: "_id",
+            as: "sellerUser",
+          },
+        },
+        { $unwind: "$sellerUser" },
+        {
+          $match: {
+            "sellerUser.isSuspended": { $ne: true },
+          },
+        },
+        { $sort: sort },
+      ];
+
+      // Add field selection if specified
+      if (selectFields) {
+        const projection = {};
+        selectFields.split(" ").forEach((field) => {
+          projection[field] = 1;
+        });
+        aggregationPipeline.push({ $project: projection });
+      }
+
+      const allListings = await Listing.aggregate(aggregationPipeline);
+
+      // Populate seller info manually for aggregated results
+      await Listing.populate(allListings, {
+        path: "seller.userId",
+        select: "name email",
+      });
 
       // Configure Fuse.js for fuzzy search
       const fuseOptions = {
-        keys: ["name"], // Search in name field
-        threshold: 0.4, // 0.0 = perfect match, 1.0 = match anything
-        distance: 100, // Max distance between characters
-        ignoreLocation: true, // Don't care where in string match occurs
+        keys: ["name"],
+        threshold: 0.4,
+        distance: 100,
+        ignoreLocation: true,
         includeScore: true,
         minMatchCharLength: 2,
       };
@@ -345,17 +375,50 @@ const getAllListings = async (options = {}) => {
       };
     }
 
-    // No search: standard MongoDB query with pagination
-    const [listings, total] = await Promise.all([
-      Listing.find(query)
-        .select(selectFields)
-        .sort(sort)
-        .limit(limit * 1)
-        .skip((page - 1) * limit)
-        .populate("seller.userId", "name email")
-        .exec(),
-      Listing.countDocuments(query),
-    ]);
+    // No search: Use aggregation to filter at query level
+    const aggregationPipeline = [
+      { $match: query },
+      {
+        $lookup: {
+          from: "users",
+          localField: "seller.userId",
+          foreignField: "_id",
+          as: "sellerUser",
+        },
+      },
+      { $unwind: "$sellerUser" },
+      {
+        $match: {
+          "sellerUser.isSuspended": { $ne: true },
+        },
+      },
+    ];
+
+    // Get total count before pagination
+    const countPipeline = [...aggregationPipeline, { $count: "total" }];
+    const countResult = await Listing.aggregate(countPipeline);
+    const total = countResult.length > 0 ? countResult[0].total : 0;
+
+    // Add sorting, pagination, and field selection
+    aggregationPipeline.push({ $sort: sort });
+    aggregationPipeline.push({ $skip: (page - 1) * limit });
+    aggregationPipeline.push({ $limit: limit });
+
+    if (selectFields) {
+      const projection = {};
+      selectFields.split(" ").forEach((field) => {
+        projection[field] = 1;
+      });
+      aggregationPipeline.push({ $project: projection });
+    }
+
+    const listings = await Listing.aggregate(aggregationPipeline);
+
+    // Populate seller info for aggregated results
+    await Listing.populate(listings, {
+      path: "seller.userId",
+      select: "name email",
+    });
 
     // Build pagination response object
     const pagination = {

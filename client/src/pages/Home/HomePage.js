@@ -1,20 +1,19 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Box, Container, CircularProgress, Alert } from "@mui/material";
+import React, { useState, useMemo } from "react";
+import { Box, Container, Alert } from "@mui/material";
 import { useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../features/auth/hooks/useAuth";
-import listingService from "../../features/listing/service/listingService";
+import { useGetListingsQuery } from "../../features/listing/api/listingApi";
+import DynamicSkeleton from "../../components/ui/Skeleton/DynamicSkeleton";
 
 // Home components
 import HeroSection from "../../components/home/HeroSection";
 import QuickActions from "../../components/home/QuickActions";
-import CategoriesGrid from "../../components/home/CategoriesGrid";
-import ListingTypeToggle from "../../components/home/ListingTypeToggle";
-import FeaturedProducts from "../../components/home/FeaturedProducts";
-import TrendingItems from "../../components/home/TrendingItems";
+import BrowseSection from "../../components/home/BrowseSection";
+import LatestItems from "../../components/home/LatestItems";
 import MerchantSpotlight from "../../components/home/MerchantSpotlight";
 import RecentlyViewed from "../../components/home/RecentlyViewed";
-import TestimonialsCarousel from "../../components/home/TestimonialsCarousel";
+import CustomerFeedbackSection from "../../components/home/CustomerFeedbackSection";
 import TrustIndicators from "../../components/home/TrustIndicators";
 import CTASection from "../../components/home/CTASection";
 
@@ -26,105 +25,42 @@ function HomePage() {
   const [listingType, setListingType] = useState(
     searchParams.get("type") || "all"
   );
-  const [featuredListings, setFeaturedListings] = useState([]);
-  const [trendingListings, setTrendingListings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [categoryStats, setCategoryStats] = useState({});
 
-  // Fetch featured listings based on type
-  useEffect(() => {
-    const fetchFeaturedListings = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  // RTK Query - Automatic caching and deduplication!
+  // Latest listings (unified - replaces featured & trending)
+  const {
+    data: latestListings = [],
+    isLoading: latestLoading,
+    error: latestError,
+  } = useGetListingsQuery({
+    limit: 8,
+    sort: "-createdAt",
+    ...(listingType !== "all" && { type: listingType }),
+  });
 
-        const params = {
-          limit: 4,
-          sort: "-createdAt",
-        };
+  // Category stats (cached for 60s)
+  const { data: allListings = [], isLoading: statsLoading } =
+    useGetListingsQuery({
+      limit: 100,
+    });
 
-        // Add type filter if not "all"
-        if (listingType !== "all") {
-          params.type = listingType;
-        }
+  // Calculate category stats from cached data
+  const categoryStats = useMemo(() => {
+    return allListings
+      .filter((listing) => listing.isAvailable === true)
+      .reduce((acc, listing) => {
+        const category = listing.category || "other";
+        const type = listing.type || "product";
 
-        const response = await listingService.getAllListings(params);
-        // Handle response structure: response.data can be array or object with listings property
-        const listings = Array.isArray(response.data)
-          ? response.data
-          : response.data.listings || response.data.data || [];
+        // Count for specific category
+        acc[category] = (acc[category] || 0) + 1;
 
-        setFeaturedListings(listings);
-      } catch (err) {
-        console.error("Error fetching featured listings:", err);
-        setError("Failed to load featured items. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
+        // Count for type totals
+        acc[`${type}_total`] = (acc[`${type}_total`] || 0) + 1;
 
-    fetchFeaturedListings();
-  }, [listingType]);
-
-  // Fetch trending listings (separate from featured)
-  useEffect(() => {
-    const fetchTrendingListings = async () => {
-      try {
-        const params = {
-          limit: 6,
-          sort: "-createdAt", // Use createdAt since viewCount might not exist yet
-        };
-
-        const response = await listingService.getAllListings(params);
-        const listings = Array.isArray(response.data)
-          ? response.data
-          : response.data.listings || response.data.data || [];
-
-        setTrendingListings(listings);
-      } catch (err) {
-        console.error("Error fetching trending listings:", err);
-      }
-    };
-
-    fetchTrendingListings();
-  }, []);
-
-  // Fetch category statistics
-  useEffect(() => {
-    const fetchCategoryStats = async () => {
-      try {
-        const response = await listingService.getAllListings({
-          limit: 100, // Max allowed by API validation
-        });
-        const listings = Array.isArray(response.data)
-          ? response.data
-          : response.data.listings || response.data.data || [];
-
-        // Filter only available listings and count by category AND type
-        const stats = listings
-          .filter((listing) => listing.isAvailable === true)
-          .reduce((acc, listing) => {
-            const category = listing.category || "other";
-            const type = listing.type || "product";
-
-            // Count for specific category
-            acc[category] = (acc[category] || 0) + 1;
-
-            // Count for type totals
-            acc[`${type}_total`] = (acc[`${type}_total`] || 0) + 1;
-
-            return acc;
-          }, {});
-
-        setCategoryStats(stats);
-      } catch (err) {
-        console.error("Error fetching category stats:", err);
-      }
-    };
-
-    fetchCategoryStats();
-  }, []);
+        return acc;
+      }, {});
+  }, [allListings]);
 
   // Handle listing type change
   const handleListingTypeChange = (newType) => {
@@ -139,11 +75,6 @@ function HomePage() {
     setSearchParams(searchParams, { replace: true });
   };
 
-  // Memoized filtered listings
-  const displayedListings = useMemo(() => {
-    return featuredListings;
-  }, [featuredListings]);
-
   return (
     <Box sx={{ width: "100%" }}>
       {/* Hero Section with Image Carousel */}
@@ -153,43 +84,36 @@ function HomePage() {
       <QuickActions />
 
       {/* Error Display */}
-      {error && (
+      {latestError && (
         <Container maxWidth="lg" sx={{ mb: 4 }}>
-          <Alert severity="error" onClose={() => setError(null)}>
-            {error}
+          <Alert severity="error">
+            Failed to load latest items. Please try again later.
           </Alert>
         </Container>
       )}
 
-      {/* Listing Type Toggle */}
-      <ListingTypeToggle
+      {/* Browse Section - Unified Listing Type + Categories */}
+      <BrowseSection
         value={listingType}
         onChange={handleListingTypeChange}
-        stats={categoryStats}
+        categoryStats={categoryStats}
       />
 
-      {/* Categories Grid with Real Counts */}
-      <CategoriesGrid listingType={listingType} categoryStats={categoryStats} />
-
-      {/* Featured Products Section with Real Data */}
-      {loading ? (
-        <Container maxWidth="lg" sx={{ mb: 6, textAlign: "center", py: 4 }}>
-          <CircularProgress />
+      {/* Latest Items Section (Replaces Featured & Trending) */}
+      {latestLoading ? (
+        <Container maxWidth="lg" sx={{ mb: 6, px: { xs: 2, sm: 3 }, py: 4 }}>
+          <DynamicSkeleton
+            type="page"
+            config={{
+              contentType: "grid",
+              items: 8,
+              showHeader: false,
+              showFooter: false,
+            }}
+          />
         </Container>
       ) : (
-        <FeaturedProducts
-          listings={displayedListings}
-          listingType={listingType}
-        />
-      )}
-
-      {/* Trending Items Section */}
-      {loading ? (
-        <Container maxWidth="lg" sx={{ mb: 6, textAlign: "center", py: 4 }}>
-          <CircularProgress />
-        </Container>
-      ) : (
-        <TrendingItems listings={trendingListings} />
+        <LatestItems listings={latestListings} listingType={listingType} />
       )}
 
       {/* Recently Viewed (Authenticated Users Only) */}
@@ -198,11 +122,42 @@ function HomePage() {
       {/* Merchant Spotlight Section */}
       <MerchantSpotlight />
 
-      {/* Customer Testimonials */}
-      <TestimonialsCarousel />
+      {/* Customer Feedback Section - Real Data from Contact System */}
+      <CustomerFeedbackSection />
 
       {/* Trust and Security Indicators */}
       <TrustIndicators />
+
+      {/* TODO: Real Testimonials Section - Future Enhancement
+       * IMPLEMENTATION PLAN:
+       * 1. Create new component: <RealTestimonialsSection />
+       * 2. Fetch approved feedback from Contact system via API
+       * 3. API Endpoint: GET /api/contact/public/testimonials
+       * 4. Criteria: type='feedback', status='resolved', rating >= 4, isPublic=true
+       * 5. Display format: User name, rating stars, feedback message, date
+       * 6. Features:
+       *    - Real user feedback from contact form submissions
+       *    - Admin-approved testimonials only (prevents fake/spam)
+       *    - Optional: Allow users to opt-in for public display during submission
+       *    - Privacy: Show only first name or username (configurable)
+       *    - Carousel/Grid display with 3-6 testimonials
+       * 7. Fallback: If no testimonials, show "Be the first to share feedback"
+       * 8. Link to /contact page for users to submit their own feedback
+       *
+       * BACKEND REQUIREMENTS (to implement later):
+       * - Add 'isPublic' boolean field to Contact model (default: false)
+       * - Add 'displayName' field for customized public name
+       * - Add admin approval workflow in ContactManagementPage
+       * - Create public endpoint (no auth required)
+       * - Index: { type: 1, status: 1, isPublic: 1, rating: -1 }
+       *
+       * WHY REMOVED: Previous TestimonialsCarousel used fake placeholder data
+       * (hardcoded names, fake avatars from pravatar.cc, mock reviews)
+       * which is unprofessional for enterprise-level platform.
+       *
+       * UPDATE: CustomerFeedbackSection now implemented above - replace this comment
+       * once public API endpoint is ready and admin approval workflow is in place.
+       */}
 
       {/* Call to Action Section */}
       <CTASection />

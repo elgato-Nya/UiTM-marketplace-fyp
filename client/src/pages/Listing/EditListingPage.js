@@ -13,65 +13,61 @@ import { useTheme } from "../../hooks/useTheme";
 import DynamicForm from "../../components/common/Form/DynamicForm";
 import { ListingImageUpload } from "../../components/common/ImageUpload";
 import { editListingFormConfig } from "../../config/forms/listingForm";
-import useListings from "../../features/listing/hooks/useListings";
-import useListingActions from "../../features/listing/hooks/useListingActions";
+import {
+  useGetListingByIdQuery,
+  useUpdateListingMutation,
+} from "../../features/listing/api/listingApi";
 import { BackButton } from "../../components/common/Navigation";
 import {
   ErrorAlert,
   SuccessAlert,
   InfoAlert,
 } from "../../components/common/Alert";
+import { useSnackbarContext as useSnackbar } from "../../contexts/SnackbarContext";
+import { ROUTES } from "../../constants/routes";
 
 const EditListingPage = () => {
   const { listingId } = useParams();
   const navigate = useNavigate();
+  const { success: showSuccess, error: showError } = useSnackbar();
   const [existingImages, setExistingImages] = useState([]);
   const [newlyUploadedImages, setNewlyUploadedImages] = useState([]);
+
+  // Fetch listing data
   const {
-    currentListing,
+    data: currentListing,
     isLoading: fetchLoading,
-    getListingById,
-    clearCurrent,
-  } = useListings();
-  const {
-    isLoading: updateLoading,
-    error,
-    success,
-    uploadProgress,
-    handleUpdateListing,
-    goToMyListings,
-    clearMessages,
-  } = useListingActions();
+    error: fetchError,
+  } = useGetListingByIdQuery(listingId, {
+    skip: !listingId,
+  });
+
+  // Update listing mutation
+  const [updateListing, { isLoading: updateLoading, error, isSuccess }] =
+    useUpdateListingMutation();
 
   useEffect(() => {
-    clearMessages();
-  }, []);
-
-  useEffect(() => {
-    if (listingId) {
-      getListingById(listingId);
-    }
-    return () => {
-      clearCurrent();
-      setExistingImages([]);
-      setNewlyUploadedImages([]);
-    };
-  }, [listingId]);
-
-  useEffect(() => {
-    if (currentListing?.images) {
-      setExistingImages(currentListing.images);
+    if (currentListing?.listing?.images) {
+      setExistingImages(currentListing.listing.images);
     }
   }, [currentListing]);
 
   useEffect(() => {
-    if (success) {
+    if (isSuccess) {
+      showSuccess("Listing updated successfully!");
+      // Redirect to My Listings - RTK Query will auto-refetch
       setTimeout(() => {
-        goToMyListings();
-        clearMessages();
+        navigate(ROUTES.MERCHANT.LISTINGS.MY_LISTINGS, { replace: true });
       }, 500);
     }
-  }, [success, goToMyListings, clearMessages]);
+  }, [isSuccess, navigate, showSuccess]);
+
+  useEffect(() => {
+    return () => {
+      setExistingImages([]);
+      setNewlyUploadedImages([]);
+    };
+  }, []);
 
   const handleImageUploadComplete = (result) => {
     // result is { success, data: { images, count }, message }
@@ -99,38 +95,49 @@ const EditListingPage = () => {
     );
   }
 
-  if (!currentListing) {
+  if (!currentListing?.listing) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
-        <ErrorAlert show={true} message="Listing not found." />
+        <ErrorAlert
+          show={true}
+          error={fetchError}
+          fallback="Listing not found."
+        />
         <BackButton sx={{ mt: 2 }} />
       </Container>
     );
   }
 
+  const listing = currentListing.listing;
+
   const handleSubmit = async (formData) => {
-    const listingData = { ...formData };
+    try {
+      const listingData = { ...formData };
 
-    // Merge existing images with newly uploaded images
-    listingData.images = [...existingImages, ...newlyUploadedImages];
+      // Merge existing images with newly uploaded images
+      listingData.images = [...existingImages, ...newlyUploadedImages];
 
-    // Convert isFree listing price to 0
-    if (listingData.isFree) {
-      listingData.price = 0;
+      // Convert isFree listing price to 0
+      if (listingData.isFree) {
+        listingData.price = 0;
+      }
+
+      // Handle stock for products only
+      if (listingData.type === "product") {
+        listingData.stock = parseInt(listingData.stock) || 0;
+      } else {
+        delete listingData.stock;
+      }
+
+      // Ensure price is a number
+      listingData.price = parseFloat(listingData.price) || 0;
+
+      // Update listing - RTK Query will auto-invalidate cache
+      await updateListing({ id: listingId, ...listingData }).unwrap();
+    } catch (error) {
+      console.error("Failed to update listing:", error);
+      showError(error?.data?.message || "Failed to update listing");
     }
-
-    // Handle stock for products only
-    if (listingData.type === "product") {
-      listingData.stock = parseInt(listingData.stock) || 0;
-    } else {
-      delete listingData.stock;
-    }
-
-    // Ensure price is a number
-    listingData.price = parseFloat(listingData.price) || 0;
-
-    // Pass null for images param since they're already uploaded/managed
-    await handleUpdateListing(listingId, listingData, null);
   };
 
   // Prepare default values from current listing (without images)
@@ -140,14 +147,14 @@ const EditListingPage = () => {
     subtitle: null, // Remove subtitle since we show it above
     allowQuickSave: true, // Enable quick jump to save button
     defaultValues: {
-      type: currentListing.type,
-      name: currentListing.name,
-      description: currentListing.description,
-      category: currentListing.category,
-      price: currentListing.price,
-      stock: currentListing.stock || 0,
-      isFree: currentListing.isFree,
-      isAvailable: currentListing.isAvailable,
+      type: listing.type,
+      name: listing.name,
+      description: listing.description,
+      category: listing.category,
+      price: listing.price,
+      stock: listing.stock || 0,
+      isFree: listing.isFree,
+      isAvailable: listing.isAvailable,
     },
     // Remove images field from form config
     steps: editListingFormConfig.steps
@@ -189,18 +196,10 @@ const EditListingPage = () => {
         aria-atomic="true"
         sx={{ mb: 3 }}
       >
-        <SuccessAlert
-          message="Listing updated successfully! Redirecting..."
-          show={success}
-        />
         <ErrorAlert
           error={error}
           show={!!error}
           fallback="Failed to update listing. Please try again."
-        />
-        <InfoAlert
-          message={`Uploading Images: ${uploadProgress}%`}
-          show={uploadProgress > 0 && uploadProgress < 100}
         />
       </Box>
 

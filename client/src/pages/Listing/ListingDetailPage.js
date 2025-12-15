@@ -11,20 +11,14 @@ import {
   Card,
   CardContent,
   CircularProgress,
-  Divider,
   IconButton,
   Tooltip,
   Alert,
 } from "@mui/material";
 import {
-  ShoppingCart as CartIcon,
   Store as StoreIcon,
-  Inventory as StockIcon,
   Favorite as FavoriteIcon,
   FavoriteBorder as FavoriteBorderIcon,
-  Add as AddIcon,
-  Remove as RemoveIcon,
-  Bolt as BuyNowIcon,
 } from "@mui/icons-material";
 
 import { useTheme } from "../../hooks/useTheme";
@@ -112,6 +106,25 @@ const ListingDetailPage = () => {
   const inWishlist = isInWishlist(listingId);
   const canAddToCart = isAvailable && (type === "service" || stock > 0);
 
+  // Format price with spaces (e.g., 1 234 567.89)
+  const formatPrice = (price) => {
+    if (isFree) return "FREE";
+    if (price >= 100000) {
+      // Use prefix for 100k+
+      if (price >= 1000000000) {
+        return `RM ${(price / 1000000000).toFixed(1)}b`;
+      }
+      if (price >= 1000000) {
+        return `RM ${(price / 1000000).toFixed(1)}m`;
+      }
+      return `RM ${(price / 1000).toFixed(1)}k`;
+    }
+    // Format with spaces for numbers < 100k
+    const parts = price.toFixed(2).split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    return `RM ${parts.join(".")}`;
+  };
+
   const handleBuyNow = async () => {
     setIsBuyingNow(true);
     try {
@@ -167,413 +180,216 @@ const ListingDetailPage = () => {
 
   return (
     <Container
-      maxWidth="xl"
+      maxWidth="lg"
       sx={{
         py: { xs: 2, md: 4 },
         px: { xs: 2, sm: 3, md: 4 },
-        maxWidth: "100%",
-        overflowX: "hidden",
       }}
-      component="section"
-      aria-labelledby="listing-title"
     >
-      {/* Professional Back Button */}
-      <BackButton sx={{ mb: { xs: 2, md: 3 } }} />
+      {/* Back Button */}
+      <BackButton sx={{ mb: 2 }} />
 
-      {/* TOP ROW - Images & Main Content Side by Side */}
+      {/* Main Content Grid */}
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", md: "40% 1fr" },
+          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
           gap: { xs: 2, md: 4 },
-          mb: { xs: 2, md: 4 },
-          width: "100%",
-          maxWidth: "100%",
+          mb: 3,
         }}
       >
-        {/* LEFT COLUMN - Image Gallery */}
-        <Box
-          component="aside"
-          aria-label="Product images"
-          sx={{
-            order: { xs: 1, md: 1 },
-            width: "100%",
-            maxWidth: "100%",
-            minWidth: 0,
-            overflow: "hidden",
-          }}
-        >
+        {/* Image Gallery */}
+        <Box sx={{ width: "100%" }}>
           <ImageGallery images={images} altText={name} />
         </Box>
 
-        {/* RIGHT COLUMN - All Product Details */}
-        <Box
-          component="article"
-          aria-labelledby="listing-title"
-          sx={{
-            order: { xs: 2, md: 2 },
-            minWidth: 0,
-            width: "100%",
-            maxWidth: "100%",
-            overflow: "hidden",
-          }}
-        >
-          {/* Listing Name */}
+        {/* Product Information */}
+        <Box sx={{ width: "100%" }}>
+          {/* Title */}
           <Typography
             variant="h4"
             component="h1"
             fontWeight="700"
             sx={{
-              mb: { xs: 2, md: 3 },
-              fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
-              wordBreak: "break-word",
-              overflowWrap: "break-word",
-              hyphens: "auto",
-              maxWidth: "100%",
+              mb: 1.5,
+              fontSize: { xs: "1.5rem", md: "2rem" },
               lineHeight: 1.3,
             }}
-            id="listing-title"
           >
             {name}
           </Typography>
-          {/* Description Section */}
-          <Box
-            component="section"
-            aria-labelledby="description-heading"
+
+          {/* Description */}
+          <Typography
+            variant="body1"
+            color="text.secondary"
             sx={{
-              mb: { xs: 3, md: 4 },
-              width: "100%",
-              maxWidth: "100%",
+              mb: 2,
+              lineHeight: 1.6,
+              whiteSpace: "pre-wrap",
+              fontSize: { xs: "0.875rem", md: "1rem" },
             }}
           >
+            {description}
+          </Typography>
+
+          {/* Price */}
+          {isFree ? (
             <Typography
-              variant="h5"
-              component="h2"
+              variant="h3"
               fontWeight="700"
-              gutterBottom
-              id="description-heading"
+              color="success.main"
               sx={{
-                fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                mb: 2,
+                fontSize: { xs: "1.75rem", md: "2.25rem" },
               }}
             >
-              Description
+              FREE
             </Typography>
+          ) : (
             <Typography
-              variant="body1"
-              color="text.secondary"
-              sx={{
-                lineHeight: 1.7,
-                wordBreak: "break-word",
-                overflowWrap: "break-word",
-                whiteSpace: "pre-wrap",
-                maxWidth: "100%",
-                fontSize: { xs: "0.875rem", sm: "1rem" },
-              }}
-            >
-              {description}
-            </Typography>
-          </Box>
-
-          <Divider sx={{ my: { xs: 2, md: 3 } }} />
-
-          {/* Price Section */}
-          <Box
-            component="section"
-            aria-labelledby="price-heading"
-            sx={{ mb: { xs: 2, md: 3 } }}
-          >
-            <Typography
-              variant="h6"
-              component="h2"
+              variant="h3"
               fontWeight="700"
-              color="text.secondary"
-              gutterBottom
-              id="price-heading"
+              color="primary.main"
               sx={{
-                fontSize: { xs: "1rem", sm: "1.25rem" },
+                mb: 2,
+                fontSize: { xs: "1.75rem", md: "2.25rem" },
               }}
             >
-              Price
+              {formatPrice(price)}
             </Typography>
-            {isFree ? (
-              <Typography
-                variant="h3"
-                fontWeight="700"
-                color="success.main"
-                sx={{
-                  fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" },
-                }}
-              >
-                FREE
-              </Typography>
-            ) : (
-              <Typography
-                variant="h3"
-                fontWeight="700"
-                color="primary.main"
-                sx={{
-                  fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" },
-                  wordBreak: "break-word",
-                }}
-              >
-                RM {parseFloat(price).toFixed(2)}
-              </Typography>
-            )}
-          </Box>
+          )}
 
-          {/* Stock Section (Products Only) */}
+          {/* Stock Status for Products */}
           {type === "product" && (
-            <Box
-              component="section"
-              aria-labelledby="stock-heading"
-              sx={{ mb: { xs: 2, md: 3 } }}
-            >
+            <Box sx={{ mb: 2, mt: 2 }}>
               <Typography
-                variant="h6"
-                component="h2"
-                fontWeight="700"
-                color="text.secondary"
-                gutterBottom
-                id="stock-heading"
-                sx={{
-                  fontSize: { xs: "1rem", sm: "1.25rem" },
-                }}
+                variant="body2"
+                fontWeight="500"
+                color={
+                  stock > 0 && stock <= 5 ? "error.main" : "text.secondary"
+                }
+                sx={{ fontSize: { xs: "0.875rem", md: "1rem" } }}
               >
-                Stock Availability
+                {stock > 0 ? `${stock} in stock` : "Out of stock"}
               </Typography>
-              <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                <StockIcon color={stock > 0 ? "success" : "error"} />
-                <Typography
-                  variant="h5"
-                  fontWeight="700"
-                  color={stock > 0 ? "success.main" : "error.main"}
-                  aria-live="polite"
-                  sx={{
-                    fontSize: { xs: "1.125rem", sm: "1.5rem" },
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {stock > 0 ? `${stock} units in stock` : "Out of Stock"}
-                </Typography>
-              </Box>
             </Box>
           )}
 
-          {/* Category & Tags Section */}
-          <Box
-            component="section"
-            aria-labelledby="category-heading"
-            sx={{ mb: { xs: 3, md: 4 } }}
-          >
+          {/* Category & Type */}
+          <Box sx={{ mb: 2 }}>
             <Typography
-              variant="h6"
-              component="h2"
-              fontWeight="700"
+              variant="body2"
               color="text.secondary"
-              gutterBottom
-              id="category-heading"
-              sx={{
-                fontSize: { xs: "1rem", sm: "1.25rem" },
-              }}
+              sx={{ fontSize: { xs: "0.8125rem", md: "0.875rem" } }}
             >
-              Category & Type
+              {CATEGORY_LABELS[category] || category} •{" "}
+              {type === "product" ? "Product" : "Service"}
             </Typography>
-            <Box display="flex" flexWrap="wrap" gap={1}>
-              <Chip
-                label={CATEGORY_LABELS[category] || category}
-                color="primary"
-                variant="outlined"
-                sx={{
-                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                }}
-              />
-              <Chip
-                label={type === "product" ? "Product" : "Service"}
-                color="secondary"
-                variant="outlined"
-                sx={{
-                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                }}
-              />
-              {isAvailable ? (
-                <Chip
-                  label="Available"
-                  color="success"
-                  size="small"
-                  sx={{
-                    fontSize: { xs: "0.7rem", sm: "0.8125rem" },
-                  }}
-                />
-              ) : (
-                <Chip
-                  label="Unavailable"
-                  color="error"
-                  size="small"
-                  sx={{
-                    fontSize: { xs: "0.7rem", sm: "0.8125rem" },
-                  }}
-                />
-              )}
-            </Box>
           </Box>
 
-          <Divider sx={{ my: { xs: 2, md: 3 } }} />
-
-          {/* Stock Warning */}
-          {type === "product" && stock > 0 && stock <= 5 && (
-            <Alert
-              severity="warning"
-              sx={{
-                mb: { xs: 2, md: 3 },
-                fontSize: { xs: "0.8125rem", sm: "0.875rem" },
-              }}
-            >
-              Only {stock} left in stock! Order soon.
-            </Alert>
-          )}
-
-          {/* Action Section */}
-          <Box
-            component="section"
-            aria-label="Purchase actions"
-            sx={{ mb: { xs: 3, md: 4 } }}
-          >
-            {/* Action Buttons */}
+          {/* Action Buttons */}
+          {isAuthenticated ? (
             <Box
               sx={{
                 display: "flex",
-                flexDirection: { xs: "column", sm: "row" },
-                gap: { xs: 1.5, sm: 2 },
-                flexWrap: "wrap",
-                alignItems: "stretch",
-                width: "100%",
+                flexDirection: "row",
+                gap: 1.5,
+                mt: 3,
+                mb: 0,
               }}
             >
-              {isAuthenticated ? (
-                <>
-                  {/* Buy Now Button */}
-                  <Button
-                    variant="contained"
-                    size="large"
-                    startIcon={!isBuyingNow && <BuyNowIcon />}
-                    onClick={handleBuyNow}
-                    disabled={!canAddToCart || isBuyingNow}
-                    color="secondary"
-                    sx={{
-                      flex: { xs: "1 1 100%", sm: "1 1 auto" },
-                      minWidth: { xs: "100%", sm: "180px" },
-                      py: { xs: 1.25, sm: 1.5 },
-                      fontWeight: 700,
-                      textTransform: "none",
-                      fontSize: { xs: "0.875rem", sm: "1rem" },
-                    }}
-                  >
-                    {isBuyingNow ? (
-                      <>
-                        <CircularProgress size={20} sx={{ mr: 1 }} />
-                        Processing...
-                      </>
-                    ) : !isAvailable ? (
-                      "Unavailable"
-                    ) : type === "product" && stock <= 0 ? (
-                      "Out of Stock"
-                    ) : (
-                      "Buy Now"
-                    )}
-                  </Button>
+              {/* Buy Now */}
+              <Button
+                variant="contained"
+                size="large"
+                onClick={handleBuyNow}
+                disabled={!canAddToCart || isBuyingNow}
+                sx={{
+                  py: 1.5,
+                  fontSize: { xs: "0.875rem", sm: "1rem" },
+                  fontWeight: 600,
+                  textTransform: "none",
+                  flex: 1,
+                }}
+              >
+                {isBuyingNow ? (
+                  <>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    Processing...
+                  </>
+                ) : !canAddToCart ? (
+                  "Unavailable"
+                ) : (
+                  "Buy Now"
+                )}
+              </Button>
 
-                  {/* Add to Cart Button */}
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    startIcon={<CartIcon />}
-                    onClick={handleAddToCartClick}
-                    disabled={!canAddToCart}
-                    sx={{
-                      flex: { xs: "1 1 100%", sm: "1 1 auto" },
-                      minWidth: { xs: "100%", sm: "180px" },
-                      py: { xs: 1.25, sm: 1.5 },
-                      fontWeight: 700,
-                      textTransform: "none",
-                      fontSize: { xs: "0.875rem", sm: "1rem" },
-                    }}
-                  >
-                    {!isAvailable
-                      ? "Unavailable"
-                      : type === "product" && stock <= 0
-                        ? "Out of Stock"
-                        : "Add to Cart"}
-                  </Button>
+              {/* Add to Cart */}
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={handleAddToCartClick}
+                disabled={!canAddToCart}
+                sx={{
+                  py: 1.5,
+                  fontSize: { xs: "0.875rem", sm: "1rem" },
+                  fontWeight: 600,
+                  textTransform: "none",
+                  flex: 1,
+                }}
+              >
+                Add to Cart
+              </Button>
 
-                  {/* Wishlist Toggle Button */}
-                  <Tooltip
-                    title={
-                      inWishlist ? "Remove from wishlist" : "Add to wishlist"
-                    }
-                  >
-                    <IconButton
-                      onClick={handleToggleWishlist}
-                      size="large"
-                      sx={{
-                        border: "2px solid",
-                        borderColor: inWishlist ? "error.main" : "divider",
-                        color: inWishlist ? "error.main" : "text.secondary",
-                        alignSelf: { xs: "center", sm: "stretch" },
-                        minWidth: { xs: "48px", sm: "auto" },
-                        "&:hover": {
-                          borderColor: "error.main",
-                          color: "error.main",
-                          backgroundColor: "action.hover",
-                        },
-                      }}
-                      aria-label={
-                        inWishlist ? "Remove from wishlist" : "Add to wishlist"
-                      }
-                    >
-                      {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-                    </IconButton>
-                  </Tooltip>
-                </>
-              ) : (
-                <Alert severity="info" sx={{ width: "100%" }}>
-                  Please log in to purchase this item or add it to your cart and
-                  wishlist.
-                </Alert>
-              )}
+              {/* Wishlist - Icon Only */}
+              <Tooltip
+                title={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+              >
+                <IconButton
+                  onClick={handleToggleWishlist}
+                  size="large"
+                  sx={{
+                    border: "2px solid",
+                    borderColor: inWishlist ? "error.main" : "divider",
+                    color: inWishlist ? "error.main" : "text.secondary",
+                    "&:hover": {
+                      borderColor: "error.main",
+                      color: "error.main",
+                    },
+                  }}
+                >
+                  {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                </IconButton>
+              </Tooltip>
             </Box>
-          </Box>
+          ) : (
+            <Alert
+              severity="info"
+              sx={{ mb: 0, fontSize: { xs: "0.8125rem", md: "0.875rem" } }}
+            >
+              Please log in to purchase this item.
+            </Alert>
+          )}
         </Box>
       </Box>
 
-      {/* BOTTOM ROW - Seller Information (Full Width) */}
-      <Card
-        variant="outlined"
-        component="aside"
-        aria-label="Seller information"
-        sx={{
-          mt: { xs: 3, md: 4 },
-          width: "100%",
-          maxWidth: "100%",
-        }}
-      >
-        <CardContent sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3 } }}>
+      {/* Seller Information Card */}
+      <Card variant="outlined" sx={{ mt: 3 }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
           <Typography
             variant="h6"
-            component="h2"
-            fontWeight="700"
-            sx={{
-              mb: { xs: 2, md: 3 },
-              textAlign: "center",
-              fontSize: { xs: "1.125rem", sm: "1.25rem" },
-            }}
+            fontWeight="600"
+            gutterBottom
+            sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
           >
             Seller Information
           </Typography>
           <Box
             display="flex"
-            flexDirection="column"
-            alignItems="center"
-            gap={{ xs: 1.5, sm: 2 }}
+            flexDirection={{ xs: "column", sm: "row" }}
+            alignItems={{ xs: "center", sm: "flex-start" }}
+            gap={2}
           >
             <Avatar
               sx={{
@@ -581,57 +397,35 @@ const ListingDetailPage = () => {
                 width: { xs: 56, sm: 64 },
                 height: { xs: 56, sm: 64 },
               }}
-              aria-label={`${displayName}'s avatar`}
             >
               <StoreIcon sx={{ fontSize: { xs: 32, sm: 36 } }} />
             </Avatar>
-            <Box sx={{ textAlign: "center", maxWidth: "100%" }}>
+            <Box sx={{ flex: 1, textAlign: { xs: "center", sm: "left" } }}>
               <Typography
                 variant="h6"
                 fontWeight="600"
-                sx={{
-                  mb: 0.5,
-                  fontSize: { xs: "1rem", sm: "1.25rem" },
-                  wordBreak: "break-word",
-                  overflowWrap: "break-word",
-                }}
+                sx={{ fontSize: { xs: "1rem", md: "1.125rem" } }}
               >
                 {displayName}
               </Typography>
               <Typography
-                variant="body1"
+                variant="body2"
                 color="text.secondary"
-                sx={{
-                  mb: 1,
-                  fontSize: { xs: "0.875rem", sm: "1rem" },
-                  wordBreak: "break-word",
-                  overflowWrap: "break-word",
-                }}
+                sx={{ mb: 1, fontSize: { xs: "0.8125rem", md: "0.875rem" } }}
               >
                 @{username}
               </Typography>
               {isVerifiedMerchant && (
-                <Chip
-                  label="Verified"
-                  color="success"
-                  size="small"
-                  sx={{
-                    fontSize: { xs: "0.7rem", sm: "0.8125rem" },
-                  }}
-                />
+                <Chip label="Verified Merchant" color="success" size="small" />
               )}
             </Box>
             <Button
               variant="outlined"
-              size="large"
               onClick={handleViewShop}
-              aria-label={`Visit ${shopSlug ? displayName + "'s shop" : displayName + "'s profile"}`}
               sx={{
-                mt: { xs: 0.5, sm: 1 },
-                minWidth: { xs: "100%", sm: 200 },
-                maxWidth: { xs: "100%", sm: "auto" },
-                py: { xs: 1, sm: 1.5 },
-                fontSize: { xs: "0.875rem", sm: "1rem" },
+                minWidth: { xs: "100%", sm: 150 },
+                textTransform: "none",
+                fontSize: { xs: "0.875rem", md: "1rem" },
               }}
             >
               Visit {shopSlug ? "Shop" : "Profile"}

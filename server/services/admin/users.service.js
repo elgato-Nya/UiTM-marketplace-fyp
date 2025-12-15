@@ -400,6 +400,65 @@ const updateUserRoles = async (userId, roles, adminId) => {
       });
     }
 
+    // If merchant role is being added and user doesn't have merchantDetails.shopName, create placeholder
+    if (roles.includes("merchant") && !user.merchantDetails?.shopName) {
+      if (!user.merchantDetails) {
+        user.merchantDetails = {};
+      }
+
+      // Check if merchant data was previously archived
+      if (user.merchantDetails.isArchived) {
+        // Restore archived merchant data
+        user.merchantDetails.isArchived = false;
+        user.merchantDetails.archivedAt = undefined;
+        user.merchantDetails.archivedReason = undefined;
+        user.merchantDetails.shopStatus = "pending_verification";
+
+        logger.info("Restored archived merchant profile", {
+          userId,
+          shopName: user.merchantDetails.shopName,
+        });
+      } else {
+        // Generate valid shop name from user's profile name
+        // Format: "UserName Shop" or "User's Shop"
+        // Clean name: remove special chars except spaces, hyphens, apostrophes
+        const cleanName = (
+          user.profile?.name ||
+          user.email?.split("@")[0] ||
+          "User"
+        )
+          .replace(/[^a-zA-Z0-9\s\-'&]/g, "") // Remove invalid chars
+          .trim()
+          .substring(0, 40); // Leave room for " Shop" suffix
+
+        user.merchantDetails.shopName = `${cleanName} Shop`;
+        user.merchantDetails.shopDescription =
+          "Shop pending setup - Please update your shop details";
+
+        logger.info("Created placeholder merchant profile", {
+          userId,
+          originalName: user.profile?.name || user.email,
+          shopName: user.merchantDetails.shopName,
+        });
+      }
+    }
+
+    // If merchant role is being removed, archive merchantDetails for data integrity
+    if (!roles.includes("merchant") && user.merchantDetails?.shopName) {
+      if (!user.merchantDetails.isArchived) {
+        user.merchantDetails.isArchived = true;
+        user.merchantDetails.archivedAt = new Date();
+        user.merchantDetails.archivedReason = "Merchant role removed by admin";
+        user.merchantDetails.shopStatus = "closed";
+
+        logger.info("Archived merchant profile", {
+          userId,
+          shopName: user.merchantDetails.shopName,
+          archivedAt: user.merchantDetails.archivedAt,
+        });
+      }
+    }
+
     await user.save();
 
     logger.info("User roles updated", {

@@ -98,6 +98,29 @@ CartModel.methods.removeItem = function (listingId) {
   return this;
 };
 
+/**
+ * Remove item by cart item ID (subdocument _id)
+ * USE CASE: When listing is null/deleted, we only have item._id
+ * BEST PRACTICE: Always prefer this over removeItem() for frontend calls
+ */
+CartModel.methods.removeItemById = function (itemId) {
+  const itemIndex = this.items.findIndex(
+    (item) => item._id.toString() === itemId.toString()
+  );
+
+  if (itemIndex === -1) {
+    throw new AppError(
+      cartErrorMessages.item.notFound,
+      404,
+      "CART_ITEM_NOT_FOUND"
+    );
+  }
+
+  this.items.splice(itemIndex, 1);
+  this.lastActivity = Date.now();
+  return this;
+};
+
 CartModel.methods.clearCart = function () {
   this.items = [];
   this.lastActivity = Date.now();

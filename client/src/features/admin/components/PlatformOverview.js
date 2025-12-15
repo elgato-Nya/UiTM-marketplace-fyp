@@ -381,15 +381,20 @@ const PlatformOverview = ({
             ariaLabel="Listing statistics section"
             collapsedContent={
               <Typography variant="body2" color="text.secondary">
-                {formatNumber(periodData.listings.totalActive)} total active •{" "}
+                {formatNumber(periodData.listings.active)} active •{" "}
                 {periodData.listings.byCategory?.length || 0} categories
               </Typography>
             }
           >
             <Stack spacing={1} role="list" aria-label="Listing statistics">
               <StatRow
-                label="Total Active"
-                value={formatNumber(periodData.listings.totalActive)}
+                label="Total Listings"
+                value={formatNumber(periodData.listings.total)}
+                color={theme.palette.info.main}
+              />
+              <StatRow
+                label="Active Listings"
+                value={formatNumber(periodData.listings.active)}
                 color={theme.palette.primary.main}
               />
               <Divider />

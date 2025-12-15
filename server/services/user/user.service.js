@@ -14,8 +14,8 @@ const { syncMerchantDataToListings } = require("./merchant.service");
 const findUserById = async (userId, options = {}) => {
   try {
     const selectedOptions = options.includePassword
-      ? "+password"
-      : "-password -refreshTokens -__v";
+      ? "+email +password"
+      : "+email -password -refreshTokens -__v";
     const user = await User.findById(userId).select(selectedOptions);
     if (!user) {
       handleNotFoundError("User", "USER_NOT_FOUND", "find_user_by_id", {
@@ -51,8 +51,8 @@ const findUserById = async (userId, options = {}) => {
 const findUserByEmail = async (email, options = {}) => {
   try {
     const selectedOptions = options.includePassword
-      ? "+password"
-      : "-password -refreshTokens -__v";
+      ? "+email +password"
+      : "+email -password -refreshTokens -__v";
     const user = await User.findOne({ email: email.toLowerCase() }).select(
       selectedOptions
     );
@@ -111,7 +111,7 @@ const updateUserProfile = async (userId, { sanitizedData }) => {
     if (Object.keys(updates).length === 0) {
       // Still return current user data if no updates
       const currentUser = await User.findById(userId).select(
-        "-password -refreshTokens -__v"
+        "+email -password -refreshTokens -__v"
       );
 
       const profile = {
@@ -136,7 +136,7 @@ const updateUserProfile = async (userId, { sanitizedData }) => {
     const updatedUser = await User.findByIdAndUpdate(userId, updates, {
       new: true,
       runValidators: true,
-    }).select("-password -refreshTokens -__v");
+    }).select("+email -password -refreshTokens -__v");
 
     if (!updatedUser) {
       handleNotFoundError("User", "USER_NOT_FOUND", "update_user_profile", {

@@ -11,6 +11,7 @@ import checkoutReducer from "../features/checkout/store/checkoutSlice";
 import analyticsReducer from "../features/analytic/store/analyticsSlice";
 import merchantReducer from "../features/merchant/store/merchantSlice";
 import uploadReducer from "./slice/uploadSlice";
+import { listingApi } from "../features/listing/api/listingApi";
 
 export const store = configureStore({
   reducer: {
@@ -26,6 +27,8 @@ export const store = configureStore({
     analytics: analyticsReducer,
     merchant: merchantReducer,
     upload: uploadReducer,
+    // Add RTK Query API reducer
+    [listingApi.reducerPath]: listingApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -37,6 +40,6 @@ export const store = configureStore({
         // Ignore these paths in the state
         ignoredPaths: ["items.dates"],
       },
-    }),
+    }).concat(listingApi.middleware), // Add RTK Query middleware
   devTools: process.env.NODE_ENV !== "production",
 });

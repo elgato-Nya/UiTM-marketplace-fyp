@@ -1,5 +1,6 @@
 import { Box, Avatar, Typography, IconButton } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
+import { Logo } from "../../../common/Logo";
 
 function DrawerHeader({ theme, isAuthenticated, user, onClose }) {
   return (
@@ -78,9 +79,12 @@ function DrawerHeader({ theme, isAuthenticated, user, onClose }) {
       )}
 
       {!isAuthenticated && (
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          Welcome!
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Logo variant="icon" type="platform" height={36} />
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Welcome!
+          </Typography>
+        </Box>
       )}
     </Box>
   );

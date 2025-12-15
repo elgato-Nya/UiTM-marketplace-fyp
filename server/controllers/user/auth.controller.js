@@ -255,9 +255,20 @@ const handleForgotPassword = asyncHandler(async (req, res) => {
     message,
   });
 
+  // Return different response based on status
+  if (status === "recently requested") {
+    return baseController.sendSuccess(
+      res,
+      { status, rateLimited: true },
+      message ||
+        "Email was already sent, please wait for 5 minutes before requesting again",
+      200
+    );
+  }
+
   baseController.sendSuccess(
     res,
-    {},
+    { status },
     "If your email is registered, you will receive a password reset link shortly. Please wait up to 5 minutes before requesting again.",
     200
   );

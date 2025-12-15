@@ -21,7 +21,7 @@ const createOrder = async (userId, orderData) => {
   try {
     const { items, deliveryAddress, deliveryMethod, paymentMethod } = orderData;
 
-    const buyer = await User.findById(userId).select("email profile roles");
+    const buyer = await User.findById(userId).select("+email profile roles");
     if (!buyer) {
       // TODO : Standardize handleNotFoundError accross services
       return handleNotFoundError("User", "USER_NOT_FOUND", "create_order", {
@@ -137,7 +137,7 @@ const createOrder = async (userId, orderData) => {
     }
 
     const seller = await User.findById(sellerId).select(
-      "email profile roles merchantDetails"
+      "+email profile roles merchantDetails"
     );
 
     if (!seller) {

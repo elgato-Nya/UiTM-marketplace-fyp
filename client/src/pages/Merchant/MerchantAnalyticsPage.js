@@ -161,29 +161,27 @@ const MerchantAnalyticsPage = () => {
     <Box>
       {/* Header with improved mobile layout */}
       <Fade in timeout={500}>
-        <Box sx={{ mb: { xs: 3, md: 4 } }}>
+        <Box sx={{ mb: { xs: 2, md: 3 } }}>
           <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={2}
             alignItems={{ xs: "flex-start", sm: "center" }}
             justifyContent="space-between"
-            sx={{ mb: 2 }}
+            sx={{ mb: 1.5 }}
           >
             <Box>
-              <Box
-                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}
+              <Typography
+                variant={isMobile ? "h5" : "h4"}
+                fontWeight="bold"
+                sx={{ fontSize: { xs: "1.5rem", md: "2rem" } }}
               >
-                <Assessment
-                  sx={{
-                    fontSize: { xs: 28, md: 32 },
-                    color: theme.palette.primary.main,
-                  }}
-                />
-                <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
-                  Analytics Dashboard
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
+                Analytics Dashboard
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ fontSize: { xs: "0.8125rem", md: "0.875rem" } }}
+              >
                 Track your sales performance and business metrics
               </Typography>
             </Box>
@@ -211,7 +209,7 @@ const MerchantAnalyticsPage = () => {
       </Fade>
 
       {/* Filter Bar */}
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: 2 }}>
         <FilterBar
           period={currentPeriod}
           onPeriodChange={handlePeriodChange}
@@ -253,26 +251,27 @@ const MerchantAnalyticsPage = () => {
 
       {/* Shop Overview Metrics */}
       <Fade in timeout={500}>
-        <Box sx={{ mb: 3 }}>
+        <Box sx={{ mb: 2 }}>
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              mb: 2,
+              mb: 1.5,
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Storefront sx={{ color: theme.palette.primary.main }} />
-              <Typography
-                variant="subtitle2"
-                fontWeight="bold"
-                color="text.secondary"
-                sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
-              >
-                Shop Overview
-              </Typography>
-            </Box>
+            <Typography
+              variant="subtitle2"
+              fontWeight="600"
+              color="text.secondary"
+              sx={{
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                fontSize: { xs: "0.75rem", md: "0.8125rem" },
+              }}
+            >
+              Shop Overview
+            </Typography>
             <Tooltip title={showShopOverview ? "Hide section" : "Show section"}>
               <IconButton
                 size="small"
@@ -283,13 +282,13 @@ const MerchantAnalyticsPage = () => {
             </Tooltip>
           </Box>
           <Collapse in={showShopOverview}>
-            <Grid container spacing={{ xs: 2, md: 3 }}>
+            <Grid container spacing={{ xs: 1.5, md: 2 }}>
               {/* Shop Rating */}
               <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
                 <StatCard
                   title="Shop Rating"
                   value={`${shop?.shopRating?.averageRating?.toFixed(1) || "0.0"}`}
-                  icon={<Star />}
+                  icon={Star}
                   color="warning"
                   subtitle={`${shop?.shopRating?.totalReviews || 0} reviews`}
                   isLoading={!shop}
@@ -301,7 +300,7 @@ const MerchantAnalyticsPage = () => {
                 <StatCard
                   title="Shop Views"
                   value={formatNumber(shop?.shopMetrics?.totalViews || 0)}
-                  icon={<Visibility />}
+                  icon={Visibility}
                   color="secondary"
                   subtitle="total page visits"
                   isLoading={!shop}
@@ -313,7 +312,7 @@ const MerchantAnalyticsPage = () => {
                 <StatCard
                   title="Total Listings"
                   value={formatNumber(shop?.shopMetrics?.totalProducts || 0)}
-                  icon={<Storefront />}
+                  icon={Storefront}
                   color="primary"
                   subtitle="active listings"
                   isLoading={!shop}
@@ -325,7 +324,7 @@ const MerchantAnalyticsPage = () => {
                 <StatCard
                   title="Total Sales"
                   value={formatNumber(shop?.shopMetrics?.totalSales || 0)}
-                  icon={<ShoppingCart />}
+                  icon={ShoppingCart}
                   color="success"
                   subtitle="total items sold"
                   isLoading={!shop}
@@ -337,7 +336,7 @@ const MerchantAnalyticsPage = () => {
                 <StatCard
                   title="All-Time Revenue"
                   value={formatCurrency(shop?.shopMetrics?.totalRevenue || 0)}
-                  icon={<AttachMoney />}
+                  icon={AttachMoney}
                   color="info"
                   subtitle="total earnings"
                   isLoading={!shop}
@@ -356,20 +355,21 @@ const MerchantAnalyticsPage = () => {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              mb: 2,
+              mb: 1.5,
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Assessment sx={{ color: theme.palette.primary.main }} />
-              <Typography
-                variant="subtitle2"
-                fontWeight="bold"
-                color="text.secondary"
-                sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
-              >
-                {PERIOD_LABELS[currentPeriod]} Performance
-              </Typography>
-            </Box>
+            <Typography
+              variant="subtitle2"
+              fontWeight="600"
+              color="text.secondary"
+              sx={{
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                fontSize: { xs: "0.75rem", md: "0.8125rem" },
+              }}
+            >
+              {PERIOD_LABELS[currentPeriod]} Performance
+            </Typography>
             <Tooltip
               title={showPeriodPerformance ? "Hide section" : "Show section"}
             >
@@ -382,14 +382,14 @@ const MerchantAnalyticsPage = () => {
             </Tooltip>
           </Box>
           <Collapse in={showPeriodPerformance}>
-            <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: 3 }}>
-              {/* Period Revenue */}
+            <Grid container spacing={{ xs: 1.5, md: 2 }} sx={{ mb: 2 }}>
+              {/* Revenue */}
               <Grid size={{ xs: 6, md: 3 }}>
                 <StatCard
                   title="Revenue"
                   value={formatCurrency(analytics?.revenue?.total || 0)}
                   change={analytics?.revenue?.growthRate}
-                  icon={<AttachMoney />}
+                  icon={AttachMoney}
                   color="success"
                   subtitle="vs previous period"
                   isLoading={isLoading}
@@ -401,7 +401,7 @@ const MerchantAnalyticsPage = () => {
                 <StatCard
                   title="Orders"
                   value={formatNumber(analytics?.orders?.total || 0)}
-                  icon={<ShoppingCart />}
+                  icon={ShoppingCart}
                   color="primary"
                   subtitle={`${analytics?.orders?.completed || 0} completed`}
                   isLoading={isLoading}
@@ -413,7 +413,7 @@ const MerchantAnalyticsPage = () => {
                 <StatCard
                   title="Items Sold"
                   value={formatNumber(analytics?.sales?.count || 0)}
-                  icon={<TrendingUp />}
+                  icon={TrendingUp}
                   color="info"
                   subtitle="products sold"
                   isLoading={isLoading}
@@ -425,7 +425,7 @@ const MerchantAnalyticsPage = () => {
                 <StatCard
                   title="Avg Order Value"
                   value={formatCurrency(analytics?.orders?.averageValue || 0)}
-                  icon={<AttachMoney />}
+                  icon={AttachMoney}
                   color="warning"
                   subtitle="per order"
                   isLoading={isLoading}
@@ -535,7 +535,7 @@ const MerchantAnalyticsPage = () => {
                 <StatCard
                   title="Pending Orders"
                   value={formatNumber(analytics?.orders?.pending || 0)}
-                  icon={<ShoppingCart />}
+                  icon={ShoppingCart}
                   color="warning"
                   subtitle="needs attention"
                   isLoading={isLoading}
@@ -547,7 +547,7 @@ const MerchantAnalyticsPage = () => {
                 <StatCard
                   title="Active Listings"
                   value={formatNumber(analytics?.listings?.totalActive || 0)}
-                  icon={<Inventory />}
+                  icon={Inventory}
                   color="success"
                   subtitle="live products"
                   isLoading={isLoading}
@@ -559,7 +559,7 @@ const MerchantAnalyticsPage = () => {
                 <StatCard
                   title="Low Stock Items"
                   value={formatNumber(analytics?.listings?.lowStock || 0)}
-                  icon={<Inventory />}
+                  icon={Inventory}
                   color="error"
                   subtitle="needs restocking"
                   isLoading={isLoading}
@@ -571,7 +571,7 @@ const MerchantAnalyticsPage = () => {
                 <StatCard
                   title="Completed Orders"
                   value={formatNumber(analytics?.orders?.completed || 0)}
-                  icon={<ShoppingCart />}
+                  icon={ShoppingCart}
                   color="success"
                   subtitle="delivered"
                   isLoading={isLoading}

@@ -163,7 +163,19 @@ const removeFromCart = async (userId, listingId) => {
       });
     }
 
-    cart.removeItem(listingId);
+    // Try to remove by cart item ID first (handles null listings)
+    // If that fails, try by listing ID (backwards compatibility)
+    try {
+      cart.removeItemById(listingId);
+    } catch (error) {
+      if (error.code === "CART_ITEM_NOT_FOUND") {
+        // Fallback: try removing by listing ID
+        cart.removeItem(listingId);
+      } else {
+        throw error;
+      }
+    }
+
     await cart.save();
 
     return await getCartWithDetails(userId);

@@ -1,7 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const contactController = require("../../controllers/contact/contact.controller");
-const { protect, authorize } = require("../../middleware/auth/auth.middleware");
+const {
+  protect,
+  authorize,
+  optionalAuth,
+} = require("../../middleware/auth/auth.middleware");
 const { uploadMultiple } = require("../../middleware/upload.middleware");
 const {
   validateCreateSubmission,
@@ -37,10 +41,11 @@ const {
  * @access  Public (guest users) / Private (authenticated users get auto-filled info)
  * @body    type, name, email, phoneNumber, subject, message, bugDetails, collaborationDetails
  * @returns Created contact submission
- * @note    Guest users can submit, authenticated users get info pre-populated
+ * @note    Uses optionalAuth - guest users can submit, authenticated users get userId tracked
  */
 router.post(
   "/submit",
+  optionalAuth, // NEW: Attach user if authenticated, but allow guests
   validateCreateSubmission,
   contactController.createSubmission
 );
@@ -55,6 +60,7 @@ router.post(
  */
 router.post(
   "/upload-images",
+  optionalAuth, // NEW: Attach user if authenticated
   uploadMultiple,
   contactController.uploadContactImages
 );

@@ -12,16 +12,21 @@ import {
 import { Add as AddIcon } from "@mui/icons-material";
 
 import { useTheme } from "../../hooks/useTheme";
-import useListings from "../../features/listing/hooks/useListings";
-import useListingActions from "../../features/listing/hooks/useListingActions";
+import {
+  useGetMyListingsQuery,
+  useDeleteListingMutation,
+  useToggleAvailabilityMutation,
+} from "../../features/listing/api/listingApi";
 import ListingGrid from "../../features/listing/components/ListingGrid";
 import { ConfirmDeleteDialog } from "../../components/common/Dialog";
 import { ErrorAlert } from "../../components/common/Alert";
 import { ROUTES } from "../../constants/routes";
+import { useSnackbarContext as useSnackbar } from "../../contexts/SnackbarContext";
 
 const MyListingsPage = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const { success, error: showError } = useSnackbar();
   const [tabValue, setTabValue] = useState(0);
   const [deleteDialog, setDeleteDialog] = useState({
     open: false,
@@ -29,24 +34,22 @@ const MyListingsPage = () => {
     listingName: "",
   });
 
+  // RTK Query hooks - automatic caching!
   const {
-    listings,
-    pagination,
+    data: listingsData,
     isLoading,
-    filters,
     error,
-    updateFilters,
-    handlePageChange,
-    handleLimitChange,
-  } = useListings({ autoFetch: true, myListings: true });
+    refetch,
+  } = useGetMyListingsQuery({
+    includeUnavailable: true,
+  });
 
-  const {
-    handleDeleteListing,
-    handleToggleAvailability,
-    goToCreateListing,
-    goToEditListing,
-    clearMessages,
-  } = useListingActions();
+  const [deleteListing, { isLoading: isDeleting }] = useDeleteListingMutation();
+  const [toggleAvailability, { isLoading: isToggling }] =
+    useToggleAvailabilityMutation();
+
+  const listings = listingsData?.listings || [];
+  const pagination = listingsData?.pagination || {};
 
   // Filter listings based on tab selection
   const filteredListings = listings.filter((listing) => {
@@ -55,10 +58,6 @@ const MyListingsPage = () => {
     if (tabValue === 2) return !listing.isAvailable; // Unavailable
     return true;
   });
-
-  useEffect(() => {
-    clearMessages();
-  }, []);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -74,14 +73,28 @@ const MyListingsPage = () => {
   };
 
   const handleDeleteConfirm = async () => {
-    const success = await handleDeleteListing(deleteDialog.listingId, true); // true = permanent
-    if (success) {
+    try {
+      await deleteListing({
+        id: deleteDialog.listingId,
+        permanent: true,
+      }).unwrap();
+      success("Listing permanently deleted");
       setDeleteDialog({ open: false, listingId: null, listingName: "" });
+      refetch();
+    } catch (err) {
+      showError(err?.data?.message || "Failed to delete listing");
     }
   };
 
   const handleToggleClick = async (listingId) => {
-    await handleToggleAvailability(listingId || deleteDialog.listingId);
+    try {
+      await toggleAvailability(listingId || deleteDialog.listingId).unwrap();
+      success("Listing availability updated");
+      setDeleteDialog({ open: false, listingId: null, listingName: "" });
+      refetch();
+    } catch (err) {
+      showError(err?.data?.message || "Failed to update listing");
+    }
   };
 
   const handleCreateClick = () => {
@@ -147,8 +160,8 @@ const MyListingsPage = () => {
         <ListingGrid
           listings={filteredListings}
           pagination={pagination}
-          onPageChange={handlePageChange}
-          onLimitChange={handleLimitChange}
+          onPageChange={() => {}}
+          onLimitChange={() => {}}
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}
           onToggle={handleToggleClick}
@@ -169,6 +182,7 @@ const MyListingsPage = () => {
         title="Delete Listing"
         toggleLabel="Mark Unavailable"
         warningMessage="All listing data, images, and associated information will be permanently deleted from the database."
+        isLoading={isDeleting || isToggling}
       />
     </Container>
   );

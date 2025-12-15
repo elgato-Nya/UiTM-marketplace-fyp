@@ -23,9 +23,9 @@ const colors = {
     200: "#D8B4FE", // Lighter purple
     300: "#C084FC", // Medium light purple
     400: "#A855F7", // Medium purple
-    500: "#9333EA", // Main purple
+    500: "#483D8B", // DarkSlateBlue (for light main)
     600: "#7C3AED", // Darker purple
-    700: "#6D28D9", // Much darker purple
+    700: "#6A5ACD", // SlateBlue (for dark main)
     800: "#5B21B6", // Very dark purple
     900: "#4C1D95", // Deepest purple
   },
@@ -108,6 +108,24 @@ function createAppTheme(mode, fontSize, highContrast) {
           ? colors.secondary[800]
           : colors.secondary[600],
       contrastText: isAccessible ? "#FFFFFF" : "#FFFFFF",
+    },
+    accent: {
+      main: isAccessible
+        ? "#B8860B"
+        : isDark
+          ? colors.accent[400]
+          : colors.accent[500],
+      light: isAccessible
+        ? "#DAA520"
+        : isDark
+          ? colors.accent[300]
+          : colors.accent[400],
+      dark: isAccessible
+        ? "#8B6914"
+        : isDark
+          ? colors.accent[600]
+          : colors.accent[700],
+      contrastText: isAccessible ? "#000000" : "#000000",
     },
     background: {
       default: isAccessible ? "#FFFFFF" : isDark ? "#141313ff" : "#fafafaff",

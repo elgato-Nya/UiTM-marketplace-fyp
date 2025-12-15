@@ -43,7 +43,7 @@ const protect = asyncHandler(async (req, res, next) => {
 
   // Find the user and attach to request
   const user = await User.findById(decoded.userId).select(
-    "-password -refreshTokens"
+    "+email -password -refreshTokens"
   );
   if (!user) {
     logger.warn("Unauthorized access attempt: User not found", {
@@ -240,9 +240,60 @@ const isOrderParticipant = asyncHandler(async (req, res, next) => {
   }
 });
 
+/**
+ * Optional Authentication Middleware
+ *
+ * PURPOSE: Attach user to request if authenticated, but allow request to proceed if not
+ * USE CASE: Public endpoints that benefit from knowing if user is authenticated
+ *           (e.g., contact form - can pre-fill user info if logged in)
+ * BEHAVIOR:
+ * - If valid token: Attach user to req.user
+ * - If no token or invalid: Continue without user (req.user = null)
+ * - Never throws error (unlike protect middleware)
+ */
+const optionalAuth = asyncHandler(async (req, res, next) => {
+  try {
+    // Extract token from Authorization header
+    const token = getTokenFromHeader(req);
+
+    // If no token, continue as guest
+    if (!token) {
+      req.user = null;
+      return next();
+    }
+
+    // Try to verify the token
+    const decoded = verifyAccessToken(token);
+
+    // If token invalid or no userId, continue as guest
+    if (!decoded || !decoded.userId) {
+      req.user = null;
+      return next();
+    }
+
+    // Try to find the user
+    const user = await User.findById(decoded.userId).select(
+      "+email -password -refreshTokens"
+    );
+
+    // Attach user if found, otherwise continue as guest
+    req.user = user || null;
+
+    next();
+  } catch (error) {
+    // If any error occurs, just continue as guest
+    logger.debug("Optional auth failed, continuing as guest:", {
+      error: error.message,
+    });
+    req.user = null;
+    next();
+  }
+});
+
 module.exports = {
   protect,
   authorize,
+  optionalAuth,
   isListingOwner,
   isOrderParticipant,
 };

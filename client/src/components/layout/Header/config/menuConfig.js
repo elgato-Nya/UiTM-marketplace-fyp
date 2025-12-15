@@ -144,14 +144,14 @@ export const getAuthMenuSections = (roles) => {
         },
         {
           icon: <Assessment />,
-          text: "Reports",
-          link: ROUTES.ADMIN.REPORTS,
+          text: "Contacts",
+          link: ROUTES.ADMIN.CONTACTS,
           show: isAdmin,
         },
         {
           icon: <Settings />,
-          text: "Settings",
-          link: ROUTES.ADMIN.SETTINGS,
+          text: "Merchant Verification",
+          link: ROUTES.ADMIN.MERCHANT,
           show: isAdmin,
         },
       ],

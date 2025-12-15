@@ -112,7 +112,7 @@ const createPaymentIntent = async (userId, sessionId) => {
     }
 
     // Get user details
-    const user = await User.findById(userId).select("email profile");
+    const user = await User.findById(userId).select("+email profile");
 
     // Convert amount to cents
     const amountInCents = convertToCents(session.pricing.totalAmount);

@@ -21,6 +21,7 @@ import FormAlerts from "../../components/Contact/FormAlerts";
 import ContactFormFields from "../../components/Contact/ContactFormFields";
 import BugDetailsSection from "../../components/Contact/BugDetailsSection";
 import CollaborationDetailsSection from "../../components/Contact/CollaborationDetailsSection";
+import FeedbackDetailsSection from "../../components/Contact/FeedbackDetailsSection";
 import { contactValidator } from "../../utils/validators/contactValidator";
 
 /**
@@ -53,6 +54,8 @@ function ContactUsPage() {
     stepsToReproduce: "",
     browser: "",
     deviceType: "desktop",
+    // Feedback-specific fields
+    feedbackRating: 0,
     // Collaboration-specific fields
     proposalType: "partnership",
     organizationName: "",
@@ -85,6 +88,10 @@ function ContactUsPage() {
     // Clear images if switching away from bug_report/feedback
     if (!["bug_report", "feedback"].includes(newType)) {
       setImages([]);
+    }
+    // Clear rating if switching away from feedback
+    if (newType !== "feedback") {
+      setFormData((prev) => ({ ...prev, feedbackRating: 0 }));
     }
   };
 
@@ -142,6 +149,13 @@ function ContactUsPage() {
       }
     }
 
+    // Feedback-specific validation
+    if (formData.type === "feedback") {
+      if (!formData.feedbackRating || formData.feedbackRating < 1) {
+        errors.feedbackRating = "Please provide a rating (1-5 stars)";
+      }
+    }
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -192,6 +206,7 @@ function ContactUsPage() {
       };
     } else if (formData.type === "feedback") {
       baseData.feedbackDetails = {
+        rating: formData.feedbackRating || undefined, // Only include if provided
         screenshots: uploadedImages.map((img) => ({
           url: img.url,
           key: img.key,
@@ -224,6 +239,7 @@ function ContactUsPage() {
       stepsToReproduce: "",
       browser: "",
       deviceType: "desktop",
+      feedbackRating: 0,
       proposalType: "partnership",
       organizationName: "",
       website: "",
@@ -342,9 +358,14 @@ function ContactUsPage() {
                   />
                 )}
 
-                {/* Feedback Image Upload */}
+                {/* Feedback-Specific Fields */}
                 {formData.type === "feedback" && (
                   <>
+                    <FeedbackDetailsSection
+                      formData={formData}
+                      onChange={handleChange}
+                      validationErrors={validationErrors}
+                    />
                     <Divider sx={{ my: 3 }} />
                     <Grid container spacing={2}>
                       <Grid size={{ xs: 12 }}>

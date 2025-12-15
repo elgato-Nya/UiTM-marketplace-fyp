@@ -37,17 +37,17 @@ function AdminMenu({ anchorEl, open, onClose }) {
         </ListItemIcon>
         <ListItemText>Users</ListItemText>
       </MenuItem>
-      <MenuItem component={Link} to={ROUTES.ADMIN.REPORTS} onClick={onClose}>
+      <MenuItem component={Link} to={ROUTES.ADMIN.CONTACTS} onClick={onClose}>
         <ListItemIcon>
           <Assessment fontSize="small" />
         </ListItemIcon>
-        <ListItemText>Reports</ListItemText>
+        <ListItemText>Contacts</ListItemText>
       </MenuItem>
-      <MenuItem component={Link} to={ROUTES.ADMIN.SETTINGS} onClick={onClose}>
+      <MenuItem component={Link} to={ROUTES.ADMIN.MERCHANT} onClick={onClose}>
         <ListItemIcon>
           <SettingsIcon fontSize="small" />
         </ListItemIcon>
-        <ListItemText>Settings</ListItemText>
+        <ListItemText>Merchant Verification</ListItemText>
       </MenuItem>
     </Menu>
   );

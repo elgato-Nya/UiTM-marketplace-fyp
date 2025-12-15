@@ -1,14 +1,5 @@
 import React from "react";
-import {
-  Box,
-  Container,
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  IconButton,
-  useMediaQuery,
-} from "@mui/material";
+import { Box, Grid, Container, Typography, ButtonBase } from "@mui/material";
 import {
   ShoppingCart,
   Store,
@@ -20,14 +11,12 @@ import {
   Settings,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
-
 import { useTheme } from "../../hooks/useTheme";
 import { useAuth } from "../../features/auth/hooks/useAuth";
 
 function QuickActions() {
-  const { theme, isAccessible } = useTheme();
-  const { isAuthenticated, isConsumer, isMerchant, isAdmin } = useAuth();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const { theme } = useTheme();
+  const { isAuthenticated, isMerchant, isAdmin } = useAuth();
 
   if (!isAuthenticated) return null;
 
@@ -37,19 +26,16 @@ function QuickActions() {
         icon: ShoppingCart,
         label: "My Cart",
         path: "/cart",
-        color: theme.palette.primary.main,
       },
       {
         icon: Favorite,
         label: "Wishlist",
         path: "/wishlist",
-        color: theme.palette.error.main,
       },
       {
         icon: Receipt,
         label: "My Orders",
         path: "/orders/purchases",
-        color: theme.palette.info.main,
       },
     ];
 
@@ -58,19 +44,16 @@ function QuickActions() {
         icon: Store,
         label: "My Store",
         path: "/merchant/store",
-        color: theme.palette.success.main,
       },
       {
         icon: TrendingUp,
         label: "Analytics",
         path: "/merchant/analytics",
-        color: theme.palette.warning.main,
       },
       {
         icon: Receipt,
         label: "Manage Orders",
         path: "/merchant/orders",
-        color: theme.palette.info.main,
       },
     ];
 
@@ -79,115 +62,132 @@ function QuickActions() {
         icon: Dashboard,
         label: "Admin Panel",
         path: "/admin/dashboard",
-        color: theme.palette.secondary.main,
       },
       {
         icon: People,
         label: "User Management",
         path: "/admin/users",
-        color: theme.palette.primary.main,
       },
       {
         icon: Settings,
         label: "Platform Settings",
         path: "/admin/settings",
-        color: theme.palette.text.secondary,
       },
     ];
 
     let actions = [...consumerActions];
-    if (isMerchant) {
-      actions = [...actions, ...merchantActions];
-    }
-
-    if (isAdmin) {
-      actions = [...actions, ...adminActions];
-    }
-
-    return actions.slice(0, 6); // Limit to 6 actions for layout purposes
+    if (isMerchant) actions = [...actions, ...merchantActions];
+    if (isAdmin) actions = [...actions, ...adminActions];
+    return actions.slice(0, 6);
   };
 
   const quickActions = getQuickActions();
 
   return (
-    <Container maxWidth="lg" sx={{ mb: 4, px: { xs: 2, sm: 3 } }}>
-      <Typography
-        variant="h5"
-        component="h2"
-        sx={{
-          mb: 3,
-          fontWeight: "medium",
-          textAlign: "center",
-          color: theme.palette.text.primary,
-          fontSize: { xs: "1.25rem", sm: "1.5rem" },
-        }}
-      >
-        Quick Actions
-      </Typography>
-
-      <Grid container spacing={2} justifyContent="center" alignItems="center">
-        {quickActions.map((action, index) => {
-          const Icon = action.icon;
-          return (
-            <Grid size={{ xs: 4, md: 2 }} key={index}>
-              <Card
-                component={Link}
-                to={action.path}
-                sx={{
-                  textDecoration: "none",
-                  height: "100%",
-                  bgcolor: theme.palette.background.paper,
-                  border: isAccessible
-                    ? `1px solid ${theme.palette.divider}`
-                    : "none",
-                  transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                  "&:hover": {
-                    transform: "translateY(-2px)",
-                    boxShadow: isAccessible ? "none" : theme.shadows[4],
-                    bgcolor: isAccessible
-                      ? theme.palette.background.default
-                      : theme.palette.background.paper,
-                  },
-                }}
-              >
-                <CardContent
+    <Box
+      sx={{
+        bgcolor: "background.default",
+        py: { xs: 2.5, sm: 3.5, md: 4.5 },
+        borderBottom: "1px solid",
+        borderColor: "divider",
+      }}
+    >
+      <Container maxWidth="lg">
+        <Typography
+          variant="h5"
+          component="h2"
+          sx={{
+            mb: { xs: 2, sm: 2.5, md: 3 },
+            fontWeight: 600,
+            textAlign: "center",
+            fontSize: { xs: "1rem", sm: "1.125rem", md: "1.375rem" },
+            letterSpacing: "-0.02em",
+          }}
+        >
+          Quick Actions
+        </Typography>
+        <Grid
+          container
+          spacing={{ xs: 0.75, sm: 1.5, md: 2 }}
+          sx={{
+            maxWidth: 900,
+            mx: "auto",
+          }}
+        >
+          {quickActions.map((action, index) => {
+            const Icon = action.icon;
+            return (
+              <Grid key={index} size={{ xs: 4, sm: 4, md: 2 }}>
+                <ButtonBase
+                  component={Link}
+                  to={action.path}
                   sx={{
+                    width: "100%",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    textAlign: "center",
-                    py: 2,
+                    gap: { xs: 0.5, sm: 0.75, md: 1 },
+                    p: { xs: 1, sm: 1.5, md: 2 },
+                    bgcolor: "background.paper",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: { xs: 1.5, md: 2 },
+                    transition: "all 0.15s ease",
+                    minHeight: { xs: 70, sm: 85, md: 95 },
+                    "&:hover": {
+                      borderColor: "primary.main",
+                      transform: "translateY(-2px)",
+                      boxShadow: 3,
+                      "& .icon": {
+                        bgcolor: "primary.main",
+                        color: "white",
+                      },
+                    },
                   }}
                 >
-                  <IconButton
+                  <Box
+                    className="icon"
                     sx={{
-                      bgcolor: `${action.color}15`, // 15% opacity background
-                      color: action.color,
-                      mb: 1,
-                      "&:hover": {
-                        bgcolor: `${action.color}25`, // 25% opacity on hover
-                      },
+                      width: { xs: 32, sm: 38, md: 42 },
+                      height: { xs: 32, sm: 38, md: 42 },
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: { xs: 1, md: 1.5 },
+                      color: "primary.main",
+                      // border: "1px solid",
+                      // borderColor: "primary.main",
+                      transition: "all 0.15s ease",
                     }}
                   >
-                    <Icon />
-                  </IconButton>
+                    <Icon
+                      sx={{
+                        fontSize: { xs: 24, md: 28 },
+                      }}
+                    />
+                  </Box>
                   <Typography
                     variant="body2"
                     sx={{
-                      fontWeight: "medium",
-                      color: theme.palette.text.primary,
-                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                      fontSize: {
+                        xs: "0.625rem",
+                        sm: "0.6875rem",
+                        md: "0.75rem",
+                      },
+                      textAlign: "center",
+                      lineHeight: 1.2,
                     }}
                   >
                     {action.label}
                   </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          );
-        })}
-      </Grid>
-    </Container>
+                </ButtonBase>
+              </Grid>
+            );
+          })}
+        </Grid>
+      </Container>
+    </Box>
   );
 }
 

@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import {
   Box,
   Container,
@@ -16,7 +15,6 @@ import { useTheme } from "../../hooks/useTheme";
 import { useSnackbar } from "../../hooks/useSnackbar";
 import useAdminDashboard from "../../features/admin/hooks/useAdminDashboard";
 import QuickStats from "../../features/admin/components/QuickStats";
-import SystemHealth from "../../features/admin/components/SystemHealth";
 import PlatformOverview from "../../features/admin/components/PlatformOverview";
 import RecentActivity from "../../features/admin/components/RecentActivity";
 import PendingVerifications from "../../features/admin/components/PendingVerifications";
@@ -27,7 +25,6 @@ import PendingVerifications from "../../features/admin/components/PendingVerific
  * PURPOSE: Main admin dashboard landing page
  * FEATURES:
  * - Overview statistics
- * - System health monitoring
  * - Recent activity timeline
  * - Pending verification alerts
  * - Auto-refresh every 30 seconds
@@ -51,7 +48,6 @@ const AdminDashboardPage = () => {
 
   const {
     overview,
-    health,
     pendingVerifications,
     currentPeriod,
     periodData,
@@ -73,15 +69,15 @@ const AdminDashboardPage = () => {
   // Loading skeleton
   if (isLoading && !overview) {
     return (
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Box sx={{ mb: 4 }}>
+      <Container maxWidth="xl" sx={{ py: { xs: 2, md: 3 } }}>
+        <Box sx={{ mb: 3 }}>
           <Skeleton variant="text" width={200} height={40} />
           <Skeleton variant="text" width={300} height={24} sx={{ mt: 1 }} />
         </Box>
 
-        <Grid container spacing={3}>
+        <Grid container spacing={{ xs: 1.5, md: 2 }}>
           {[1, 2, 3, 4].map((i) => (
-            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
+            <Grid size={{ xs: 6, md: 3 }} key={i}>
               <Skeleton
                 variant="rectangular"
                 height={120}
@@ -119,7 +115,7 @@ const AdminDashboardPage = () => {
   const showErrorBanner = error && !overview;
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: { xs: 2, md: 3 } }}>
       {/* Header */}
       <Box
         component="header"
@@ -129,7 +125,7 @@ const AdminDashboardPage = () => {
           alignItems: { xs: "flex-start", sm: "center" },
           flexDirection: { xs: "column", sm: "row" },
           gap: 2,
-          mb: 4,
+          mb: 3,
         }}
       >
         <Box>
@@ -140,13 +136,17 @@ const AdminDashboardPage = () => {
               fontWeight: 700,
               color: theme.palette.text.primary,
               mb: 0.5,
+              fontSize: { xs: "1.5rem", md: "2rem" },
             }}
           >
             Admin Dashboard
           </Typography>
           <Typography
             variant="body2"
-            sx={{ color: theme.palette.text.secondary }}
+            sx={{
+              color: theme.palette.text.secondary,
+              fontSize: { xs: "0.8125rem", md: "0.875rem" },
+            }}
           >
             Monitor platform performance and manage operations
           </Typography>
@@ -160,6 +160,7 @@ const AdminDashboardPage = () => {
                 disabled={isRefreshing}
                 aria-label="Refresh dashboard"
                 color="primary"
+                size="small"
                 sx={{
                   border: `1px solid ${theme.palette.divider}`,
                   "&:hover": {
@@ -205,17 +206,12 @@ const AdminDashboardPage = () => {
       )}
 
       {/* Quick Stats - Always show even when no data */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 3 }}>
         <QuickStats data={periodData} isLoading={isLoading} />
       </Box>
 
-      {/* System Health - Always show even when no data */}
-      <Box sx={{ mb: 4 }}>
-        <SystemHealth health={health} isLoading={isLoading} />
-      </Box>
-
       {/* Main Content Grid */}
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, md: 3 }}>
         {/* Platform Overview */}
         {overview && (
           <Grid size={{ xs: 12 }}>

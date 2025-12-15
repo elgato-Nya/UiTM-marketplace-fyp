@@ -1,6 +1,5 @@
-import { Box, Typography, Chip, Avatar } from "@mui/material";
+import { Box, Card, CardContent, Typography } from "@mui/material";
 import { TrendingUp, TrendingDown, Remove } from "@mui/icons-material";
-import InfoCard from "../../../components/common/Card/InfoCard";
 import {
   formatNumber,
   getTrendDirection,
@@ -11,8 +10,8 @@ import { useTheme } from "../../../hooks/useTheme";
 /**
  * StatCard Component
  *
- * PURPOSE: Display statistical metrics with trend indicators
- * PATTERN: Extends InfoCard with stat-specific features
+ * PURPOSE: Display statistical metrics with trend indicators in enterprise layout
+ * PATTERN: Card with content on left, icon on right
  *
  * @param {string} title - Stat title
  * @param {string|number} value - Main stat value
@@ -29,7 +28,7 @@ const StatCard = ({
   value,
   change = null,
   trend = null,
-  icon,
+  icon: IconComponent,
   color = "primary",
   subtitle = null,
   isLoading = false,
@@ -50,104 +49,161 @@ const StatCard = ({
         ? TrendingDown
         : Remove;
 
+  // Get icon background color
+  const getIconBg = () => {
+    const colors = {
+      primary: theme.palette.primary.main,
+      success: theme.palette.success.main,
+      warning: theme.palette.warning.main,
+      error: theme.palette.error.main,
+      info: theme.palette.info.main,
+    };
+    return colors[color] + "15";
+  };
+
+  const getIconColor = () => {
+    const colors = {
+      primary: theme.palette.primary.main,
+      success: theme.palette.success.main,
+      warning: theme.palette.warning.main,
+      error: theme.palette.error.main,
+      info: theme.palette.info.main,
+    };
+    return colors[color];
+  };
+
   return (
-    <InfoCard
-      title={title}
-      content={
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-          {/* Main Value */}
-          <Typography
-            variant="h4"
-            component="div"
-            fontWeight="bold"
-            sx={{
-              color: theme.palette.text.primary,
-              fontSize: { xs: "1.75rem", sm: "2rem", md: "2.125rem" },
-            }}
-          >
-            {isLoading ? "..." : value}
-          </Typography>
-
-          {/* Trend Indicator */}
-          {change !== null && !isLoading && (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 0.5,
-                flexWrap: "wrap",
-              }}
-            >
-              <TrendIcon
-                sx={{
-                  fontSize: { xs: 14, sm: 16 },
-                  color:
-                    theme.palette[trendColor]?.main ||
-                    theme.palette.text.secondary,
-                }}
-              />
-              <Typography
-                variant="body2"
-                sx={{
-                  color:
-                    theme.palette[trendColor]?.main ||
-                    theme.palette.text.secondary,
-                  fontWeight: 600,
-                  fontSize: { xs: "0.8rem", sm: "0.875rem" },
-                }}
-              >
-                {Math.abs(change).toFixed(1)}%
-              </Typography>
-              {subtitle && (
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: theme.palette.text.secondary,
-                    fontSize: { xs: "0.8rem", sm: "0.875rem" },
-                  }}
-                >
-                  {subtitle}
-                </Typography>
-              )}
-            </Box>
-          )}
-
-          {/* Subtitle without trend */}
-          {subtitle && change === null && !isLoading && (
-            <Typography
-              variant="body2"
-              sx={{
-                color: theme.palette.text.secondary,
-                fontSize: { xs: "0.8rem", sm: "0.875rem" },
-              }}
-            >
-              {subtitle}
-            </Typography>
-          )}
-        </Box>
-      }
-      avatar={
-        <Avatar
-          sx={{
-            bgcolor: theme.palette[color]?.main || theme.palette.primary.main,
-            width: { xs: 48, sm: 56 },
-            height: { xs: 48, sm: 56 },
-          }}
-        >
-          {icon}
-        </Avatar>
-      }
-      variant="elevated"
+    <Card
+      variant="outlined"
       sx={{
         height: "100%",
-        transition: "all 0.3s ease",
+        border: `1px solid ${theme.palette.divider}`,
+        borderRadius: 1,
+        transition: "all 0.2s ease",
         "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: theme.shadows[8],
+          borderColor: theme.palette.primary.main,
+          boxShadow: `0 0 0 1px ${theme.palette.primary.main}`,
         },
         ...sx,
       }}
-    />
+    >
+      <CardContent
+        sx={{
+          p: { xs: 2, md: 2.5 },
+          "&:last-child": { pb: { xs: 2, md: 2.5 } },
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+          }}
+        >
+          {/* Left side - Content */}
+          <Box sx={{ flex: 1, minWidth: 0, pr: 1.5 }}>
+            {/* Title */}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                mb: 1,
+                fontWeight: 500,
+                fontSize: { xs: "0.75rem", md: "0.8125rem" },
+                letterSpacing: 0.5,
+                textTransform: "uppercase",
+              }}
+            >
+              {title}
+            </Typography>
+
+            {/* Value */}
+            <Typography
+              variant="h4"
+              component="div"
+              sx={{
+                fontWeight: 700,
+                color: theme.palette.text.primary,
+                mb: change !== null || subtitle ? 0.75 : 0,
+                fontSize: { xs: "1.5rem", md: "1.75rem" },
+                lineHeight: 1.2,
+              }}
+            >
+              {isLoading ? "..." : value}
+            </Typography>
+
+            {/* Trend Indicator */}
+            {change !== null && !isLoading && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                }}
+              >
+                <TrendIcon
+                  sx={{
+                    fontSize: { xs: 14, md: 16 },
+                    color:
+                      theme.palette[trendColor]?.main ||
+                      theme.palette.text.secondary,
+                  }}
+                />
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color:
+                      theme.palette[trendColor]?.main ||
+                      theme.palette.text.secondary,
+                    fontWeight: 600,
+                    fontSize: { xs: "0.75rem", md: "0.8125rem" },
+                  }}
+                >
+                  {Math.abs(change).toFixed(1)}%
+                </Typography>
+              </Box>
+            )}
+
+            {/* Subtitle */}
+            {subtitle && !isLoading && (
+              <Typography
+                variant="body2"
+                sx={{
+                  color: theme.palette.text.secondary,
+                  fontSize: { xs: "0.7rem", md: "0.75rem" },
+                  mt: change !== null ? 0.5 : 0.75,
+                }}
+              >
+                {subtitle}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Right side - Icon */}
+          {IconComponent && (
+            <Box
+              sx={{
+                width: { xs: 44, md: 52 },
+                height: { xs: 44, md: 52 },
+                borderRadius: 1.5,
+                bgcolor: getIconBg(),
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <IconComponent
+                sx={{
+                  fontSize: { xs: 24, md: 28 },
+                  color: getIconColor(),
+                }}
+              />
+            </Box>
+          )}
+        </Box>
+      </CardContent>
+    </Card>
   );
 };
 

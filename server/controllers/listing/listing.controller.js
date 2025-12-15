@@ -124,8 +124,8 @@ const handleUpdateListing = asyncHandler(async (req, res) => {
   );
 
   baseController.logAction("update_listing", req, {
-    userId: userId,
-    listingId: listingId,
+    userId: userId.toString(),
+    listingId: listingId.toString(),
     updatedFields: Object.keys(sanitizedUpdateData),
   });
 

@@ -279,7 +279,7 @@ const uploadContactImages = asyncHandler(async (req, res) => {
   const { type } = req.body;
 
   // Validate submission type allows images
-  if (!["bug", "feedback"].includes(type)) {
+  if (!["bug_report", "feedback"].includes(type)) {
     throw createValidationError(
       "Image uploads are only allowed for bug reports and feedback",
       { type },

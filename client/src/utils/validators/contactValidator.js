@@ -9,7 +9,7 @@
 export const contactValidator = {
   /**
    * Validates contact name using recipient name rules
-   * Accepts only alphabet, one "@" symbol, and one "/" symbol
+   * Accepts alphanumeric characters, one "@" symbol, and one "/" symbol
    * @param {string} name
    * @returns {Object} { valid: boolean, error: string }
    */
@@ -32,12 +32,12 @@ export const contactValidator = {
       return { valid: false, error: "Name can contain only one '/' symbol" };
     }
 
-    // Check pattern and length
-    if (!/^[A-Za-z@\/ ]{4,100}$/.test(trimmedName)) {
+    // Check pattern and length (added 0-9 to allow numbers like "Meow2222")
+    if (!/^[A-Za-z0-9@\/ ]{4,100}$/.test(trimmedName)) {
       return {
         valid: false,
         error:
-          "Name must be 4-100 characters and contain only letters, '@', '/', and spaces",
+          "Name must be 4-100 characters and contain only letters, numbers, '@', '/', and spaces",
       };
     }
 

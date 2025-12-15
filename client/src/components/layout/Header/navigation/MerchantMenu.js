@@ -4,7 +4,7 @@ import {
   Dashboard,
   Inventory,
   LocalShipping,
-  Assessment,
+  Store,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { ROUTES } from "../../../../constants/routes";
@@ -35,6 +35,12 @@ function MerchantMenu({ anchorEl, open, onClose }) {
         </ListItemIcon>
         <ListItemText>Dashboard</ListItemText>
       </MenuItem>
+      <MenuItem component={Link} to={ROUTES.MERCHANT.STORE} onClick={onClose}>
+        <ListItemIcon>
+          <Store fontSize="small" />
+        </ListItemIcon>
+        <ListItemText>My Shop</ListItemText>
+      </MenuItem>
       <MenuItem
         component={Link}
         to={ROUTES.MERCHANT.LISTINGS.MY_LISTINGS}
@@ -50,16 +56,6 @@ function MerchantMenu({ anchorEl, open, onClose }) {
           <LocalShipping fontSize="small" />
         </ListItemIcon>
         <ListItemText>Sales Orders</ListItemText>
-      </MenuItem>
-      <MenuItem
-        component={Link}
-        to={ROUTES.MERCHANT.ANALYTICS}
-        onClick={onClose}
-      >
-        <ListItemIcon>
-          <Assessment fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>Analytics</ListItemText>
       </MenuItem>
     </Menu>
   );

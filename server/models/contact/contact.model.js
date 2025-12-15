@@ -232,6 +232,17 @@ const contactSchema = new mongoose.Schema(
     ],
 
     // Admin Management
+    // TODO: Consider separate status workflows per submission type
+    // RATIONALE:
+    // - Bug reports: Need lifecycle tracking (pending → resolved)
+    // - Enquiries: Need answer tracking (pending → answered/resolved)
+    // - Feedback: Doesn't need "resolution" - just review/acknowledgment
+    //   Current: Use "resolved" to mean "reviewed and acknowledged"
+    //   Better: Add isReviewed (Boolean), isPublic (Boolean) for feedback
+    // - Collaboration: Need proposal lifecycle (pending → accepted/rejected)
+    // - Content Reports: Need moderation lifecycle (pending → action taken)
+    //
+    // CURRENT STATUS MODEL (unified for all types):
     status: {
       type: String,
       enum: ["pending", "in-progress", "resolved", "closed", "spam"],

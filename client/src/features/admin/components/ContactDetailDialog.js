@@ -56,7 +56,7 @@ const ContactDetailDialog = ({ open, onClose, contact, onActionClick }) => {
   if (!contact) return null;
 
   const isReport = contact.type === "content_report";
-  const isBug = contact.type === "bug";
+  const isBug = contact.type === "bug_report";
   const isCollaboration = contact.type === "collaboration";
 
   /**
@@ -131,8 +131,10 @@ const ContactDetailDialog = ({ open, onClose, contact, onActionClick }) => {
       maxWidth="lg"
       fullWidth
       aria-labelledby="contact-detail-dialog-title"
-      PaperProps={{
-        sx: { maxHeight: "90vh" },
+      slotProps={{
+        paper: {
+          sx: { maxHeight: "90vh" },
+        },
       }}
     >
       <DialogTitle id="contact-detail-dialog-title">
@@ -161,133 +163,318 @@ const ContactDetailDialog = ({ open, onClose, contact, onActionClick }) => {
       </DialogTitle>
 
       <DialogContent dividers>
-        <Stack spacing={3}>
+        <Stack spacing={2.5}>
           {/* Status & Priority Section */}
-          <section>
-            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-              Status & Priority
-            </Typography>
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <Chip
-                label={contact.type}
-                color="primary"
-                size="small"
-                sx={{ textTransform: "capitalize" }}
-              />
-              <Chip
-                label={contact.status}
-                color={getStatusColor(contact.status)}
-                size="small"
-                sx={{ textTransform: "capitalize" }}
-              />
-              <Chip
-                label={`Priority: ${contact.priority}`}
-                color={getPriorityColor(contact.priority)}
-                size="small"
-                sx={{ textTransform: "capitalize" }}
-              />
-            </Box>
-          </section>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+            <Chip
+              label={contact.type.replace("_", " ")}
+              color="primary"
+              size="small"
+              sx={{ textTransform: "capitalize", fontWeight: 500 }}
+            />
+            <Chip
+              label={contact.status}
+              color={getStatusColor(contact.status)}
+              size="small"
+              sx={{ textTransform: "capitalize", fontWeight: 500 }}
+            />
+            <Chip
+              label={contact.priority}
+              color={getPriorityColor(contact.priority)}
+              size="small"
+              sx={{ textTransform: "capitalize", fontWeight: 500 }}
+            />
+          </Box>
 
           <Divider />
 
           {/* Submitter Information */}
-          <section>
-            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-              Submitter Information
+          <Box>
+            <Typography
+              variant="overline"
+              color="text.secondary"
+              sx={{ fontWeight: 600 }}
+            >
+              Submitter
             </Typography>
-            <Grid container spacing={2}>
+            <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <Person fontSize="small" color="action" />
+                  <Person fontSize="small" sx={{ color: "text.secondary" }} />
                   <Typography variant="body2">
-                    {contact.name || (
-                      <Typography
-                        component="span"
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ fontStyle: "italic" }}
+                    {contact.submittedBy?.name || contact.name || (
+                      <span
+                        style={{ fontStyle: "italic", color: "text.secondary" }}
                       >
                         Not provided
-                      </Typography>
+                      </span>
                     )}
                   </Typography>
                 </Box>
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <Email fontSize="small" color="action" />
+                  <Email fontSize="small" sx={{ color: "text.secondary" }} />
                   <Typography variant="body2">
-                    {contact.email || (
-                      <Typography
-                        component="span"
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ fontStyle: "italic" }}
+                    {contact.submittedBy?.email || contact.email || (
+                      <span
+                        style={{ fontStyle: "italic", color: "text.secondary" }}
                       >
                         Not provided
-                      </Typography>
+                      </span>
                     )}
                   </Typography>
                 </Box>
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <Phone fontSize="small" color="action" />
+                  <Phone fontSize="small" sx={{ color: "text.secondary" }} />
                   <Typography variant="body2">
-                    {contact.phoneNumber || (
-                      <Typography
-                        component="span"
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ fontStyle: "italic" }}
-                      >
-                        Not provided
-                      </Typography>
-                    )}
+                    {contact.submittedBy?.phoneNumber ||
+                      contact.phoneNumber || (
+                        <span
+                          style={{
+                            fontStyle: "italic",
+                            color: "text.secondary",
+                          }}
+                        >
+                          Not provided
+                        </span>
+                      )}
                   </Typography>
                 </Box>
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <CalendarToday fontSize="small" color="action" />
+                  <CalendarToday
+                    fontSize="small"
+                    sx={{ color: "text.secondary" }}
+                  />
                   <Typography variant="body2">
                     {format(new Date(contact.createdAt), "MMM dd, yyyy HH:mm")}
                   </Typography>
                 </Box>
               </Grid>
-              {contact.userId && (
+              {(contact.submittedBy?.userId || contact.userId) && (
                 <Grid size={{ xs: 12 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Flag fontSize="small" color="action" />
-                    <Typography variant="body2">
-                      Authenticated User ID: {contact.userId}
+                    <Flag fontSize="small" sx={{ color: "text.secondary" }} />
+                    <Typography variant="caption" color="text.secondary">
+                      ID: {contact.submittedBy?.userId || contact.userId}
                     </Typography>
                   </Box>
                 </Grid>
               )}
             </Grid>
-          </section>
+          </Box>
 
           <Divider />
 
           {/* Message */}
-          <section>
-            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+          <Box>
+            <Typography
+              variant="overline"
+              color="text.secondary"
+              sx={{ fontWeight: 600 }}
+            >
               Message
             </Typography>
             <Typography
               variant="body2"
               sx={{
+                mt: 1,
                 whiteSpace: "pre-wrap",
-                p: 2,
-                bgcolor: theme.palette.grey[50],
-                borderRadius: 1,
+                lineHeight: 1.6,
               }}
             >
               {contact.message}
             </Typography>
-          </section>
+          </Box>
+
+          {/* Bug Report Details */}
+          {isBug && contact.bugDetails && (
+            <>
+              <Divider />
+              <Box>
+                <Typography
+                  variant="overline"
+                  color="text.secondary"
+                  sx={{ fontWeight: 600 }}
+                >
+                  Bug Details
+                </Typography>
+                <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                  {/* Severity */}
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      display="block"
+                      gutterBottom
+                    >
+                      Severity
+                    </Typography>
+                    <Chip
+                      label={contact.bugDetails.severity}
+                      size="small"
+                      sx={{
+                        textTransform: "capitalize",
+                        fontWeight: 600,
+                        bgcolor:
+                          contact.bugDetails.severity === "critical"
+                            ? theme.palette.error.light
+                            : contact.bugDetails.severity === "high"
+                              ? theme.palette.warning.light
+                              : theme.palette.info.light,
+                        color:
+                          contact.bugDetails.severity === "critical"
+                            ? theme.palette.error.dark
+                            : contact.bugDetails.severity === "high"
+                              ? theme.palette.warning.dark
+                              : theme.palette.info.dark,
+                      }}
+                    />
+                  </Grid>
+
+                  {/* Device */}
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      display="block"
+                      gutterBottom
+                    >
+                      Device
+                    </Typography>
+                    <Typography variant="body2">
+                      {contact.bugDetails.deviceType?.charAt(0).toUpperCase() +
+                        contact.bugDetails.deviceType?.slice(1) || "Unknown"}
+                    </Typography>
+                  </Grid>
+
+                  {/* Browser */}
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      display="block"
+                      gutterBottom
+                    >
+                      Browser
+                    </Typography>
+                    <Typography variant="body2">
+                      {contact.bugDetails.browser || "Not specified"}
+                    </Typography>
+                  </Grid>
+
+                  {/* Expected Behavior */}
+                  {contact.bugDetails.expectedBehavior && (
+                    <Grid size={{ xs: 12 }}>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                        gutterBottom
+                      >
+                        Expected Behavior
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}
+                      >
+                        {contact.bugDetails.expectedBehavior}
+                      </Typography>
+                    </Grid>
+                  )}
+
+                  {/* Actual Behavior */}
+                  {contact.bugDetails.actualBehavior && (
+                    <Grid size={{ xs: 12 }}>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                        gutterBottom
+                      >
+                        Actual Behavior
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}
+                      >
+                        {contact.bugDetails.actualBehavior}
+                      </Typography>
+                    </Grid>
+                  )}
+
+                  {/* Steps to Reproduce */}
+                  {contact.bugDetails.stepsToReproduce && (
+                    <Grid size={{ xs: 12 }}>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                        gutterBottom
+                      >
+                        Steps to Reproduce
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}
+                      >
+                        {contact.bugDetails.stepsToReproduce}
+                      </Typography>
+                    </Grid>
+                  )}
+
+                  {/* Screenshots */}
+                  {contact.bugDetails.screenshots &&
+                    contact.bugDetails.screenshots.length > 0 && (
+                      <Grid size={{ xs: 12 }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                          sx={{ mb: 1 }}
+                        >
+                          Screenshots ({contact.bugDetails.screenshots.length})
+                        </Typography>
+                        <ImageList cols={3} rowHeight={160} gap={8}>
+                          {contact.bugDetails.screenshots.map((img, index) => (
+                            <ImageListItem
+                              key={img._id || index}
+                              sx={{
+                                cursor: "pointer",
+                                borderRadius: 1,
+                                overflow: "hidden",
+                                border: `1px solid ${theme.palette.divider}`,
+                                transition: "all 0.2s",
+                                "&:hover": {
+                                  transform: "scale(1.02)",
+                                  boxShadow: 2,
+                                },
+                              }}
+                              onClick={() => window.open(img.url, "_blank")}
+                            >
+                              <img
+                                src={img.url}
+                                alt={img.filename || `Screenshot ${index + 1}`}
+                                loading="lazy"
+                                style={{
+                                  objectFit: "cover",
+                                  width: "100%",
+                                  height: "100%",
+                                }}
+                              />
+                            </ImageListItem>
+                          ))}
+                        </ImageList>
+                      </Grid>
+                    )}
+                </Grid>
+              </Box>
+            </>
+          )}
 
           {/* Content Report Details */}
           {isReport && contact.contentReport && (
@@ -351,114 +538,6 @@ const ContactDetailDialog = ({ open, onClose, contact, onActionClick }) => {
                         color="success"
                         sx={{ mt: 1 }}
                       />
-                    </Grid>
-                  )}
-                </Grid>
-              </section>
-            </>
-          )}
-
-          {/* Bug Details */}
-          {isBug && contact.bugDetails && (
-            <>
-              <Divider />
-              <section>
-                <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                  Bug Details
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Severity
-                    </Typography>
-                    <Chip
-                      label={contact.bugDetails.severity}
-                      color={
-                        contact.bugDetails.severity === "critical"
-                          ? "error"
-                          : "default"
-                      }
-                      size="small"
-                      sx={{ textTransform: "capitalize" }}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Device Type
-                    </Typography>
-                    <Typography variant="body2">
-                      {contact.bugDetails.deviceType}
-                    </Typography>
-                  </Grid>
-                  {contact.bugDetails.browser && (
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Browser
-                      </Typography>
-                      <Typography variant="body2">
-                        {contact.bugDetails.browser}
-                      </Typography>
-                    </Grid>
-                  )}
-                  {!contact.bugDetails.browser && (
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Browser
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ fontStyle: "italic" }}
-                      >
-                        Not provided
-                      </Typography>
-                    </Grid>
-                  )}
-                  <Grid size={{ xs: 12 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Expected Behavior
-                    </Typography>
-                    <Typography variant="body2">
-                      {contact.bugDetails.expectedBehavior || (
-                        <Typography
-                          component="span"
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ fontStyle: "italic" }}
-                        >
-                          Not provided
-                        </Typography>
-                      )}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Actual Behavior
-                    </Typography>
-                    <Typography variant="body2">
-                      {contact.bugDetails.actualBehavior || (
-                        <Typography
-                          component="span"
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ fontStyle: "italic" }}
-                        >
-                          Not provided
-                        </Typography>
-                      )}
-                    </Typography>
-                  </Grid>
-                  {contact.bugDetails.stepsToReproduce && (
-                    <Grid size={{ xs: 12 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Steps to Reproduce
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ whiteSpace: "pre-wrap" }}
-                      >
-                        {contact.bugDetails.stepsToReproduce}
-                      </Typography>
                     </Grid>
                   )}
                 </Grid>
@@ -544,29 +623,48 @@ const ContactDetailDialog = ({ open, onClose, contact, onActionClick }) => {
             contact.internalNotes?.length > 0) && (
             <>
               <Divider />
-              <section>
-                <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+              <Box>
+                <Typography
+                  variant="overline"
+                  color="text.secondary"
+                  sx={{ fontWeight: 600 }}
+                >
                   History
                 </Typography>
-                <Stack spacing={2}>
+                <Stack spacing={1.5} sx={{ mt: 1 }}>
                   {contact.responses?.map((response, index) => (
-                    <Card key={index} variant="outlined">
-                      <CardContent>
-                        <Typography variant="caption" color="primary">
-                          Admin Response
-                        </Typography>
-                        <Typography variant="body2" sx={{ mt: 1 }}>
-                          {response.message}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ mt: 1 }}
+                    <Card
+                      key={index}
+                      variant="outlined"
+                      sx={{ borderRadius: 1 }}
+                    >
+                      <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            mb: 1,
+                          }}
                         >
-                          {format(
-                            new Date(response.timestamp),
-                            "MMM dd, yyyy HH:mm"
-                          )}
+                          <Chip
+                            label="Admin Response"
+                            color="primary"
+                            size="small"
+                            sx={{ height: 20, fontSize: "0.7rem" }}
+                          />
+                          <Typography variant="caption" color="text.secondary">
+                            {format(
+                              new Date(response.timestamp),
+                              "MMM dd, HH:mm"
+                            )}
+                          </Typography>
+                        </Box>
+                        <Typography
+                          variant="body2"
+                          sx={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}
+                        >
+                          {response.message}
                         </Typography>
                       </CardContent>
                     </Card>
@@ -575,74 +673,116 @@ const ContactDetailDialog = ({ open, onClose, contact, onActionClick }) => {
                     <Card
                       key={index}
                       variant="outlined"
-                      sx={{ bgcolor: "grey.50" }}
+                      sx={{
+                        borderRadius: 1,
+                        bgcolor: theme.palette.action.hover,
+                      }}
                     >
-                      <CardContent>
-                        <Typography variant="caption" color="text.secondary">
-                          Internal Note
-                        </Typography>
-                        <Typography variant="body2" sx={{ mt: 1 }}>
-                          {note.note}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ mt: 1 }}
+                      <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            mb: 1,
+                          }}
                         >
-                          By: {note.addedBy} •{" "}
-                          {format(
-                            new Date(note.timestamp),
-                            "MMM dd, yyyy HH:mm"
-                          )}
+                          <Chip
+                            label="Internal Note"
+                            size="small"
+                            sx={{ height: 20, fontSize: "0.7rem" }}
+                          />
+                          <Typography variant="caption" color="text.secondary">
+                            {format(new Date(note.addedAt), "MMM dd, HH:mm")}
+                          </Typography>
+                        </Box>
+                        <Typography
+                          variant="body2"
+                          sx={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}
+                        >
+                          {note.note}
                         </Typography>
                       </CardContent>
                     </Card>
                   ))}
                 </Stack>
-              </section>
+              </Box>
             </>
           )}
         </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, py: 2, gap: 1, flexWrap: "wrap" }}>
-        <Button
-          onClick={() => onActionClick(contact, "status")}
-          variant="contained"
-          size="small"
-          sx={{ minWidth: { xs: "calc(50% - 4px)", sm: "auto" } }}
+      <DialogActions
+        sx={{
+          px: 3,
+          py: 2,
+          gap: 1,
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: "stretch",
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            gap: 1,
+            width: { xs: "100%", sm: "auto" },
+            flexWrap: { xs: "nowrap", sm: "wrap" },
+          }}
         >
-          Update Status
-        </Button>
-        <Button
-          onClick={() => onActionClick(contact, "response")}
-          variant="outlined"
-          size="small"
-          sx={{ minWidth: { xs: "calc(50% - 4px)", sm: "auto" } }}
-        >
-          Add Response
-        </Button>
-        <Button
-          onClick={() => onActionClick(contact, "note")}
-          variant="outlined"
-          size="small"
-          sx={{ minWidth: { xs: "calc(50% - 4px)", sm: "auto" } }}
-        >
-          Add Note
-        </Button>
-        {isReport && (
           <Button
-            onClick={() => onActionClick(contact, "report_action")}
+            onClick={() => onActionClick(contact, "status")}
             variant="contained"
-            color="error"
             size="small"
-            sx={{ minWidth: { xs: "100%", sm: "auto" } }}
+            sx={{ flex: { xs: 1, sm: "0 1 auto" }, minWidth: { sm: "120px" } }}
           >
-            Take Action
+            Update Status
           </Button>
-        )}
-        <Box sx={{ flexGrow: 1 }} />
-        <Button onClick={onClose} size="small" color="inherit">
+          <Button
+            onClick={() => onActionClick(contact, "response")}
+            variant="outlined"
+            size="small"
+            sx={{ flex: { xs: 1, sm: "0 1 auto" }, minWidth: { sm: "120px" } }}
+          >
+            Add Response
+          </Button>
+        </Box>
+        <Box
+          sx={{
+            display: "flex",
+            gap: 1,
+            width: { xs: "100%", sm: "auto" },
+          }}
+        >
+          <Button
+            onClick={() => onActionClick(contact, "note")}
+            variant="outlined"
+            size="small"
+            sx={{ flex: { xs: 1, sm: "0 1 auto" }, minWidth: { sm: "100px" } }}
+          >
+            Add Note
+          </Button>
+          {isReport && (
+            <Button
+              onClick={() => onActionClick(contact, "report_action")}
+              variant="contained"
+              color="error"
+              size="small"
+              sx={{
+                flex: { xs: 1, sm: "0 1 auto" },
+                minWidth: { sm: "120px" },
+              }}
+            >
+              Take Action
+            </Button>
+          )}
+        </Box>
+        <Box sx={{ flexGrow: 1, display: { xs: "none", sm: "block" } }} />
+        <Button
+          onClick={onClose}
+          size="small"
+          color="inherit"
+          sx={{ width: { xs: "100%", sm: "auto" }, minWidth: { sm: "80px" } }}
+        >
           Close
         </Button>
       </DialogActions>

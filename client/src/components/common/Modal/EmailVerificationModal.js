@@ -1,30 +1,32 @@
-import React from "react";
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
   Button,
   Typography,
   Box,
-  Alert,
   CircularProgress,
+  IconButton,
+  alpha,
 } from "@mui/material";
 import {
-  MarkEmailRead,
-  HourglassEmpty,
   CheckCircle,
   Error as ErrorIcon,
+  Close as CloseIcon,
+  Schedule as ScheduleIcon,
+  Refresh as RefreshIcon,
 } from "@mui/icons-material";
+import { useTheme as useAppTheme } from "../../../hooks/useTheme";
 
 /**
  * EmailVerificationModal Component
  *
- * PURPOSE: Reusable modal for email verification feedback
+ * PURPOSE: Professional, minimalist modal for email verification feedback
  * FEATURES:
- * - Shows loading, success, and error states
- * - Customizable for different verification types (register, forgot password, merchant)
- * - Provides user guidance and next steps
+ * - Enterprise-ready design with proper theme integration
+ * - Clear visual hierarchy and professional typography
+ * - Accessible color contrast and focus states
+ * - Loading, success, and error states with proper feedback
+ * - Rate limiting awareness with countdown
  *
  * PROPS:
  * @param {boolean} open - Whether modal is open
@@ -47,122 +49,234 @@ const EmailVerificationModal = ({
   onResend = null,
   isResending = false,
 }) => {
+  const { theme, isDark } = useAppTheme();
+
   // Get configuration based on verification type
   const getConfig = () => {
     switch (type) {
       case "register":
         return {
           title: "Verify Your Email",
-          successTitle: "Registration Successful! 📧",
-          successMessage:
-            "We've sent a verification link to your email. Please check your inbox and click the link to activate your account.",
-          errorTitle: "Registration Failed",
-          icon: <MarkEmailRead sx={{ fontSize: 64, color: "primary.main" }} />,
+          subtitle: "Check your inbox to activate your account",
           expiryTime: "24 hours",
-          steps: [
-            "Check your email inbox",
-            "Click the verification link",
-            "You'll be redirected to login",
-            "Start shopping!",
-          ],
+          iconBgColor: theme.palette.primary.main,
         };
       case "forgot-password":
         return {
-          title: "Password Reset Email Sent",
-          successTitle: "Reset Link Sent! 🔐",
-          successMessage:
-            "We've sent a password reset link to your email. Click the link to create a new password.",
-          errorTitle: "Failed to Send Reset Email",
-          icon: <MarkEmailRead sx={{ fontSize: 64, color: "warning.main" }} />,
-          expiryTime: "1 hour",
-          steps: [
-            "Check your email inbox",
-            "Click the reset link",
-            "Create a new password",
-            "Login with new password",
-          ],
+          title: "Password Reset",
+          subtitle: "Check your inbox to reset your password",
+          expiryTime: "15 minutes",
+          iconBgColor: theme.palette.warning.main,
         };
       case "merchant":
         return {
           title: "Merchant Verification",
-          successTitle: "Verification Email Sent! 🏪",
-          successMessage:
-            "We've sent a verification link to your UiTM email. Click the link to verify your merchant status.",
-          errorTitle: "Verification Failed",
-          icon: <MarkEmailRead sx={{ fontSize: 64, color: "success.main" }} />,
+          subtitle: "Check your UiTM email to verify merchant status",
           expiryTime: "24 hours",
-          steps: [
-            "Check your UiTM email inbox",
-            "Click the verification link",
-            "Your merchant status will be activated",
-            "Start listing products!",
-          ],
+          iconBgColor: theme.palette.success.main,
         };
       default:
         return {
           title: "Email Verification",
-          successTitle: "Email Sent!",
-          successMessage: "Please check your email for further instructions.",
-          errorTitle: "Verification Failed",
-          icon: <MarkEmailRead sx={{ fontSize: 64, color: "primary.main" }} />,
+          subtitle: "Check your email for further instructions",
           expiryTime: "24 hours",
-          steps: ["Check your email", "Follow the instructions"],
+          iconBgColor: theme.palette.primary.main,
         };
     }
   };
 
   const config = getConfig();
 
-  // Render loading state
-  if (status === "loading") {
-    return (
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-        <DialogContent sx={{ textAlign: "center", py: 6 }}>
-          <CircularProgress size={60} sx={{ mb: 3 }} />
-          <Typography variant="h6" gutterBottom>
-            Sending Verification Email...
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Please wait a moment
-          </Typography>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   // Render error state
   if (status === "error") {
+    const isRateLimited =
+      error.toLowerCase().includes("wait") ||
+      error.toLowerCase().includes("5 minutes") ||
+      error.toLowerCase().includes("recently");
+
+    const isPlatformError =
+      error.toLowerCase().includes("technical difficulties") ||
+      error.toLowerCase().includes("service unavailable") ||
+      error.toLowerCase().includes("not your fault") ||
+      error.toLowerCase().includes("experiencing");
+
     return (
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Box display="flex" alignItems="center" gap={1}>
-            <ErrorIcon color="error" />
-            {config.errorTitle}
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: 2,
+              bgcolor: theme.palette.background.paper,
+            },
+          },
+        }}
+      >
+        {/* Close Button */}
+        <IconButton
+          onClick={onClose}
+          sx={{
+            position: "absolute",
+            right: 16,
+            top: 16,
+            color: "text.secondary",
+            "&:hover": {
+              bgcolor: alpha(theme.palette.text.primary, 0.05),
+            },
+          }}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+
+        <DialogContent sx={{ p: 4, pt: 5 }}>
+          {/* Icon */}
+          <Box
+            sx={{
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
+              bgcolor: alpha(
+                isPlatformError
+                  ? theme.palette.info.main
+                  : isRateLimited
+                    ? theme.palette.warning.main
+                    : theme.palette.error.main,
+                0.1
+              ),
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mx: "auto",
+              mb: 2,
+            }}
+          >
+            {isPlatformError ? (
+              <ErrorIcon
+                sx={{
+                  fontSize: 28,
+                  color: theme.palette.info.main,
+                }}
+              />
+            ) : isRateLimited ? (
+              <ScheduleIcon
+                sx={{
+                  fontSize: 28,
+                  color: theme.palette.warning.main,
+                }}
+              />
+            ) : (
+              <ErrorIcon
+                sx={{
+                  fontSize: 28,
+                  color: theme.palette.error.main,
+                }}
+              />
+            )}
           </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error || "An unexpected error occurred. Please try again."}
-          </Alert>
-          <Typography variant="body2" color="text.secondary">
-            If the problem persists, please contact support.
+
+          {/* Title */}
+          <Typography
+            variant="h6"
+            fontWeight={600}
+            color="text.primary"
+            align="center"
+            sx={{ mb: 1 }}
+          >
+            {isPlatformError
+              ? "Service Unavailable"
+              : isRateLimited
+                ? "Please Wait"
+                : "Failed to Send"}
           </Typography>
-        </DialogContent>
-        <DialogActions>
-          {onResend && (
-            <Button
-              onClick={onResend}
-              disabled={isResending}
-              variant="outlined"
-              color="primary"
+
+          {/* Message */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            align="center"
+            sx={{ mb: 3, lineHeight: 1.6 }}
+          >
+            {error || "An unexpected error occurred. Please try again."}
+          </Typography>
+
+          {/* Additional Info */}
+          {isPlatformError && (
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: 1.5,
+                bgcolor: alpha(theme.palette.success.main, 0.08),
+                border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                mb: 3,
+              }}
             >
-              {isResending ? "Resending..." : "Try Again"}
-            </Button>
+              <Typography variant="caption" color="text.secondary">
+                ✓ Your account is safe. This is a temporary issue on our end.
+              </Typography>
+            </Box>
           )}
-          <Button onClick={onClose} variant="contained">
-            Close
-          </Button>
-        </DialogActions>
+
+          {isRateLimited && (
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: 1.5,
+                bgcolor: alpha(theme.palette.warning.main, 0.08),
+                border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                mb: 3,
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                This helps protect your account from spam.
+              </Typography>
+            </Box>
+          )}
+
+          {/* Actions */}
+          <Box sx={{ display: "flex", gap: 1.5 }}>
+            {onResend && !isRateLimited && (
+              <Button
+                onClick={onResend}
+                disabled={isResending}
+                variant="contained"
+                fullWidth
+                startIcon={
+                  isResending ? (
+                    <CircularProgress size={18} color="inherit" />
+                  ) : (
+                    <RefreshIcon />
+                  )
+                }
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 500,
+                  py: 1.25,
+                }}
+              >
+                {isResending ? "Retrying..." : "Try Again"}
+              </Button>
+            )}
+            <Button
+              onClick={onClose}
+              variant={onResend && !isRateLimited ? "outlined" : "contained"}
+              fullWidth
+              sx={{
+                textTransform: "none",
+                fontWeight: 500,
+                py: 1.25,
+              }}
+            >
+              {isPlatformError
+                ? "Got it"
+                : isRateLimited
+                  ? "Understood"
+                  : "Close"}
+            </Button>
+          </Box>
+        </DialogContent>
       </Dialog>
     );
   }
@@ -170,112 +284,179 @@ const EmailVerificationModal = ({
   // Render success state
   if (status === "success") {
     return (
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ textAlign: "center", pt: 4 }}>
-          <Box display="flex" flexDirection="column" alignItems="center">
-            {config.icon}
-            <Typography variant="h5" fontWeight="bold" sx={{ mt: 2 }}>
-              {config.successTitle}
-            </Typography>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: 2,
+              bgcolor: theme.palette.background.paper,
+            },
+          },
+        }}
+      >
+        {/* Close Button */}
+        <IconButton
+          onClick={onClose}
+          sx={{
+            position: "absolute",
+            right: 16,
+            top: 16,
+            color: "text.secondary",
+            "&:hover": {
+              bgcolor: alpha(theme.palette.text.primary, 0.05),
+            },
+          }}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+
+        <DialogContent sx={{ p: 4, pt: 5 }}>
+          {/* Icon */}
+          <Box
+            sx={{
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
+              bgcolor: alpha(config.iconBgColor, 0.1),
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mx: "auto",
+              mb: 2,
+            }}
+          >
+            <CheckCircle
+              sx={{
+                fontSize: 28,
+                color: config.iconBgColor,
+              }}
+            />
           </Box>
-        </DialogTitle>
-        <DialogContent sx={{ pb: 4 }}>
-          {/* Success Message */}
-          <Alert severity="success" sx={{ mb: 3 }}>
-            <Typography variant="body2">{config.successMessage}</Typography>
-          </Alert>
+
+          {/* Title */}
+          <Typography
+            variant="h6"
+            fontWeight={600}
+            color="text.primary"
+            align="center"
+            sx={{ mb: 1 }}
+          >
+            {config.title}
+          </Typography>
+
+          {/* Subtitle */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            align="center"
+            sx={{ mb: 3 }}
+          >
+            {config.subtitle}
+          </Typography>
 
           {/* Email Display */}
           {email && (
             <Box
               sx={{
-                bgcolor: "grey.100",
                 p: 2,
-                borderRadius: 1,
-                mb: 3,
-                textAlign: "center",
+                borderRadius: 1.5,
+                bgcolor: alpha(theme.palette.primary.main, 0.08),
+                border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                mb: 2,
               }}
             >
-              <Typography variant="caption" color="text.secondary" gutterBottom>
-                Email sent to:
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+                sx={{ mb: 0.5 }}
+              >
+                Email sent to
               </Typography>
-              <Typography variant="body1" fontWeight="medium">
+              <Typography
+                variant="body2"
+                fontWeight={500}
+                color="text.primary"
+                sx={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {email}
               </Typography>
             </Box>
           )}
 
-          {/* Next Steps */}
+          {/* Expiry Info */}
           <Box
             sx={{
-              bgcolor: "primary.50",
               p: 2,
-              borderRadius: 1,
-              mb: 2,
+              borderRadius: 1.5,
+              bgcolor: alpha(theme.palette.warning.main, 0.08),
+              border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+              mb: 3,
             }}
           >
-            <Typography
-              variant="subtitle2"
-              fontWeight="bold"
-              gutterBottom
-              color="primary.main"
-            >
-              📋 Next Steps:
+            <Typography variant="caption" color="text.secondary">
+              ⏱️ Link expires in {config.expiryTime}. Check spam if not found.
             </Typography>
-            <Box component="ol" sx={{ pl: 2, m: 0 }}>
-              {config.steps.map((step, index) => (
-                <Typography
-                  key={index}
-                  component="li"
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mb: 0.5 }}
-                >
-                  {step}
-                </Typography>
-              ))}
-            </Box>
           </Box>
 
-          {/* Important Notice */}
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            <Typography variant="caption">
-              ⚠️ <strong>Important:</strong> The verification link expires in{" "}
-              {config.expiryTime}. If you don't see the email, check your spam
-              folder.
-            </Typography>
-          </Alert>
-
-          {/* Resend Option */}
+          {/* Resend Button */}
           {onResend && (
-            <Box sx={{ textAlign: "center", mt: 2 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Didn't receive the email?
+            <Box sx={{ mb: 2 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+                align="center"
+                sx={{ mb: 1 }}
+              >
+                Didn't receive it?
               </Typography>
               <Button
                 onClick={onResend}
                 disabled={isResending}
-                variant="text"
+                variant="outlined"
+                fullWidth
                 size="small"
-                color="primary"
+                startIcon={
+                  isResending ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : (
+                    <RefreshIcon />
+                  )
+                }
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 500,
+                  py: 0.75,
+                }}
               >
-                {isResending ? (
-                  <>
-                    <CircularProgress size={16} sx={{ mr: 1 }} />
-                    Resending...
-                  </>
-                ) : (
-                  "Resend Verification Email"
-                )}
+                {isResending ? "Sending..." : "Resend Email"}
               </Button>
             </Box>
           )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={onClose} variant="contained" fullWidth>
-            Got it!
+
+          {/* Close Button */}
+          <Button
+            onClick={onClose}
+            variant="contained"
+            fullWidth
+            sx={{
+              textTransform: "none",
+              fontWeight: 500,
+              py: 1.25,
+            }}
+          >
+            Got it
           </Button>
-        </DialogActions>
+        </DialogContent>
       </Dialog>
     );
   }

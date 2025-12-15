@@ -460,7 +460,7 @@ UserSchema.statics.findByCredentials = async function (email, password) {
     "$2b$12$KIXQJQw1rQbYpQJwQJwQJ.QJwQJwQJwQJwQJwQJwQJwQJwQJwQJw";
   try {
     const user = await this.findOne({ email: email.toLowerCase() }).select(
-      "+password +refreshTokens +emailVerification.isVerified"
+      "+email +password +refreshTokens +emailVerification.isVerified"
     );
     // Always perform password comparison to mitigate timing attacks
     const isValidPassword = user

@@ -216,7 +216,7 @@ const validateStatusUpdate = [
  * Validate admin response
  */
 const validateAdminResponse = [
-  body("message")
+  body("response")
     .trim()
     .notEmpty()
     .withMessage("Response message is required")
@@ -290,17 +290,40 @@ const validateReportAction = [
 /**
  * Validate query filters
  */
+/**
+ * Validate contact filters for GET /api/contact
+ *
+ * MODIFICATION: Support multiple types via comma-separated values
+ * Example: ?type=feedback,enquiry
+ */
 const validateContactFilters = [
   query("type")
     .optional()
-    .isIn([
-      "bug",
-      "enquiry",
-      "feedback",
-      "collaboration",
-      "content_report",
-      "other",
-    ])
+    .custom((value) => {
+      // Support comma-separated multiple types
+      const validTypes = [
+        "bug_report",
+        "enquiry",
+        "feedback",
+        "collaboration",
+        "content_report",
+        "other",
+      ];
+
+      // Split by comma and trim whitespace
+      const types = value.split(",").map((t) => t.trim());
+
+      // Check if all types are valid
+      const allValid = types.every((type) => validTypes.includes(type));
+
+      if (!allValid) {
+        throw new Error(
+          `Invalid type filter. Valid types: ${validTypes.join(", ")}`
+        );
+      }
+
+      return true;
+    })
     .withMessage("Invalid type filter"),
 
   query("status")

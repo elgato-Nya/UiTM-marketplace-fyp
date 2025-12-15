@@ -59,6 +59,37 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
   const inWishlist = isInWishlist(_id);
   const imageSrc = images?.[0] || "https://via.placeholder.com/150";
 
+  // Format price with spaces (e.g., 1 234 567.89)
+  const formatPrice = (price) => {
+    if (isFree) return "FREE";
+    if (price >= 100000) {
+      // Use prefix for 100k+
+      if (price >= 1000000000) {
+        return `RM${(price / 1000000000).toFixed(1)}b`;
+      }
+      if (price >= 1000000) {
+        return `RM${(price / 1000000).toFixed(1)}m`;
+      }
+      return `RM${(price / 1000).toFixed(1)}k`;
+    }
+    // Format with spaces for numbers < 100k
+    const parts = price.toFixed(2).split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    return `RM${parts.join(".")}`;
+  };
+
+  // Format stock with prefix for large numbers
+  const formatStock = (stock) => {
+    if (stock === 0) return "Out";
+    if (stock >= 1000000) {
+      return `${(stock / 1000000).toFixed(1)}m stock`;
+    }
+    if (stock >= 1000) {
+      return `${(stock / 1000).toFixed(1)}k stock`;
+    }
+    return `${stock} stock`;
+  };
+
   const handleCardClick = () => {
     navigate(`/listings/${_id}`);
   };
@@ -158,12 +189,12 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
             }}
           >
             {/* Type Badge */}
-            <Box sx={{ mb: 0.5 }}>
+            <Box sx={{ mb: 0.25 }}>
               <Chip
                 label={type === "product" ? "Product" : "Service"}
                 size="small"
                 color={type === "product" ? "primary" : "secondary"}
-                sx={{ height: 20, fontSize: "0.7rem" }}
+                sx={{ height: 18, fontSize: "0.65rem" }}
               />
             </Box>
 
@@ -173,22 +204,32 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
               component="h3"
               sx={{
                 fontWeight: 600,
-                mb: 0.5,
+                fontSize: "0.8rem",
+                mb: 0.25,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 display: "-webkit-box",
-                WebkitLineClamp: 2,
+                WebkitLineClamp: 1,
                 WebkitBoxOrient: "vertical",
+                lineHeight: 1.3,
               }}
             >
               {name}
             </Typography>
 
-            {/* Category */}
+            {/* Category/Description */}
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ display: "block", mb: 0.5 }}
+              sx={{
+                display: "block",
+                mb: 0.25,
+                fontSize: "0.7rem",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                lineHeight: 1.2,
+              }}
             >
               {CATEGORY_LABELS[category] || category}
             </Typography>
@@ -205,9 +246,17 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
                 variant="h6"
                 component="span"
                 color="primary"
-                sx={{ fontWeight: 700, fontSize: "1rem" }}
+                sx={{
+                  fontWeight: 700,
+                  fontSize: "0.85rem",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  maxWidth: "60%",
+                  flexShrink: 1,
+                }}
               >
-                {isFree ? "FREE" : `RM${price?.toFixed(2)}`}
+                {formatPrice(price)}
               </Typography>
 
               {/* Actions */}
@@ -254,9 +303,16 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
               <Typography
                 variant="caption"
                 color={stock === 0 ? "error" : "text.secondary"}
-                sx={{ display: "block", mt: 0.5 }}
+                sx={{
+                  display: "block",
+                  mt: 0.25,
+                  fontSize: "0.65rem",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
               >
-                {stock === 0 ? "Out of Stock" : `${stock} left`}
+                {formatStock(stock)}
               </Typography>
             )}
 

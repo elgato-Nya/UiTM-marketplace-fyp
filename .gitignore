@@ -68,6 +68,7 @@ Thumbs.db
 
 # Build outputs
 dist/
+build.old/
 build/
 */dist/
 */build/

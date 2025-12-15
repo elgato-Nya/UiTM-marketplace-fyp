@@ -16,6 +16,7 @@ import {
   MenuItem,
 } from "@mui/material";
 import { Close } from "@mui/icons-material";
+import { useTheme } from "../../../hooks/useTheme";
 
 /**
  * ContactActionDialog Component
@@ -50,6 +51,8 @@ const ContactActionDialog = ({
   onConfirm,
   loading = false,
 }) => {
+  const { theme } = useTheme();
+
   const actionConfig = {
     status: {
       title: "Update Status",
@@ -172,29 +175,39 @@ const ContactActionDialog = ({
               {config.description}
             </Typography>
           )}
-
           {/* Warning Alert */}
           {config.showWarning && (
             <Alert severity="warning" sx={{ mb: 3 }}>
               {config.warningMessage}
             </Alert>
           )}
-
           {/* Contact Context */}
           {contact && (
-            <Box sx={{ mb: 3, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+            <Box
+              sx={{
+                mb: 3,
+                p: 2,
+                bgcolor: theme.palette.background.paper,
+                borderRadius: 1,
+                border: `1px solid ${theme.palette.divider}`,
+              }}
+            >
               <Typography variant="caption" color="text.secondary">
                 Submission
               </Typography>
-              <Typography variant="body2" fontWeight={600}>
+              <Typography
+                variant="body2"
+                fontWeight={600}
+                sx={{ color: theme.palette.text.primary }}
+              >
                 {contact.subject}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                From: {contact.name} ({contact.email})
+                From: {contact.submittedBy?.name || contact.name || "Unknown"} (
+                {contact.submittedBy?.email || contact.email || "No email"})
               </Typography>
             </Box>
           )}
-
           {/* Form Field */}
           {config.fieldType === "select" ? (
             <FormControl fullWidth required={config.required}>
@@ -237,8 +250,20 @@ const ContactActionDialog = ({
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} disabled={loading}>
+      <DialogActions
+        sx={{
+          px: 3,
+          pb: 2,
+          gap: 1,
+          flexDirection: { xs: "column-reverse", sm: "row" },
+          justifyContent: { xs: "stretch", sm: "flex-end" },
+        }}
+      >
+        <Button
+          onClick={onClose}
+          disabled={loading}
+          sx={{ width: { xs: "100%", sm: "auto" }, minWidth: { sm: "100px" } }}
+        >
           Cancel
         </Button>
         <Button
@@ -246,6 +271,7 @@ const ContactActionDialog = ({
           variant="contained"
           disabled={loading || (config.required && !fieldValue.trim())}
           color={actionType === "report_action" ? "warning" : "primary"}
+          sx={{ width: { xs: "100%", sm: "auto" }, minWidth: { sm: "100px" } }}
         >
           {loading ? <CircularProgress size={24} /> : config.confirmText}
         </Button>

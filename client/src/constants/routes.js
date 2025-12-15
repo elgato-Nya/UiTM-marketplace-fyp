@@ -82,8 +82,8 @@ export const ROUTES = {
     INDEX: "/admin",
     DASHBOARD: "/admin/dashboard",
     USERS: "/admin/users",
-    SETTINGS: "/admin/settings",
-    REPORTS: "/admin/reports",
+    MERCHANT: "/admin/merchants/verification",
+    CONTACTS: "/admin/contacts",
   },
 
   // Utility Routes

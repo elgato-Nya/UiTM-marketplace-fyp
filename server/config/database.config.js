@@ -26,7 +26,6 @@ class DatabaseManager {
       // Use recommended connection options and a short server selection
       // timeout so failed connections return quickly in development.
       const connectOptions = {
-        useNewUrlParser: true,
         useUnifiedTopology: true,
         serverSelectionTimeoutMS: 5000,
       };

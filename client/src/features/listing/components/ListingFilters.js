@@ -22,7 +22,7 @@ import {
   ShoppingBag,
   Build,
   ViewModule as AllIcon,
-  Refresh as RefreshIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 
 import {
@@ -181,13 +181,13 @@ const ListingFilters = ({
                 }}
               >
                 <ToggleButton value="all" aria-label="all listings">
-                  <AllIcon sx={{ fontSize: 16 }} />
+                  All
                 </ToggleButton>
                 <ToggleButton value="product" aria-label="products">
-                  <ShoppingBag sx={{ fontSize: 16 }} />
+                  Products
                 </ToggleButton>
                 <ToggleButton value="service" aria-label="services">
-                  <Build sx={{ fontSize: 16 }} />
+                  Services
                 </ToggleButton>
               </ToggleButtonGroup>
             )}
@@ -270,7 +270,7 @@ const ListingFilters = ({
                   size="medium"
                   onClick={handleReset}
                   disabled={!hasActiveFilters}
-                  startIcon={<RefreshIcon />}
+                  startIcon={<CloseIcon />}
                   sx={{
                     minWidth: 100,
                     px: 2,
@@ -284,18 +284,16 @@ const ListingFilters = ({
 
             {/* Reset button for mobile */}
             {isMobile && (
-              <Button
-                variant="text"
+              <IconButton
                 size="small"
                 onClick={handleReset}
                 disabled={!hasActiveFilters}
-                startIcon={<RefreshIcon />}
                 sx={{
                   minWidth: "auto",
-                  px: 1,
-                  fontSize: "0.75rem",
                 }}
-              ></Button>
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
             )}
           </Box>
 

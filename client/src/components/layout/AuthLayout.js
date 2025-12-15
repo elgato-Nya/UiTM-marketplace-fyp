@@ -3,6 +3,7 @@ import { ArrowBack } from "@mui/icons-material";
 import { Link, Outlet } from "react-router-dom";
 
 import { useTheme } from "../../hooks/useTheme";
+import { Logo } from "../common/Logo";
 import ThemeToggle from "../common/ThemeToggle";
 
 function AuthLayout() {
@@ -48,26 +49,22 @@ function AuthLayout() {
         >
           <ArrowBack />
         </IconButton>
-        <Typography
-          variant="h6"
+        <Box
           component={Link}
           to="/"
           sx={{
             textDecoration: "none",
-            color: theme.palette.primary.main,
-            fontWeight: "bold",
             position: "absolute",
             left: "50%",
             transform: "translateX(-50%)",
-            fontSize: { xs: "1rem", sm: "1.25rem" },
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            maxWidth: { xs: "60%", sm: "auto" },
           }}
         >
-          🐱 MarKet
-        </Typography>
+          <Logo
+            variant="horizontal"
+            type="platform"
+            height={{ xs: 24, sm: 28 }}
+          />
+        </Box>
 
         <ThemeToggle />
       </Box>

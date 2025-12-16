@@ -80,6 +80,10 @@ const EditListingPage = () => {
     setExistingImages((prev) => prev.filter((img) => img !== url));
   };
 
+  const handleDeleteNewImage = (url) => {
+    setNewlyUploadedImages((prev) => prev.filter((img) => img !== url));
+  };
+
   if (fetchLoading) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
@@ -117,6 +121,12 @@ const EditListingPage = () => {
       // Merge existing images with newly uploaded images
       listingData.images = [...existingImages, ...newlyUploadedImages];
 
+      // Validate that at least one image exists
+      if (!listingData.images || listingData.images.length === 0) {
+        showError("Listing must have at least one image");
+        return;
+      }
+
       // Convert isFree listing price to 0
       if (listingData.isFree) {
         listingData.price = 0;
@@ -136,7 +146,22 @@ const EditListingPage = () => {
       await updateListing({ id: listingId, ...listingData }).unwrap();
     } catch (error) {
       console.error("Failed to update listing:", error);
-      showError(error?.data?.message || "Failed to update listing");
+
+      // Enhanced error message handling
+      let errorMessage = "Failed to update listing";
+
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.data?.errors && Array.isArray(error.data.errors)) {
+        // Handle validation errors array
+        errorMessage = error.data.errors
+          .map((err) => err.msg || err.message)
+          .join(". ");
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      showError(errorMessage);
     }
   };
 
@@ -225,9 +250,11 @@ const EditListingPage = () => {
         </Typography>
         <ListingImageUpload
           listingId={listingId}
-          existingImages={allImages}
+          existingImages={existingImages}
+          newlyUploadedImages={newlyUploadedImages}
           onUploadComplete={handleImageUploadComplete}
           onDeleteExisting={handleDeleteExistingImage}
+          onDeleteNew={handleDeleteNewImage}
           maxImages={10}
         />
       </Paper>

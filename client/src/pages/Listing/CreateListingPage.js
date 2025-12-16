@@ -65,6 +65,12 @@ const CreateListingPage = () => {
       // Use already uploaded images
       listingData.images = existingImageUrls;
 
+      // Validate that at least one image is uploaded
+      if (!listingData.images || listingData.images.length === 0) {
+        showError("Please upload at least one image for your listing");
+        return;
+      }
+
       if (listingData.isFree) {
         listingData.price = 0;
       }
@@ -83,7 +89,22 @@ const CreateListingPage = () => {
       await createListing(listingData).unwrap();
     } catch (error) {
       console.error("Failed to create listing:", error);
-      showError(error?.data?.message || "Failed to create listing");
+
+      // Enhanced error message handling
+      let errorMessage = "Failed to create listing";
+
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.data?.errors && Array.isArray(error.data.errors)) {
+        // Handle validation errors array
+        errorMessage = error.data.errors
+          .map((err) => err.msg || err.message)
+          .join(". ");
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      showError(errorMessage);
     }
   };
 

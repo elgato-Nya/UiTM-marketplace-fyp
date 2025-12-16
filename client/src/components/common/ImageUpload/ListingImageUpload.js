@@ -4,6 +4,8 @@ import { useSnackbar } from "../../../hooks/useSnackbar";
 import { useImageUpload } from "../../../hooks/useImageUpload";
 import ImageUploadZone from "./ImageUploadZone";
 import ImagePreviewGrid from "./ImagePreviewGrid";
+import ListingImageCropDialog from "./ListingImageCropDialog";
+import { cropListingImage, getImageDimensions } from "../../../utils/imageCrop";
 
 /**
  * ListingImageUpload - Listing-specific image upload component
@@ -20,16 +22,20 @@ import ImagePreviewGrid from "./ImagePreviewGrid";
  * @param {Object} props
  * @param {string} props.listingId - Listing ID (used as subfolder)
  * @param {string[]} props.existingImages - Existing image URLs
+ * @param {string[]} props.newlyUploadedImages - Newly uploaded image URLs (in this session)
  * @param {Function} props.onUploadComplete - Callback when upload completes: (result) => {}
  * @param {Function} props.onDeleteExisting - Callback to delete existing image: (url) => {}
+ * @param {Function} props.onDeleteNew - Callback to delete newly uploaded image: (url) => {}
  * @param {number} props.maxImages - Maximum images allowed
  * @param {boolean} props.showHeader - Show component header (default: false)
  */
 function ListingImageUpload({
   listingId,
   existingImages = [],
+  newlyUploadedImages = [],
   onUploadComplete,
   onDeleteExisting,
+  onDeleteNew,
   maxImages = 10,
   showHeader = false,
 }) {
@@ -38,37 +44,131 @@ function ListingImageUpload({
 
   const [localExistingImages, setLocalExistingImages] =
     useState(existingImages);
+  const [localNewImages, setLocalNewImages] = useState(newlyUploadedImages);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [cropDialog, setCropDialog] = useState(false);
+  const [currentFile, setCurrentFile] = useState(null);
+  const [currentPreview, setCurrentPreview] = useState(null);
+  const [pendingFiles, setPendingFiles] = useState([]);
 
   // Sync existing images
   useEffect(() => {
     setLocalExistingImages(existingImages);
   }, [existingImages]);
 
+  // Sync newly uploaded images
+  useEffect(() => {
+    setLocalNewImages(newlyUploadedImages);
+  }, [newlyUploadedImages]);
+
   /**
-   * Handle file selection and trigger upload
+   * Handle file selection - Open crop dialog for first file
    */
   const handleFilesSelected = async (files) => {
+    if (files.length === 0) return;
+
     try {
-      setSelectedFiles(files);
+      // Store all files
+      setPendingFiles(files);
 
-      // Upload the files immediately using dedicated listing upload
-      const result = await uploadListing(files, listingId || "temp");
+      // Show crop dialog for first file
+      const firstFile = files[0];
+      const reader = new FileReader();
 
-      // Clear selected files after successful upload
-      setSelectedFiles([]);
+      reader.onload = (e) => {
+        setCurrentFile(firstFile);
+        setCurrentPreview(e.target.result);
+        setCropDialog(true);
+      };
+
+      reader.readAsDataURL(firstFile);
+    } catch (error) {
+      console.error("File selection error:", error);
+      showError("Failed to process selected files");
+    }
+  };
+
+  /**
+   * Handle crop dialog save - Upload current file with crop applied
+   */
+  const handleCropSave = async (file, cropData) => {
+    try {
+      // Apply the crop transformation to create new file
+      showSuccess("Processing image...");
+      const croppedFile = await cropListingImage(file, cropData);
+
+      // Upload the cropped file
+      const result = await uploadListing([croppedFile], listingId || "temp");
 
       // Notify parent with upload result
       if (onUploadComplete && result) {
         onUploadComplete(result);
       }
 
-      showSuccess("Images uploaded successfully!");
+      // Remove uploaded file from pending
+      const remainingFiles = pendingFiles.filter((f) => f !== currentFile);
+      setPendingFiles(remainingFiles);
+
+      // If there are more files, show crop dialog for next file
+      if (remainingFiles.length > 0) {
+        const nextFile = remainingFiles[0];
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          setCurrentFile(nextFile);
+          setCurrentPreview(e.target.result);
+          // Dialog stays open
+        };
+
+        reader.readAsDataURL(nextFile);
+      } else {
+        // All files processed
+        setCropDialog(false);
+        setCurrentFile(null);
+        setCurrentPreview(null);
+        setSelectedFiles([]);
+        const totalUploaded = pendingFiles.length;
+        showSuccess(
+          `${totalUploaded === 1 ? "Image" : `${totalUploaded} images`} uploaded successfully!`
+        );
+      }
     } catch (error) {
       console.error("Upload error:", error);
-      showError(error.message || "Failed to upload images");
-      setSelectedFiles([]); // Clear on error too
+
+      // Enhanced error message handling
+      let errorMessage = "Failed to upload image";
+
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.statusCode === 413) {
+        errorMessage =
+          "File is too large. Please compress your image (max 5MB per file) and try again.";
+      } else if (error.statusCode === 400) {
+        errorMessage =
+          error.details?.message ||
+          "Invalid file. Please check file type (JPG, PNG, WEBP only) and size (max 5MB each).";
+      }
+
+      showError(errorMessage);
+
+      // Close dialog on error
+      setCropDialog(false);
+      setCurrentFile(null);
+      setCurrentPreview(null);
+      setPendingFiles([]);
+      setSelectedFiles([]);
     }
+  };
+
+  /**
+   * Handle crop dialog close
+   */
+  const handleCropClose = () => {
+    setCropDialog(false);
+    setCurrentFile(null);
+    setCurrentPreview(null);
+    setPendingFiles([]);
+    setSelectedFiles([]);
   };
 
   /**
@@ -81,6 +181,19 @@ function ListingImageUpload({
       onDeleteExisting(imageUrl);
     }
   };
+
+  /**
+   * Handle delete newly uploaded image
+   */
+  const handleDeleteNew = (imageUrl) => {
+    setLocalNewImages((prev) => prev.filter((url) => url !== imageUrl));
+
+    if (onDeleteNew) {
+      onDeleteNew(imageUrl);
+    }
+  };
+
+  const totalImages = localExistingImages.length + localNewImages.length;
 
   return (
     <Box component="div" role="region" aria-label="Image upload section">
@@ -106,10 +219,11 @@ function ListingImageUpload({
         >
           <Typography
             id="existing-images-heading"
-            variant="srOnly"
+            variant="subtitle2"
             component="h3"
+            sx={{ mb: 1 }}
           >
-            Current uploaded images
+            Existing Images ({localExistingImages.length})
           </Typography>
           <ImagePreviewGrid
             images={localExistingImages}
@@ -119,12 +233,35 @@ function ListingImageUpload({
         </Box>
       )}
 
+      {/* Newly Uploaded Images */}
+      {localNewImages.length > 0 && (
+        <Box
+          sx={{ mb: 2 }}
+          component="section"
+          aria-labelledby="new-images-heading"
+        >
+          <Typography
+            id="new-images-heading"
+            variant="subtitle2"
+            component="h3"
+            sx={{ mb: 1 }}
+          >
+            Newly Uploaded Images ({localNewImages.length})
+          </Typography>
+          <ImagePreviewGrid
+            images={localNewImages}
+            type="existing"
+            onRemove={handleDeleteNew}
+          />
+        </Box>
+      )}
+
       {/* Upload Zone - hide internal preview, we show our own below */}
       <Box component="section" aria-label="File upload area">
         <ImageUploadZone
           onFilesSelected={handleFilesSelected}
           multiple={true}
-          maxFiles={maxImages - localExistingImages.length}
+          maxFiles={maxImages - totalImages}
           maxSize={5}
           acceptedTypes={["image/jpeg", "image/jpg", "image/png", "image/webp"]}
           autoUpload={false}
@@ -134,6 +271,16 @@ function ListingImageUpload({
           uploadProgress={uploadProgress}
         />
       </Box>
+
+      {/* Crop Dialog */}
+      <ListingImageCropDialog
+        open={cropDialog}
+        onClose={handleCropClose}
+        onSave={handleCropSave}
+        previewImage={currentPreview}
+        selectedFile={currentFile}
+        isUploading={isUploading}
+      />
     </Box>
   );
 }

@@ -22,27 +22,35 @@ import { Link } from "react-router-dom";
 import { useTheme } from "../../hooks/useTheme";
 import { useAuth } from "../../features/auth/hooks/useAuth";
 
+// Import local images
+import MarketCartImage from "../../styles/img/MarKet-cart.jpg";
+import MarketLaptopImage from "../../styles/img/MarKet-laptop.jpg";
+import MarketLibraryImage from "../../styles/img/MarKet-library,books.jpg";
+
 const carouselImages = [
   {
     id: 1,
-    image:
-      "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1200&h=400&fit=crop",
-    title: "Discover Amazing Products",
-    subtitle: "Shop from thousands of verified merchants",
+    image: MarketCartImage,
+    title: "UiTM Marketplace",
+    subtitle:
+      "Your campus trading hub - Buy, sell, and discover within UiTM community",
+    alt: "Shopping cart filled with products at UiTM marketplace",
   },
   {
     id: 2,
-    image:
-      "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&h=400&fit=crop",
-    title: "Start Your Business Today",
-    subtitle: "Join our merchant community and reach more customers",
+    image: MarketLaptopImage,
+    title: "Start Selling Today",
+    subtitle:
+      "Join our verified merchant community and grow your business on campus",
+    alt: "Laptop displaying merchant dashboard for online selling",
   },
   {
     id: 3,
-    image:
-      "https://images.unsplash.com/photo-1556740738-b6a63e27c4df?w=1200&h=400&fit=crop",
-    title: "Services & Products",
-    subtitle: "Find what you need, from products to professional services",
+    image: MarketLibraryImage,
+    title: "Books, Supplies & More",
+    subtitle:
+      "From textbooks to tech - find everything you need for campus life",
+    alt: "Library and books collection at UiTM campus",
   },
 ];
 
@@ -306,6 +314,8 @@ function HeroSection() {
       {carouselImages.map((slide, index) => (
         <Fade key={slide.id} in={index === currentSlide} timeout={500}>
           <Box
+            role="img"
+            aria-label={slide.alt}
             sx={{
               position: "absolute",
               top: 0,

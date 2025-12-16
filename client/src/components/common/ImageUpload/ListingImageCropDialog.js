@@ -13,23 +13,29 @@ import {
   IconButton,
   Tooltip,
 } from "@mui/material";
-import { PanTool, RestartAlt, ZoomIn, ZoomOut } from "@mui/icons-material";
+import {
+  CropOriginal,
+  ZoomIn,
+  ZoomOut,
+  PanTool,
+  RestartAlt,
+} from "@mui/icons-material";
 
 /**
- * ImageCropDialog - Image cropping dialog
+ * ListingImageCropDialog - Image cropping dialog for listing images
  *
- * PURPOSE: Provide image cropping functionality with drag and zoom
- * PATTERN: Controlled dialog component
+ * PURPOSE: Provide image cropping and zoom functionality for listing images
+ * PATTERN: Controlled dialog component with rectangular crop area
  *
  * @param {Object} props
  * @param {boolean} props.open - Dialog open state
  * @param {Function} props.onClose - Close handler
- * @param {Function} props.onSave - Save handler (receives file and crop data)
+ * @param {Function} props.onSave - Save handler (receives cropped file and crop data)
  * @param {string} props.previewImage - Image preview URL
  * @param {File} props.selectedFile - Selected file
  * @param {boolean} props.isUploading - Upload state
  */
-function ImageCropDialog({
+function ListingImageCropDialog({
   open,
   onClose,
   onSave,
@@ -41,6 +47,8 @@ function ImageCropDialog({
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const imageRef = useRef(null);
+  const containerRef = useRef(null);
 
   // Reset state when dialog opens with new image
   useEffect(() => {
@@ -57,7 +65,7 @@ function ImageCropDialog({
   };
 
   const handleMouseDown = (e) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0) return; // Only left click
     setIsDragging(true);
     setDragStart({
       x: e.clientX - position.x,
@@ -67,6 +75,7 @@ function ImageCropDialog({
 
   const handleMouseMove = (e) => {
     if (!isDragging) return;
+
     setPosition({
       x: e.clientX - dragStart.x,
       y: e.clientY - dragStart.y,
@@ -89,6 +98,7 @@ function ImageCropDialog({
 
   const handleTouchMove = (e) => {
     if (!isDragging || e.touches.length !== 1) return;
+
     const touch = e.touches[0];
     setPosition({
       x: touch.clientX - dragStart.x,
@@ -101,11 +111,22 @@ function ImageCropDialog({
   };
 
   const handleSave = () => {
-    if (onSave && selectedFile) {
+    if (onSave && selectedFile && containerRef.current && imageRef.current) {
+      // Get actual container dimensions
+      const containerRect = containerRef.current.getBoundingClientRect();
+
+      // Use square reference (500x500) for consistency
+      const standardSize = 500;
+
+      const scaleToStandard = standardSize / containerRect.width;
+
+      // Pass normalized crop data
       onSave(selectedFile, {
-        x: position.x,
-        y: position.y,
+        x: position.x * scaleToStandard,
+        y: position.y * scaleToStandard,
         scale: zoom,
+        previewWidth: standardSize,
+        previewHeight: standardSize,
       });
     }
   };
@@ -121,13 +142,16 @@ function ImageCropDialog({
     <Dialog
       open={open}
       onClose={handleClose}
-      maxWidth="sm"
+      maxWidth="md"
       fullWidth
       disableEnforceFocus
     >
       <DialogTitle>
         <Box display="flex" alignItems="center" justifyContent="space-between">
-          <span>Modify Your Photo</span>
+          <Box display="flex" alignItems="center" gap={1}>
+            <CropOriginal />
+            <span>Crop & Adjust Image</span>
+          </Box>
           <Tooltip title="Reset to original">
             <IconButton
               onClick={handleReset}
@@ -146,20 +170,27 @@ function ImageCropDialog({
               fontSize="small"
               sx={{ verticalAlign: "middle", mr: 0.5 }}
             />
-            Drag to reposition. Use zoom to adjust size.
+            Drag the image to reposition. Use zoom to adjust size. The image
+            will be cropped as shown.
           </Typography>
 
           {previewImage && (
             <Box sx={{ textAlign: "center" }}>
               <Paper
+                ref={containerRef}
+                elevation={3}
                 sx={{
-                  width: 300,
-                  height: 300,
+                  width: "100%",
+                  maxWidth: 500,
+                  aspectRatio: "1 / 1", // Square container for consistency
                   mx: "auto",
                   mb: 3,
                   overflow: "hidden",
                   position: "relative",
-                  borderRadius: "50%",
+                  bgcolor: "background.default",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   cursor: isDragging ? "grabbing" : "grab",
                   userSelect: "none",
                 }}
@@ -173,13 +204,14 @@ function ImageCropDialog({
                 style={{ touchAction: "none" }}
               >
                 <img
+                  ref={imageRef}
                   src={previewImage}
                   alt="Crop preview"
                   draggable={false}
                   style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
+                    maxWidth: "100%",
+                    maxHeight: "100%",
+                    objectFit: "contain",
                     transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
                     transition: isDragging ? "none" : "transform 0.1s ease",
                     pointerEvents: "none",
@@ -190,36 +222,65 @@ function ImageCropDialog({
               <Box
                 sx={{
                   display: "flex",
-                  alignItems: "center",
+                  flexDirection: "column",
                   gap: 2,
-                  maxWidth: 300,
+                  maxWidth: 500,
                   mx: "auto",
                 }}
               >
-                <ZoomOut fontSize="small" color="action" />
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="body2" gutterBottom>
-                    Zoom: {zoom.toFixed(1)}x
-                  </Typography>
-                  <Slider
-                    value={zoom}
-                    onChange={(_, value) => setZoom(value)}
-                    min={0.5}
-                    max={3}
-                    step={0.1}
-                    sx={{ width: "100%" }}
-                    disabled={isUploading}
-                    aria-label="Zoom level"
-                  />
+                {/* Zoom Control */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 2,
+                  }}
+                >
+                  <ZoomOut fontSize="small" color="action" />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      gutterBottom
+                      display="block"
+                    >
+                      Zoom: {zoom.toFixed(1)}x
+                    </Typography>
+                    <Slider
+                      value={zoom}
+                      onChange={(_, value) => setZoom(value)}
+                      min={0.5}
+                      max={3}
+                      step={0.1}
+                      disabled={isUploading}
+                      aria-label="Zoom level"
+                      valueLabelDisplay="auto"
+                      marks={[
+                        { value: 0.5, label: "0.5x" },
+                        { value: 1, label: "1x" },
+                        { value: 2, label: "2x" },
+                        { value: 3, label: "3x" },
+                      ]}
+                    />
+                  </Box>
+                  <ZoomIn fontSize="small" color="action" />
                 </Box>
-                <ZoomIn fontSize="small" color="action" />
               </Box>
+
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 2, display: "block" }}
+              >
+                File: {selectedFile?.name} (
+                {(selectedFile?.size / 1024 / 1024).toFixed(2)} MB)
+              </Typography>
             </Box>
           )}
         </Box>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} disabled={isUploading}>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={handleClose} disabled={isUploading} color="inherit">
           Cancel
         </Button>
         <Button
@@ -228,11 +289,11 @@ function ImageCropDialog({
           disabled={isUploading}
           startIcon={isUploading ? <CircularProgress size={16} /> : null}
         >
-          {isUploading ? "Uploading..." : "Save"}
+          {isUploading ? "Uploading..." : "Upload Image"}
         </Button>
       </DialogActions>
     </Dialog>
   );
 }
 
-export default ImageCropDialog;
+export default ListingImageCropDialog;

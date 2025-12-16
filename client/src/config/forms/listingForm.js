@@ -49,7 +49,7 @@ export const createListingFormConfig = {
           placeholder: "Describe your listing...",
           required: true,
           helperText:
-            "Maximum 1000 characters. Include key features and details.",
+            "Maximum 1000 characters. Include key features and details. Use Enter for new lines.",
           maxLength: 1000,
           rows: 6,
         },

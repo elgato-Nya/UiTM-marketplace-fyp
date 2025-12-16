@@ -17,6 +17,7 @@ import { useTheme } from "../../../hooks/useTheme";
 import { useSnackbar } from "../../../hooks/useSnackbar";
 import { useImageUpload } from "../../../hooks/useImageUpload";
 import ImageCropDialog from "./ImageCropDialog";
+import { cropAvatarImage } from "../../../utils/imageCrop";
 
 /**
  * AvatarUploadZone - Avatar-specific upload component
@@ -102,10 +103,14 @@ function AvatarUploadZone({
   /**
    * Handle crop and upload
    */
-  const handleCropSave = async (file) => {
+  const handleCropSave = async (file, cropData) => {
     try {
+      // Apply crop transformation
+      showSuccess("Processing image...");
+      const croppedFile = await cropAvatarImage(file, cropData, size * 2); // 2x for retina display
+
       // Upload to S3
-      const result = await uploadSingle(file, "profiles", "avatars");
+      const result = await uploadSingle(croppedFile, "profiles", "avatars");
 
       showSuccess("Profile picture updated successfully!");
 

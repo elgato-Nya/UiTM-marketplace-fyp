@@ -248,10 +248,14 @@ function ImageUploadZone({
             >
               <Chip
                 size="small"
-                label={`Max ${maxFiles} file${maxFiles > 1 ? "s" : ""}`}
+                label={
+                  maxFiles === 1
+                    ? "1 image"
+                    : `Add up to ${maxFiles} more ${maxFiles > 1 ? "images" : "image"}`
+                }
                 icon={<ImageIcon />}
               />
-              <Chip size="small" label={`Max ${maxSize}MB each`} />
+              <Chip size="small" label={`${maxSize}MB max per file`} />
               <Chip size="small" label="JPG, PNG, WEBP" />
             </Stack>
           </Box>
@@ -281,8 +285,8 @@ function ImageUploadZone({
         />
       )}
 
-      {/* Upload Button */}
-      {!autoUpload && selectedFiles.length > 0 && (
+      {/* Upload Button - only show when autoUpload is false AND onUpload callback exists */}
+      {!autoUpload && onUpload && selectedFiles.length > 0 && (
         <Box sx={{ mt: 3 }}>
           <Button
             variant="contained"

@@ -406,7 +406,16 @@ function MyStorePage() {
                   disabled={!hasChanges || isUpdating}
                   fullWidth
                   aria-label="Save all shop changes"
-                  sx={{ py: 1.5 }}
+                  sx={{
+                    py: 1.5,
+                    ...(hasChanges && {
+                      animation: "pulse 2s infinite",
+                      "@keyframes pulse": {
+                        "0%, 100%": { boxShadow: 3 },
+                        "50%": { boxShadow: 6 },
+                      },
+                    }),
+                  }}
                 >
                   {isUpdating ? "Saving..." : "Save All Changes"}
                 </Button>
@@ -414,22 +423,19 @@ function MyStorePage() {
                 {hasChanges && (
                   <Typography
                     variant="caption"
-                    color="text.secondary"
-                    sx={{ display: "block", textAlign: "center", mt: 1 }}
+                    color="warning.main"
+                    sx={{
+                      display: "block",
+                      textAlign: "center",
+                      mt: 1,
+                      fontWeight: 600,
+                    }}
                   >
-                    You have unsaved changes
+                    ⚠️ You have unsaved changes
                   </Typography>
                 )}
               </CardContent>
             </Card>
-
-            {/* Info about Analytics */}
-            <Alert severity="info" sx={{ mt: 2 }}>
-              <Typography variant="body2">
-                View detailed shop metrics and analytics in the{" "}
-                <strong>Analytics Dashboard</strong>
-              </Typography>
-            </Alert>
           </Box>
         </Box>
       </Fade>

@@ -23,18 +23,19 @@ const optimizeImage = async (buffer, options = {}) => {
       targetFormat: format,
     });
 
-    // Start the pipeline process
-    let pipeline = sharp(buffer).rotate(); // Auto-rotate based on EXIF (e.g., from mobile devices)
+    // Start the pipeline process - DO NOT auto-rotate to prevent unwanted rotation
+    let pipeline = sharp(buffer);
 
+    // Only resize if image exceeds maximum dimensions
     if (metadata.width > maxWidth || metadata.height > maxHeight) {
       pipeline = pipeline.resize(maxWidth, maxHeight, {
-        fit: "inside", // Maintain aspect ratio
+        fit: "inside", // Maintain aspect ratio without cropping
         withoutEnlargement: true, // Do not enlarge smaller images
       });
 
-      logger.info("Resizing image", {
+      logger.info("Resizing image to fit within limits", {
         from: `${metadata.width}x${metadata.height}`,
-        to: `${maxWidth}x${maxHeight}`,
+        maxDimensions: `${maxWidth}x${maxHeight}`,
       });
     }
 
@@ -52,9 +53,9 @@ const optimizeImage = async (buffer, options = {}) => {
     }
 
     // Strip metadata to reduce file size and protect privacy
-    // Keep ICC profile for color accuracy, but remove EXIF data
+    // Remove EXIF data including orientation to prevent rotation
     pipeline = pipeline.withMetadata({
-      orientation: metadata.orientation, // Preserve orientation
+      orientation: undefined, // Remove orientation data
     });
 
     // Execute the pipeline and get the optimized buffer

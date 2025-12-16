@@ -22,12 +22,27 @@ export const uploadSingleImage = createAsyncThunk(
       );
       return response.data; // { success, data: { url, key, size, originalSize, savings }, message }
     } catch (error) {
-      return rejectWithValue({
-        message:
+      // Enhanced error handling for specific status codes
+      const statusCode = error.response?.status || 500;
+      let errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to upload image";
+
+      // Handle specific error cases
+      if (statusCode === 413) {
+        errorMessage =
+          "File is too large. Maximum file size is 5MB per image. Please compress your image and try again.";
+      } else if (statusCode === 400) {
+        // Bad request - might be file type or validation error
+        errorMessage =
           error.response?.data?.message ||
-          error.message ||
-          "Failed to upload image",
-        statusCode: error.response?.status || 500,
+          "Invalid file. Please check the file type and size.";
+      }
+
+      return rejectWithValue({
+        message: errorMessage,
+        statusCode: statusCode,
         details: error.response?.data || null,
       });
     }
@@ -46,12 +61,27 @@ export const uploadMultipleImages = createAsyncThunk(
       );
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
+      // Enhanced error handling for specific status codes
+      const statusCode = error.response?.status || 500;
+      let errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to upload images";
+
+      // Handle specific error cases
+      if (statusCode === 413) {
+        errorMessage =
+          "One or more files are too large. Maximum file size is 5MB per image. Please compress your images and try again.";
+      } else if (statusCode === 400) {
+        // Bad request - might be file type or validation error
+        errorMessage =
           error.response?.data?.message ||
-          error.message ||
-          "Failed to upload images",
-        statusCode: error.response?.status || 500,
+          "Invalid files. Please check file types and sizes.";
+      }
+
+      return rejectWithValue({
+        message: errorMessage,
+        statusCode: statusCode,
         details: error.response?.data || null,
       });
     }
@@ -69,12 +99,27 @@ export const uploadListingImages = createAsyncThunk(
       );
       return response.data; // { success, data: { images: [{main, thumbnail}], count }, message }
     } catch (error) {
-      return rejectWithValue({
-        message:
+      // Enhanced error handling for specific status codes
+      const statusCode = error.response?.status || 500;
+      let errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to upload listing images";
+
+      // Handle specific error cases
+      if (statusCode === 413) {
+        errorMessage =
+          "Files are too large. Maximum total upload size exceeded or individual files exceed 5MB. Please compress your images and try again.";
+      } else if (statusCode === 400) {
+        // Bad request - might be file count, type, or validation error
+        errorMessage =
           error.response?.data?.message ||
-          error.message ||
-          "Failed to upload listing images",
-        statusCode: error.response?.status || 500,
+          "Invalid files. You can upload maximum 10 images (JPG, PNG, WEBP) with 5MB max per file.";
+      }
+
+      return rejectWithValue({
+        message: errorMessage,
+        statusCode: statusCode,
         details: error.response?.data || null,
       });
     }

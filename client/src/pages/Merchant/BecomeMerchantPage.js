@@ -21,6 +21,7 @@ import { useTheme } from "../../hooks/useTheme";
 import { useAuth } from "../../features/auth/hooks/useAuth";
 import MerchantVerificationCard from "../../features/merchant/components/MerchantVerificationCard";
 import { ROUTES } from "../../constants/routes";
+import { isUiTMEmail } from "../../utils/emailUtils";
 
 /**
  * BecomeMerchantPage Component
@@ -40,7 +41,7 @@ function BecomeMerchantPage() {
 
   const isVerified = user?.merchantDetails?.isUiTMVerified;
   const userEmail = user?.email || "";
-  const isUiTMEmail = userEmail.toLowerCase().includes("uitm.edu.my");
+  const isUiTMUser = isUiTMEmail(userEmail);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -137,7 +138,7 @@ function BecomeMerchantPage() {
         <Grid size={{ xs: 12, md: 6 }}>
           <MerchantVerificationCard
             user={user}
-            isUiTMEmail={isUiTMEmail}
+            isUiTMEmail={isUiTMUser}
             userEmail={userEmail}
             onVerificationSuccess={() => {
               // Verification submitted successfully
@@ -166,7 +167,7 @@ function BecomeMerchantPage() {
                   💡 Quick Tip
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {isUiTMEmail
+                  {isUiTMUser
                     ? "Great! Since you registered with a UiTM email, you can verify instantly by clicking the button above."
                     : "For fastest verification, use your student@uitm.edu.my or staff@uitm.edu.my email address."}
                 </Typography>

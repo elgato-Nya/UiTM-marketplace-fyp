@@ -1,4 +1,12 @@
+/**
+ * Auth Form Configurations
+ *
+ * PURPOSE: Form configurations for authentication pages
+ * USAGE: Used with DynamicForm component
+ */
+
 import { CAMPUS_OPTIONS, FACULTY_OPTIONS } from "../../constants/authConstant";
+import { isUiTMEmail } from "../../utils/emailUtils";
 
 export const loginFormConfig = {
   submitText: "Sign In",
@@ -51,7 +59,7 @@ export const registerFormConfig = {
           placeholder: "your@email.com",
           required: true,
           helperText:
-            "Any email accepted. UiTM emails get instant merchant access! 🎉",
+            "Any email accepted. UiTM emails get instant merchant access!",
         },
         {
           name: "password",
@@ -97,6 +105,7 @@ export const registerFormConfig = {
           label: "Campus",
           required: true,
           options: CAMPUS_OPTIONS,
+          showIf: (values) => isUiTMEmail(values.email),
         },
         {
           name: "profile.faculty",
@@ -104,6 +113,8 @@ export const registerFormConfig = {
           label: "Faculty",
           required: true,
           options: FACULTY_OPTIONS,
+          // ✅ CHANGED: Only show faculty field if UiTM email
+          showIf: (values) => isUiTMEmail(values.email),
         },
       ],
     },

@@ -16,6 +16,9 @@ const {
   isValidShopStatus,
   isValidVerificationStatus,
   isValidImageUrl,
+  isValidDeliveryFee,
+  isValidFreeThreshold,
+  isValidDeliverableCampuses,
 } = MerchantValidator;
 const errorMessages = merchantErrorMessages();
 
@@ -273,6 +276,53 @@ const validateUpdateStatus = [
   handleValidationErrors,
 ];
 
+/**
+ * Validate update delivery settings request
+ */
+const validateUpdateDeliverySettings = [
+  body("personalDeliveryFee")
+    .optional()
+    .isFloat({ min: 0, max: 100 })
+    .withMessage("Personal delivery fee must be between RM0 and RM100")
+    .custom((value) => {
+      return isValidDeliveryFee(value);
+    })
+    .withMessage(errorMessages.deliveryFee.invalidFee),
+  body("campusDeliveryFee")
+    .optional()
+    .isFloat({ min: 0, max: 100 })
+    .withMessage("Campus delivery fee must be between RM0 and RM100")
+    .custom((value) => {
+      return isValidDeliveryFee(value);
+    })
+    .withMessage(errorMessages.deliveryFee.invalidFee),
+  body("pickupFee")
+    .optional()
+    .isFloat({ min: 0, max: 100 })
+    .withMessage("Pickup fee must be between RM0 and RM100")
+    .custom((value) => {
+      return isValidDeliveryFee(value);
+    })
+    .withMessage(errorMessages.deliveryFee.invalidFee),
+  body("freeDeliveryThreshold")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Free delivery threshold must be a non-negative number")
+    .custom((value) => {
+      return isValidFreeThreshold(value);
+    })
+    .withMessage(errorMessages.deliveryFee.invalidThreshold),
+  body("deliverableCampuses")
+    .optional()
+    .isArray()
+    .withMessage("Deliverable campuses must be an array")
+    .custom((value) => {
+      return isValidDeliverableCampuses(value);
+    })
+    .withMessage(errorMessages.deliveryFee.invalidCampuses),
+  handleValidationErrors,
+];
+
 module.exports = {
   validateCreateMerchant,
   validateUpdateMerchant,
@@ -281,4 +331,5 @@ module.exports = {
   validateUpdateMetrics,
   validateUpdateRating,
   validateUpdateStatus,
+  validateUpdateDeliverySettings,
 };

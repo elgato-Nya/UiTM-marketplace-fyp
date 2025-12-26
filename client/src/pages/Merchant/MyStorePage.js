@@ -22,6 +22,7 @@ import { useAuth } from "../../features/auth/hooks/useAuth";
 import ShopStatusBadge from "../../features/merchant/components/ShopStatusBadge";
 import ShopBrandingUploader from "../../features/merchant/components/ShopBrandingUploader";
 import EmailManagementSection from "../../features/merchant/components/EmailManagementSection";
+import DeliverySettingsSection from "../../features/merchant/components/DeliverySettingsSection";
 
 /**
  * MyStorePage Component
@@ -67,6 +68,13 @@ function MyStorePage() {
   });
 
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Delivery settings state (from DeliverySettingsSection)
+  const [deliverySettings, setDeliverySettings] = useState(null);
+  const [hasDeliveryChanges, setHasDeliveryChanges] = useState(false);
+  const [isDeliveryValid, setIsDeliveryValid] = useState(true);
+  const [triggerDeliverySave, setTriggerDeliverySave] = useState(false);
+  const [isSavingDelivery, setIsSavingDelivery] = useState(false);
 
   // Load shop on mount
   useEffect(() => {
@@ -130,12 +138,62 @@ function MyStorePage() {
     }
   };
 
-  // Handle save - saves everything including images
+  // Handle save - saves BOTH shop details AND delivery settings
   const handleSave = async () => {
+    console.log("💾 Master Save Button Clicked");
+    console.log("Shop changes:", hasChanges);
+    console.log("Delivery changes:", hasDeliveryChanges);
+
     try {
-      await updateMyShop(formData);
+      // Save shop details if there are changes
+      if (hasChanges) {
+        console.log("📝 Saving shop details...");
+        await updateMyShop(formData);
+      }
+
+      // Save delivery settings if there are changes
+      if (hasDeliveryChanges) {
+        console.log("📦 Triggering delivery settings save...");
+        setIsSavingDelivery(true);
+        setTriggerDeliverySave(true);
+        // The DeliverySettingsSection will handle its own save and call onSaveComplete
+      }
+
+      // If no delivery changes, we're done
+      if (!hasDeliveryChanges && hasChanges) {
+        showSnackbar("Shop settings updated successfully", "success");
+      }
     } catch (err) {
-      // Error handled by useEffect
+      console.error("❌ Error saving shop details:", err);
+      showSnackbar("Failed to save shop settings", "error");
+    }
+  };
+
+  // Handle delivery settings changes from child component
+  const handleDeliverySettingsChange = (settings, hasChanges) => {
+    setDeliverySettings(settings);
+    setHasDeliveryChanges(hasChanges);
+  };
+
+  // Handle delivery validation state from child component
+  const handleDeliveryValidationChange = (isValid) => {
+    setIsDeliveryValid(isValid);
+  };
+
+  // Handle delivery save completion from child component
+  const handleDeliverySaveComplete = (success, error) => {
+    console.log("📥 Delivery save completed:", success);
+    setIsSavingDelivery(false);
+    setTriggerDeliverySave(false);
+
+    if (success) {
+      setHasDeliveryChanges(false);
+      if (!hasChanges) {
+        // Only show success if shop details weren't also saved
+        showSnackbar("All settings updated successfully", "success");
+      }
+    } else {
+      showSnackbar("Failed to save delivery settings", "error");
     }
   };
 
@@ -394,6 +452,16 @@ function MyStorePage() {
             <EmailManagementSection user={user} />
           </Box>
 
+          {/* Delivery Settings Section */}
+          <Box sx={{ mt: 3 }}>
+            <DeliverySettingsSection
+              onSettingsChange={handleDeliverySettingsChange}
+              onValidationChange={handleDeliveryValidationChange}
+              triggerSave={triggerDeliverySave}
+              onSaveComplete={handleDeliverySaveComplete}
+            />
+          </Box>
+
           {/* Save Button - Full Width at Bottom */}
           <Box sx={{ mt: 3 }}>
             <Card>
@@ -403,12 +471,17 @@ function MyStorePage() {
                   size="large"
                   startIcon={<Save />}
                   onClick={handleSave}
-                  disabled={!hasChanges || isUpdating}
+                  disabled={
+                    (!hasChanges && !hasDeliveryChanges) ||
+                    isUpdating ||
+                    isSavingDelivery ||
+                    !isDeliveryValid
+                  }
                   fullWidth
-                  aria-label="Save all shop changes"
+                  aria-label="Save all shop and delivery settings"
                   sx={{
                     py: 1.5,
-                    ...(hasChanges && {
+                    ...((hasChanges || hasDeliveryChanges) && {
                       animation: "pulse 2s infinite",
                       "@keyframes pulse": {
                         "0%, 100%": { boxShadow: 3 },
@@ -417,10 +490,12 @@ function MyStorePage() {
                     }),
                   }}
                 >
-                  {isUpdating ? "Saving..." : "Save All Changes"}
+                  {isUpdating || isSavingDelivery
+                    ? "Saving..."
+                    : "Save All Changes"}
                 </Button>
 
-                {hasChanges && (
+                {(hasChanges || hasDeliveryChanges) && (
                   <Typography
                     variant="caption"
                     color="warning.main"
@@ -432,6 +507,28 @@ function MyStorePage() {
                     }}
                   >
                     ⚠️ You have unsaved changes
+                    {hasChanges &&
+                      hasDeliveryChanges &&
+                      " in shop details and delivery settings"}
+                    {hasChanges && !hasDeliveryChanges && " in shop details"}
+                    {!hasChanges &&
+                      hasDeliveryChanges &&
+                      " in delivery settings"}
+                  </Typography>
+                )}
+
+                {!isDeliveryValid && (
+                  <Typography
+                    variant="caption"
+                    color="error.main"
+                    sx={{
+                      display: "block",
+                      textAlign: "center",
+                      mt: 1,
+                      fontWeight: 600,
+                    }}
+                  >
+                    ⚠️ Please fix delivery settings validation errors
                   </Typography>
                 )}
               </CardContent>

@@ -14,6 +14,8 @@ const {
   submitMerchantVerification,
   verifyMerchantEmail,
   updateBusinessEmail,
+  getDeliverySettings,
+  updateDeliverySettings,
 } = require("../../controllers/user/merchant.controller");
 
 const { authenticateUser } = require("../../middleware/auth");
@@ -25,6 +27,7 @@ const {
   validateUpdateMetrics,
   validateUpdateRating,
   validateUpdateStatus,
+  validateUpdateDeliverySettings,
 } = require("../../middleware/validations/user/merchant.validation");
 
 /**
@@ -104,6 +107,26 @@ router.put("/profile", validateUpdateMerchant, createOrUpdateMerchant);
  * @access  Private (merchant only)
  */
 router.get("/stats", getMerchantStats);
+
+/**
+ * @route   GET /api/merchants/settings/delivery
+ * @desc    Get current merchant's delivery fee settings
+ * @access  Private (merchant only)
+ * @returns Merchant's custom delivery fees or platform defaults
+ */
+router.get("/settings/delivery", getDeliverySettings);
+
+/**
+ * @route   PUT /api/merchants/settings/delivery
+ * @desc    Update current merchant's delivery fee settings
+ * @access  Private (merchant only)
+ * @body    personalDeliveryFee, campusDeliveryFee, pickupFee, freeDeliveryThreshold, deliverableCampuses
+ */
+router.put(
+  "/settings/delivery",
+  validateUpdateDeliverySettings,
+  updateDeliverySettings
+);
 
 /**
  * @route   POST /api/merchants/verify-email/submit

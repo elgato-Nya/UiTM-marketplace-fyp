@@ -70,8 +70,12 @@ const AddressSchema = new mongoose.Schema(
         type: String,
         required: [isCampusRequired, addressErrorMessages.campus.required],
         trim: true,
-        enum: {
-          values: Object.keys(CampusEnum),
+        validate: {
+          validator: function (value) {
+            // Only validate enum if value is provided (for campus type)
+            if (!value && this.type !== "campus") return true;
+            return Object.keys(CampusEnum).includes(value);
+          },
           message: addressErrorMessages.campus.invalid,
         },
       },
@@ -80,7 +84,11 @@ const AddressSchema = new mongoose.Schema(
         required: [isCampusRequired, addressErrorMessages.building.required],
         trim: true,
         validate: {
-          validator: isValidCampusBuilding,
+          validator: function (value) {
+            // Skip validation if not campus type
+            if (this.type !== "campus") return true;
+            return isValidCampusBuilding(value);
+          },
           message: addressErrorMessages.building.invalid,
         },
       },
@@ -89,7 +97,11 @@ const AddressSchema = new mongoose.Schema(
         required: [isCampusRequired, addressErrorMessages.floor.required],
         trim: true,
         validate: {
-          validator: isValidCampusFloor,
+          validator: function (value) {
+            // Skip validation if not campus type
+            if (this.type !== "campus") return true;
+            return isValidCampusFloor(value);
+          },
           message: addressErrorMessages.floor.invalid,
         },
       },
@@ -98,7 +110,11 @@ const AddressSchema = new mongoose.Schema(
         required: [isCampusRequired, addressErrorMessages.room.required],
         trim: true,
         validate: {
-          validator: isValidCampusRoom,
+          validator: function (value) {
+            // Skip validation if not campus type
+            if (this.type !== "campus") return true;
+            return isValidCampusRoom(value);
+          },
           message: addressErrorMessages.room.invalid,
         },
       },
@@ -113,7 +129,11 @@ const AddressSchema = new mongoose.Schema(
         ],
         trim: true,
         validate: {
-          validator: isValidAddressLine1,
+          validator: function (value) {
+            // Skip validation if not personal type
+            if (this.type !== "personal") return true;
+            return isValidAddressLine1(value);
+          },
           message: addressErrorMessages.addressLine1.invalid,
         },
       },
@@ -122,7 +142,11 @@ const AddressSchema = new mongoose.Schema(
         required: false,
         trim: true,
         validate: {
-          validator: isValidAddressLine2,
+          validator: function (value) {
+            // Skip validation if not personal type
+            if (this.type !== "personal") return true;
+            return isValidAddressLine2(value);
+          },
           message: addressErrorMessages.addressLine2.invalid,
         },
       },
@@ -131,7 +155,11 @@ const AddressSchema = new mongoose.Schema(
         required: [isPersonalRequired, addressErrorMessages.city.required],
         trim: true,
         validate: {
-          validator: isValidCity,
+          validator: function (value) {
+            // Skip validation if not personal type
+            if (this.type !== "personal") return true;
+            return isValidCity(value);
+          },
           message: addressErrorMessages.city.invalid,
         },
       },
@@ -139,8 +167,12 @@ const AddressSchema = new mongoose.Schema(
         type: String,
         required: [isPersonalRequired, addressErrorMessages.state.required],
         trim: true,
-        enum: {
-          values: Object.keys(StateEnum),
+        validate: {
+          validator: function (value) {
+            // Only validate enum if value is provided (for personal type)
+            if (!value && this.type !== "personal") return true;
+            return Object.keys(StateEnum).includes(value);
+          },
           message: addressErrorMessages.state.invalid,
         },
       },
@@ -149,7 +181,11 @@ const AddressSchema = new mongoose.Schema(
         required: [isPersonalRequired, addressErrorMessages.postcode.required],
         trim: true,
         validate: {
-          validator: isValidPostcode,
+          validator: function (value) {
+            // Skip validation if not personal type
+            if (this.type !== "personal") return true;
+            return isValidPostcode(value);
+          },
           message: addressErrorMessages.postcode.invalid,
         },
       },

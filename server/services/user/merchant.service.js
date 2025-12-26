@@ -975,6 +975,45 @@ const updateBusinessEmail = async (userId, businessEmail) => {
   }
 };
 
+/**
+ * Get merchant by user ID
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} Merchant user object
+ */
+const getMerchantById = async (userId) => {
+  try {
+    const merchant = await User.findById(userId).select("merchantDetails");
+    return merchant;
+  } catch (error) {
+    return handleServiceError(error, "getMerchantById", { userId });
+  }
+};
+
+/**
+ * Update merchant settings (delivery fees, etc.)
+ * @param {string} userId - Merchant user ID
+ * @param {Object} updateData - Fields to update
+ * @returns {Promise<Object>} Updated merchant
+ */
+const updateMerchantSettings = async (userId, updateData) => {
+  try {
+    const merchant = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select("merchantDetails");
+
+    if (!merchant) {
+      return null;
+    }
+
+    logger.info("Merchant settings updated", { userId, updateData });
+    return merchant;
+  } catch (error) {
+    return handleServiceError(error, "updateMerchantSettings", { userId });
+  }
+};
+
 module.exports = {
   autoCreateShopFromProfile,
   getOrCreateShop,
@@ -992,4 +1031,7 @@ module.exports = {
   submitMerchantVerification,
   verifyMerchantEmail,
   updateBusinessEmail,
+  // Delivery fee settings
+  getMerchantById,
+  updateMerchantSettings,
 };

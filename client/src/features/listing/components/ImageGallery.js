@@ -18,18 +18,57 @@ import {
 const ImageGallery = ({ images = [], altText = "Listing image" }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [thumbnailStartIndex, setThumbnailStartIndex] = useState(0);
   const maxSteps = images.length;
+  const visibleThumbnails = 3; // Show 3 thumbnails at a time (fits mobile screens better)
 
   const handleNext = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    setActiveStep((prevActiveStep) => {
+      const newStep = prevActiveStep + 1;
+      // Auto-scroll thumbnails if needed
+      if (newStep >= thumbnailStartIndex + visibleThumbnails) {
+        setThumbnailStartIndex(
+          Math.min(
+            newStep - visibleThumbnails + 1,
+            maxSteps - visibleThumbnails
+          )
+        );
+      }
+      return newStep;
+    });
   };
 
   const handleBack = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    setActiveStep((prevActiveStep) => {
+      const newStep = prevActiveStep - 1;
+      // Auto-scroll thumbnails if needed
+      if (newStep < thumbnailStartIndex) {
+        setThumbnailStartIndex(Math.max(newStep, 0));
+      }
+      return newStep;
+    });
   };
 
   const handleStepChange = (step) => {
     setActiveStep(step);
+    // Auto-scroll thumbnails to show selected
+    if (step < thumbnailStartIndex) {
+      setThumbnailStartIndex(step);
+    } else if (step >= thumbnailStartIndex + visibleThumbnails) {
+      setThumbnailStartIndex(
+        Math.min(step - visibleThumbnails + 1, maxSteps - visibleThumbnails)
+      );
+    }
+  };
+
+  const handleThumbnailNext = () => {
+    setThumbnailStartIndex((prev) =>
+      Math.min(prev + 1, maxSteps - visibleThumbnails)
+    );
+  };
+
+  const handleThumbnailPrev = () => {
+    setThumbnailStartIndex((prev) => Math.max(prev - 1, 0));
   };
 
   const handleZoomOpen = () => {
@@ -143,14 +182,14 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
         overflow: "hidden",
       }}
     >
-      {/* Main Image Display */}
+      {/* Main Image Display - FIXED HEIGHT */}
       <Paper
         elevation={3}
         onClick={handleZoomOpen}
         sx={{
           position: "relative",
           width: "100%",
-          height: { xs: 280, sm: 350, md: 400 },
+          height: { xs: 280, sm: 350, md: 400 }, // Fixed height - no layout shift
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -170,7 +209,7 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
           sx={{
             maxHeight: "100%",
             maxWidth: "100%",
-            objectFit: "contain",
+            objectFit: "contain", // Maintain aspect ratio, prevent layout shift
             pointerEvents: "none",
             userSelect: "none",
           }}
@@ -211,67 +250,96 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
             }
           />
 
-          {/* Thumbnail Strip */}
+          {/* Thumbnail Strip with Navigation */}
           <Box
             sx={{
               display: "flex",
-              gap: { xs: 0.75, sm: 1 },
+              alignItems: "center",
+              gap: 1,
               mt: { xs: 1.5, sm: 2 },
-              overflowX: "auto",
-              overflowY: "hidden",
-              pb: 1,
-              px: { xs: 0.5, sm: 0 },
               width: "100%",
-              maxWidth: "100%",
-              // Scrollbar styling
-              "&::-webkit-scrollbar": {
-                height: 6,
-              },
-              "&::-webkit-scrollbar-track": {
-                backgroundColor: "rgba(0,0,0,0.1)",
-                borderRadius: 3,
-              },
-              "&::-webkit-scrollbar-thumb": {
-                backgroundColor: "rgba(0,0,0,0.3)",
-                borderRadius: 3,
-                "&:hover": {
-                  backgroundColor: "rgba(0,0,0,0.4)",
-                },
-              },
             }}
           >
-            {images.map((image, index) => (
-              <Box
-                key={index}
-                onClick={() => handleStepChange(index)}
-                sx={{
-                  minWidth: { xs: 64, sm: 80 },
-                  width: { xs: 64, sm: 80 },
-                  height: { xs: 64, sm: 80 },
-                  cursor: "pointer",
-                  border: 2,
-                  borderColor:
-                    activeStep === index ? "primary.main" : "transparent",
-                  borderRadius: 1,
-                  overflow: "hidden",
-                  flexShrink: 0,
-                  "&:hover": {
-                    borderColor: "primary.light",
-                  },
-                }}
-              >
-                <Box
-                  component="img"
-                  src={getImageUrl(image)}
-                  alt={`${altText} thumbnail ${index + 1}`}
-                  sx={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                />
-              </Box>
-            ))}
+            {/* Previous Thumbnail Button */}
+            <IconButton
+              size="small"
+              onClick={handleThumbnailPrev}
+              disabled={thumbnailStartIndex === 0}
+              sx={{
+                flexShrink: 0,
+                display: maxSteps > visibleThumbnails ? "flex" : "none",
+              }}
+            >
+              <KeyboardArrowLeft />
+            </IconButton>
+
+            {/* Visible Thumbnails */}
+            <Box
+              sx={{
+                display: "flex",
+                gap: { xs: 0.75, sm: 1 },
+                overflow: "hidden",
+                flex: 1,
+              }}
+            >
+              {images
+                .slice(
+                  thumbnailStartIndex,
+                  thumbnailStartIndex + visibleThumbnails
+                )
+                .map((image, relativeIndex) => {
+                  const absoluteIndex = thumbnailStartIndex + relativeIndex;
+                  return (
+                    <Box
+                      key={absoluteIndex}
+                      onClick={() => handleStepChange(absoluteIndex)}
+                      sx={{
+                        minWidth: { xs: 64, sm: 80 },
+                        width: { xs: 64, sm: 80 },
+                        height: { xs: 64, sm: 80 },
+                        cursor: "pointer",
+                        border: 2,
+                        borderColor:
+                          activeStep === absoluteIndex
+                            ? "primary.main"
+                            : "transparent",
+                        borderRadius: 1,
+                        overflow: "hidden",
+                        flexShrink: 0,
+                        transition: "all 0.2s ease",
+                        "&:hover": {
+                          borderColor: "primary.light",
+                          transform: "scale(1.05)",
+                        },
+                      }}
+                    >
+                      <Box
+                        component="img"
+                        src={getImageUrl(image)}
+                        alt={`${altText} thumbnail ${absoluteIndex + 1}`}
+                        sx={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    </Box>
+                  );
+                })}
+            </Box>
+
+            {/* Next Thumbnail Button */}
+            <IconButton
+              size="small"
+              onClick={handleThumbnailNext}
+              disabled={thumbnailStartIndex >= maxSteps - visibleThumbnails}
+              sx={{
+                flexShrink: 0,
+                display: maxSteps > visibleThumbnails ? "flex" : "none",
+              }}
+            >
+              <KeyboardArrowRight />
+            </IconButton>
           </Box>
         </>
       )}

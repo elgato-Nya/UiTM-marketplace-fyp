@@ -59,6 +59,7 @@ import AboutPage from "./pages/About/AboutPage";
 import NekodezPage from "./pages/About/NekodezPage";
 import ContactUsPage from "./pages/Contact/ContactUsPage";
 import NotFoundPage from "./pages/NotFound/NotFoundPage";
+import ScrollToTop from "./components/common/ScrollToTop";
 
 import { ROUTES } from "./constants/routes";
 
@@ -71,6 +72,7 @@ function AppContent() {
       <CssBaseline />
       <SnackbarProvider>
         <Router>
+          <ScrollToTop />
           <SessionProvider>
             <Routes>
               {/* Main Layout Routes */}

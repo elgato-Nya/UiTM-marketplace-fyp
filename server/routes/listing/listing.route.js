@@ -11,6 +11,9 @@ const {
   handleGetSellerListings,
 } = require("../../controllers/listing/listing.controller");
 const {
+  getListingDeliveryFees,
+} = require("../../controllers/user/merchant.controller");
+const {
   protect,
   authorize,
   isListingOwner,
@@ -69,6 +72,20 @@ router.get(
   validateGetListings,
   validatePagination,
   handleGetSellerListings
+);
+
+/**
+ * @route   GET /api/listings/:id/delivery-fees
+ * @desc    Get delivery fee information for a specific listing
+ * @access  Public
+ * @params  id - Listing ID
+ * @returns Delivery fee settings from merchant or platform defaults
+ * @note    Public endpoint to show delivery costs before purchase
+ */
+router.get(
+  "/:id/delivery-fees",
+  validateListingIdParam,
+  getListingDeliveryFees
 );
 
 // ==================== AUTHENTICATED ROUTES (Must be before /:id) ====================

@@ -10,7 +10,9 @@ const listingService = {
   },
 
   async getListingById(listingId) {
-    return await api.get(`/listings/${listingId}`);
+    return await api.get(`/listings/${listingId}`, {
+      params: { includeSeller: "true" }, // Explicitly use string for backend
+    });
   },
 
   async getSellerListings(sellerId, params = {}) {

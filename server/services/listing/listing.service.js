@@ -81,9 +81,8 @@ const getListingById = async (listingId, options = {}) => {
     if (includeSeller) {
       populateOptions = {
         path: "seller.userId",
-        // ? idk man, i just instinctively select these fields for now
         select:
-          "merchantDetails.description merchantDetails.shopLogo merchantDetails.shopBanner merchantDetails.shopStatus profile.username",
+          "merchantDetails.shopName merchantDetails.shopLogo merchantDetails.shopBanner merchantDetails.shopSlug merchantDetails.shopStatus merchantDetails.verificationStatus profile.username",
       };
     }
 

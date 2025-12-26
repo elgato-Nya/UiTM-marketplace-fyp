@@ -13,6 +13,7 @@ import { registerFormConfig } from "../../config/forms/authForms";
 import { registerValidator } from "../../validation/authValidator";
 import { ROUTES } from "../../constants/routes";
 import authService from "../../features/auth/service/authService";
+import { isUiTMEmail } from "../../utils/emailUtils";
 
 function RegisterPage() {
   const { theme } = useTheme();
@@ -84,8 +85,10 @@ function RegisterPage() {
         profile: {
           username: data.profile.username,
           phoneNumber: data.profile.phoneNumber,
-          campus: data.profile.campus,
-          faculty: data.profile.faculty,
+          ...(isUiTMEmail(data.email) && {
+            campus: data.profile.campus,
+            faculty: data.profile.faculty,
+          }),
         },
       };
 

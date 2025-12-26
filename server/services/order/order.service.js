@@ -9,10 +9,12 @@ const {
   handleNotFoundError,
   buildSort,
   buildSelect,
+  convertAddressEnumsToValues,
 } = require("../base.service");
 const {
   calcDeliveryFee,
   calcEstimatedDelivery,
+  validateCampusDelivery,
   handleStatusSideEffects,
 } = require("./order.helpers");
 const logger = require("../../utils/logger");
@@ -159,6 +161,39 @@ const createOrder = async (userId, orderData) => {
       });
     }
 
+    // Validate campus delivery if applicable
+    const isCampusDelivery = ["campus_delivery", "room_delivery"].includes(
+      deliveryMethod
+    );
+    if (isCampusDelivery && deliveryAddress?.type === "campus") {
+      const campusKey = deliveryAddress.campusAddress?.campus;
+      const campusValidation = await validateCampusDelivery(
+        sellerId,
+        campusKey
+      );
+
+      if (!campusValidation.valid) {
+        logger.warn("Campus delivery validation failed", {
+          userId,
+          sellerId,
+          sellerName: sellerDisplayName,
+          campus: campusKey,
+          reason: campusValidation.reason,
+        });
+        return createValidationError(
+          campusValidation.reason ||
+            "This merchant does not deliver to the selected campus",
+          {
+            userId,
+            sellerId,
+            campus: campusKey,
+            deliveryMethod,
+          },
+          "CAMPUS_NOT_DELIVERABLE"
+        );
+      }
+    }
+
     const shippingFee = calcDeliveryFee(deliveryMethod, deliveryAddress);
     const totalAmount = subtotal + shippingFee;
 
@@ -209,7 +244,15 @@ const createOrder = async (userId, orderData) => {
       await Promise.all(stockUpdates);
     }
 
-    return order;
+    // Convert address enum keys to values for client response
+    const orderObj = order.toObject();
+    if (orderObj.deliveryAddress) {
+      orderObj.deliveryAddress = convertAddressEnumsToValues(
+        orderObj.deliveryAddress
+      );
+    }
+
+    return orderObj;
   } catch (error) {
     return handleServiceError(error, "createOrder", {
       userId,
@@ -268,7 +311,15 @@ const getOrderById = async (orderId, options = {}) => {
       }
     }
 
-    return order;
+    // Convert address enum keys to values for client response
+    const orderObj = order.toObject();
+    if (orderObj.deliveryAddress) {
+      orderObj.deliveryAddress = convertAddressEnumsToValues(
+        orderObj.deliveryAddress
+      );
+    }
+
+    return orderObj;
   } catch (error) {
     return handleServiceError(error, "getOrderById", {
       orderId,
@@ -351,6 +402,17 @@ const getUserOrders = async (userId, role, options = {}) => {
       Order.countDocuments(query),
     ]);
 
+    // Convert address enum keys to values for client response
+    const convertedOrders = orders.map((order) => {
+      const orderObj = order.toObject();
+      if (orderObj.deliveryAddress) {
+        orderObj.deliveryAddress = convertAddressEnumsToValues(
+          orderObj.deliveryAddress
+        );
+      }
+      return orderObj;
+    });
+
     const pagination = {
       currentPage: page,
       totalPages: Math.ceil(total / limit),
@@ -361,7 +423,7 @@ const getUserOrders = async (userId, role, options = {}) => {
     };
 
     return {
-      orders,
+      orders: convertedOrders,
       total,
       pagination,
     };
@@ -434,7 +496,15 @@ const updateOrderStatus = async (
     await order.save();
     await handleStatusSideEffects(order, newStatus);
 
-    return order;
+    // Convert address enum keys to values for client response
+    const orderObj = order.toObject();
+    if (orderObj.deliveryAddress) {
+      orderObj.deliveryAddress = convertAddressEnumsToValues(
+        orderObj.deliveryAddress
+      );
+    }
+
+    return orderObj;
   } catch (error) {
     return handleServiceError(error, "updateOrderStatus", {
       orderId,
@@ -537,7 +607,15 @@ const cancelOrder = async (orderId, userId, reason, description = "") => {
       action: "cancel_order",
     });
 
-    return order;
+    // Convert address enum keys to values for client response
+    const orderObj = order.toObject();
+    if (orderObj.deliveryAddress) {
+      orderObj.deliveryAddress = convertAddressEnumsToValues(
+        orderObj.deliveryAddress
+      );
+    }
+
+    return orderObj;
   } catch (error) {
     return handleServiceError(error, "cancelOrder", { orderId, userId });
   }
@@ -571,6 +649,17 @@ const getOrdersByStatus = async (status, options = {}) => {
       Order.countDocuments(query),
     ]);
 
+    // Convert address enum keys to values for client response
+    const convertedOrders = orders.map((order) => {
+      const orderObj = order.toObject();
+      if (orderObj.deliveryAddress) {
+        orderObj.deliveryAddress = convertAddressEnumsToValues(
+          orderObj.deliveryAddress
+        );
+      }
+      return orderObj;
+    });
+
     const pagination = {
       currentPage: page,
       totalPages: Math.ceil(total / limit),
@@ -580,7 +669,7 @@ const getOrdersByStatus = async (status, options = {}) => {
       limit,
     };
 
-    return { orders, pagination, total };
+    return { orders: convertedOrders, pagination, total };
   } catch (error) {
     return handleServiceError(error, "getOrdersByStatus", { status });
   }

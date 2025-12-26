@@ -1,6 +1,6 @@
-# 🐱 UiTM Marketplace
+# MarKet - UiTM Marketplace
 
-> A secure, production-ready e-commerce platform built for the UiTM community - enabling students and staff to buy and sell products across campuses with confidence.
+> A secure, production-ready e-commerce platform for the UiTM community - enabling students, staff, and anyone to buy and sell products and services across campuses with confidence.
 
 **Live:** [nekodez.com](https://nekodez.com)
 
@@ -8,15 +8,15 @@
 
 ## 🚀 Tech Stack
 
-| Layer              | Technologies                                   |
-| ------------------ | ---------------------------------------------- |
-| **Frontend**       | React 18, Material-UI v7, Redux Toolkit, Axios |
-| **Backend**        | Node.js, Express v5, MongoDB, Mongoose         |
-| **Cloud Services** | AWS (EC2, S3, SES, Route 53)                   |
-| **Payment**        | Stripe (Checkout, Webhooks)                    |
-| **Security**       | JWT, bcrypt, Helmet, express-rate-limit        |
-| **Deployment**     | Nginx reverse proxy, PM2, GitHub Actions CI/CD |
-| **Testing**        | Jest, Supertest (359 tests, 100% pass rate)    |
+| Layer              | Technologies                                    |
+| ------------------ | ----------------------------------------------- |
+| **Frontend**       | React 18.3, Material-UI v7.3, Redux Toolkit 2.9 |
+| **Backend**        | Node.js 18+, Express v5.1, MongoDB 5+, Mongoose |
+| **Cloud Services** | AWS (EC2, S3, SES, Route 53)                    |
+| **Payment**        | Stripe (Checkout v8.2, Webhooks)                |
+| **Security**       | JWT, bcrypt, Helmet, express-rate-limit         |
+| **Deployment**     | Nginx reverse proxy, PM2, GitHub Actions CI/CD  |
+| **Testing**        | Jest, Supertest (359 tests, 99% pass rate)      |
 
 ---
 
@@ -29,10 +29,11 @@
 - **Wishlist**: Save items for later
 - **Secure Checkout**: Stripe payment integration
 - **Order Tracking**: Real-time order status updates
-- **UiTM Verification**: Email-based campus verification
+- **Universal Access**: Any email domain accepted for registration
 
 ### 🏪 For Merchants
 
+- **UiTM Verification**: Email-based campus verification for instant merchant access
 - **Shop Dashboard**: Complete business management interface
 - **Product Management**: Create, edit, delete listings with image uploads
 - **Order Fulfillment**: Track and manage customer orders
@@ -78,64 +79,49 @@ ecommerce-project/
 │   ├── public/
 │   ├── src/
 │   │   ├── components/       # Reusable UI components
+│   │   │   ├── common/       # Shared components (forms, cards, buttons)
+│   │   │   └── ui/           # UI-specific components (skeletons, loaders)
 │   │   ├── pages/            # Route pages
 │   │   ├── features/         # Feature-based modules
+│   │   │   ├── auth/         # Authentication feature
+│   │   │   ├── merchant/     # Merchant features
+│   │   │   ├── profile/      # User profile management
+│   │   │   └── ...
 │   │   ├── hooks/            # Custom React hooks
 │   │   ├── services/         # API service layer
 │   │   ├── store/            # Redux store config
 │   │   ├── contexts/         # React contexts (theme, auth)
 │   │   ├── utils/            # Helper functions
+│   │   │   ├── emailUtils.js # Email validation utilities
+│   │   │   └── ...
 │   │   ├── validation/       # Form validation schemas
+│   │   ├── config/           # App configuration
+│   │   │   └── forms/        # Form configurations
 │   │   └── styles/           # Global styles
-│   ├── docs/                 # Frontend documentation
 │   └── package.json
 │
 ├── server/                    # Express Backend
 │   ├── config/               # Configuration modules
-│   │   ├── cors.config.js
-│   │   ├── database.config.js
-│   │   ├── env.config.js
-│   │   ├── helmet.config.js
-│   │   ├── limiter.config.js
-│   │   ├── logger.config.js
-│   │   ├── s3.config.js
-│   │   └── stripe.config.js
 │   ├── controllers/          # Route controllers
-│   │   ├── admin/
-│   │   ├── cart/
-│   │   ├── checkout/
-│   │   ├── listing/
-│   │   ├── order/
-│   │   ├── user/
-│   │   └── ...
 │   ├── models/               # Mongoose schemas
-│   │   ├── analytic/
-│   │   ├── cart/
-│   │   ├── listing/
-│   │   ├── order/
-│   │   ├── user/
-│   │   └── ...
 │   ├── routes/               # Express routers
 │   ├── services/             # Business logic layer
 │   ├── middleware/           # Custom middleware
-│   │   ├── auth/
-│   │   ├── errorHandler.js
-│   │   └── ...
-│   ├── validators/           # Joi validation schemas
+│   ├── validators/           # Validation schemas
 │   ├── utils/                # Helper utilities
 │   ├── tests/                # Jest test suites
 │   │   ├── integration/
 │   │   └── unit/
 │   ├── scripts/              # Utility scripts
 │   ├── jobs/                 # Scheduled tasks
-│   ├── logs/                 # Application logs (gitignored)
+│   ├── data/                 # Seed data
 │   └── package.json
 │
-├── docs/                      # Project Documentation
-│   ├── deployment/           # AWS deployment guides
+├── docs/                      # Project Documentation (Root Level)
 │   ├── AWS-SERVICES-IMPLEMENTATION.md
 │   ├── ENVIRONMENT.md
 │   ├── FEATURES.md
+│   ├── RATE-LIMITING-EXPLAINED.md
 │   ├── SECURITY.md
 │   └── TESTING.md
 │
@@ -144,6 +130,7 @@ ecommerce-project/
 │   └── instructions/         # Copilot instructions
 │
 ├── commitlint.config.js      # Commit message linting
+├── package.json              # Root package.json
 └── README.md
 ```
 
@@ -213,6 +200,8 @@ RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=1000
 ```
 
+> **Note:** For testing, CLIENT_URL and SES_FROM_EMAIL are automatically set in `jest.env.js`
+
 #### **Client** (`client/.env`)
 
 ```env
@@ -273,9 +262,11 @@ npm run test:coverage
 **Test Coverage:**
 
 - 20 test suites
-- 359 tests (100% pass rate)
+- 359 tests (99% pass rate - 356 passing, 3 known issues in address validation)
 - Integration tests for all major features
 - Unit tests for validators, utilities, configs
+
+> **Known Issues**: 3 tests failing in address.model.test.js due to validation error handling improvements (non-blocking)
 
 ---
 
@@ -515,11 +506,12 @@ _"To build meaningful, reliable, and future-proof digital products while growing
 
 For detailed guides and documentation:
 
-- **[AWS Deployment Guide](docs/deployment/AWS-DEPLOYMENT-GUIDE.md)** - Complete production setup
 - **[Security Documentation](docs/SECURITY.md)** - Security measures and best practices
 - **[Testing Guide](docs/TESTING.md)** - Testing strategy and examples
 - **[Environment Variables](docs/ENVIRONMENT.md)** - Comprehensive env vars reference
 - **[Features Overview](docs/FEATURES.md)** - Detailed feature documentation
+- **[AWS Services Implementation](docs/AWS-SERVICES-IMPLEMENTATION.md)** - AWS integration details
+- **[Rate Limiting Explained](docs/RATE-LIMITING-EXPLAINED.md)** - Rate limiting configuration
 
 ---
 

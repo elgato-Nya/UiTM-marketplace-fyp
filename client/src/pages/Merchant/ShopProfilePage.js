@@ -72,6 +72,11 @@ function ShopProfilePage() {
   const { viewedShop, isLoading, error, loadShopBySlug, clearShopView } =
     useMerchant();
 
+  // Scroll to top when shop slug changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [shopSlug]);
+
   // Get listings from Redux store
   const {
     listings,

@@ -82,7 +82,18 @@ const findUserByEmail = async (email, options = {}) => {
 // TODO: try to understand all of this
 const updateUserProfile = async (userId, { sanitizedData }) => {
   try {
-    const allowedFields = ["avatar", "bio", "phoneNumber", "username"];
+    const allowedFields = [
+      "avatar",
+      "bio",
+      "phoneNumber",
+      "username",
+      "location",
+      "website",
+      "socialLinks",
+      "yearOfStudy",
+      "programOfStudy",
+      "interests",
+    ];
     const updates = {};
     const changedProfileFields = {};
 

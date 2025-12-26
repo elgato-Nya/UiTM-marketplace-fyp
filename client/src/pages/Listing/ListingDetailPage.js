@@ -50,6 +50,11 @@ const ListingDetailPage = () => {
   // Wishlist hook
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
+  // Scroll to top when component mounts or listingId changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [listingId]);
+
   useEffect(() => {
     if (listingId) {
       getListingById(listingId);
@@ -94,12 +99,19 @@ const ListingDetailPage = () => {
     seller = {},
   } = currentListing;
 
+  // Extract seller information - handle both populated and unpopulated cases
+  const sellerUser = seller.userId || seller; // userId exists if populated
   const {
-    username = "unknown",
-    shopName,
-    shopSlug = null,
-    isVerifiedMerchant = false,
-  } = seller;
+    username = seller.username || "unknown",
+    merchantDetails = {},
+    isVerifiedMerchant = seller.isVerifiedMerchant || false,
+  } = sellerUser;
+
+  const {
+    shopName = seller.shopName || null,
+    shopSlug = seller.shopSlug || null,
+    shopLogo = null,
+  } = merchantDetails;
 
   const displayName = shopName || username;
 
@@ -392,13 +404,15 @@ const ListingDetailPage = () => {
             gap={2}
           >
             <Avatar
+              src={shopLogo}
+              alt={displayName}
               sx={{
                 bgcolor: theme.palette.primary.main,
                 width: { xs: 56, sm: 64 },
                 height: { xs: 56, sm: 64 },
               }}
             >
-              <StoreIcon sx={{ fontSize: { xs: 32, sm: 36 } }} />
+              {!shopLogo && <StoreIcon sx={{ fontSize: { xs: 32, sm: 36 } }} />}
             </Avatar>
             <Box sx={{ flex: 1, textAlign: { xs: "center", sm: "left" } }}>
               <Typography

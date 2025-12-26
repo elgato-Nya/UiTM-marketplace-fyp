@@ -7,9 +7,14 @@ const {
   reserveStock,
   releaseStock,
   validateDeliveryAddress,
+  validateCampusDeliveryForSellers,
   checkPaymentMethodAllowed,
 } = require("./checkout.helpers");
-const { handleServiceError, handleNotFoundError } = require("../base.service");
+const {
+  handleServiceError,
+  handleNotFoundError,
+  convertAddressEnumsToValues,
+} = require("../base.service");
 const { createValidationError } = require("../../utils/errors");
 const {
   checkoutErrorMessages,
@@ -86,7 +91,7 @@ const createCartCheckoutSession = async (userId) => {
     }
 
     // Group by seller (initially without delivery/payment info)
-    const sellerGroups = groupItemsBySeller(
+    const sellerGroups = await groupItemsBySeller(
       validation.validatedItems,
       "delivery", // Default delivery method
       "cod" // Default to COD for initial calculation
@@ -131,7 +136,15 @@ const createCartCheckoutSession = async (userId) => {
       action: "create_cart_checkout_session",
     });
 
-    return session;
+    // Convert address enum keys to values for client response
+    const sessionObj = session.toObject();
+    if (sessionObj.deliveryAddress) {
+      sessionObj.deliveryAddress = convertAddressEnumsToValues(
+        sessionObj.deliveryAddress
+      );
+    }
+
+    return sessionObj;
   } catch (error) {
     return handleServiceError(error, "create_cart_checkout_session", {
       userId: userId.toString(),
@@ -169,7 +182,7 @@ const createDirectCheckoutSession = async (userId, listingId, quantity = 1) => {
     }
 
     // Group by seller
-    const sellerGroups = groupItemsBySeller(
+    const sellerGroups = await groupItemsBySeller(
       validation.validatedItems,
       "delivery",
       "cod"
@@ -214,7 +227,15 @@ const createDirectCheckoutSession = async (userId, listingId, quantity = 1) => {
       action: "create_checkout_session_from_listing",
     });
 
-    return session;
+    // Convert address enum keys to values for client response
+    const sessionObj = session.toObject();
+    if (sessionObj.deliveryAddress) {
+      sessionObj.deliveryAddress = convertAddressEnumsToValues(
+        sessionObj.deliveryAddress
+      );
+    }
+
+    return sessionObj;
   } catch (error) {
     return handleServiceError(error, "createCheckoutSessionFromListing", {
       userId: userId.toString(),
@@ -249,7 +270,15 @@ const getActiveSession = async (userId) => {
       return null;
     }
 
-    return session;
+    // Convert address enum keys to values for client response
+    const sessionObj = session.toObject();
+    if (sessionObj.deliveryAddress) {
+      sessionObj.deliveryAddress = convertAddressEnumsToValues(
+        sessionObj.deliveryAddress
+      );
+    }
+
+    return sessionObj;
   } catch (error) {
     return handleServiceError(error, "get_active_session", {
       userId: userId.toString(),
@@ -313,8 +342,43 @@ const updateCheckoutSession = async (sessionId, userId, updateData) => {
         );
       }
 
+      // Validate campus delivery for all sellers if applicable
+      const isCampusDelivery = ["campus_delivery", "room_delivery"].includes(
+        deliveryMethod
+      );
+      if (
+        isCampusDelivery &&
+        deliveryAddress?.type === "campus" &&
+        deliveryAddress?.campusAddress?.campus
+      ) {
+        const campusKey = deliveryAddress.campusAddress.campus;
+        const campusValidation = await validateCampusDeliveryForSellers(
+          session.sellerGroups,
+          campusKey
+        );
+
+        if (!campusValidation.valid) {
+          logger.warn("Campus delivery validation failed in checkout", {
+            userId,
+            sessionId,
+            campus: campusKey,
+            invalidSellers: campusValidation.invalidSellers,
+            reason: campusValidation.reason,
+          });
+          createValidationError(
+            campusValidation.reason ||
+              "One or more sellers do not deliver to this campus",
+            {
+              campus: campusKey,
+              invalidSellers: campusValidation.invalidSellers,
+            },
+            "CAMPUS_NOT_DELIVERABLE"
+          );
+        }
+      }
+
       // Recalculate fees with new delivery method
-      const newSellerGroups = groupItemsBySeller(
+      const newSellerGroups = await groupItemsBySeller(
         session.items,
         deliveryMethod,
         paymentMethod || "cod"
@@ -350,7 +414,7 @@ const updateCheckoutSession = async (sessionId, userId, updateData) => {
       }
 
       // Recalculate fees with new payment method
-      const newSellerGroups = groupItemsBySeller(
+      const newSellerGroups = await groupItemsBySeller(
         session.items,
         session.deliveryMethod || "delivery",
         paymentMethod
@@ -373,7 +437,15 @@ const updateCheckoutSession = async (sessionId, userId, updateData) => {
       action: "update_checkout_session",
     });
 
-    return session;
+    // Convert address enum keys to values for client response
+    const sessionObj = session.toObject();
+    if (sessionObj.deliveryAddress) {
+      sessionObj.deliveryAddress = convertAddressEnumsToValues(
+        sessionObj.deliveryAddress
+      );
+    }
+
+    return sessionObj;
   } catch (error) {
     return handleServiceError(error, "updateCheckoutSession", {
       sessionId,

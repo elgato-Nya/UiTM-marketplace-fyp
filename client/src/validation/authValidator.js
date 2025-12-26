@@ -1,6 +1,7 @@
 import * as yup from "yup";
 
 import { CAMPUS_OPTIONS, FACULTY_OPTIONS } from "../constants/authConstant";
+import { isUiTMEmail } from "../utils/emailUtils";
 
 // Used in login and register
 const errorMessages = {
@@ -113,21 +114,26 @@ export const registerValidator = yup.object().shape({
       .required(errorMessages.phoneNumber.required)
       .matches(/^0\d{9,10}$/, errorMessages.phoneNumber.invalid),
 
-    campus: yup
-      .string()
-      .required(errorMessages.campus.required)
-      .oneOf(
-        CAMPUS_OPTIONS.map((c) => c.value),
-        errorMessages.campus.invalid
-      ),
+    // ✅ CHANGED: Campus and faculty are now conditional based on email domain
+    campus: yup.string().when("$email", {
+      is: (email) => isUiTMEmail(email),
+      then: (schema) =>
+        schema.required(errorMessages.campus.required).oneOf(
+          CAMPUS_OPTIONS.map((c) => c.value),
+          errorMessages.campus.invalid
+        ),
+      otherwise: (schema) => schema.nullable().notRequired(),
+    }),
 
-    faculty: yup
-      .string()
-      .required(errorMessages.faculty.required)
-      .oneOf(
-        FACULTY_OPTIONS.map((f) => f.value),
-        errorMessages.faculty.invalid
-      ),
+    faculty: yup.string().when("$email", {
+      is: (email) => isUiTMEmail(email),
+      then: (schema) =>
+        schema.required(errorMessages.faculty.required).oneOf(
+          FACULTY_OPTIONS.map((f) => f.value),
+          errorMessages.faculty.invalid
+        ),
+      otherwise: (schema) => schema.nullable().notRequired(),
+    }),
   }),
 });
 

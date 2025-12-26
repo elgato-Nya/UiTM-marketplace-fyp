@@ -560,4 +560,278 @@ describe("User Model", () => {
       expect(savedUser.refreshTokens).toEqual([]);
     });
   });
+
+  /**
+   * DELIVERY FEES INTEGRATION TESTS
+   *
+   * PURPOSE: Test merchant delivery fee customization with platform defaults
+   * BACKWARD COMPATIBILITY: Merchants without fees should get platform defaults
+   */
+  describe("Merchant Delivery Fees", () => {
+    it("should create merchant with default delivery fees automatically", async () => {
+      /**
+       * TDD RED → GREEN → REFACTOR
+       *
+       * Test that new merchants get platform default delivery fees:
+       * - Personal (home): RM 5.00
+       * - Campus: RM 2.50
+       * - Pickup: RM 1.00
+       */
+      const merchantUser = {
+        email: "merchant@student.uitm.edu.my",
+        password: "SecurePass123!",
+        profile: {
+          username: "testmerchant",
+          fullName: "Test Merchant",
+          phoneNumber: "0123456789",
+          campus: "SHAH_ALAM",
+          faculty: "COMPUTER_SCIENCE_MATH",
+        },
+        roles: ["consumer", "merchant"],
+        merchantDetails: {
+          shopName: "Test Shop",
+          shopSlug: "test-shop",
+          isVerified: true,
+        },
+      };
+
+      const merchant = await User.create(merchantUser);
+
+      // Platform defaults should be applied
+      expect(merchant.merchantDetails.deliveryFees).toBeDefined();
+      expect(merchant.merchantDetails.deliveryFees.personal.enabled).toBe(true);
+      expect(merchant.merchantDetails.deliveryFees.personal.fee).toBe(5.0);
+      expect(merchant.merchantDetails.deliveryFees.personal.freeThreshold).toBe(
+        0
+      );
+
+      expect(merchant.merchantDetails.deliveryFees.campus.enabled).toBe(true);
+      expect(merchant.merchantDetails.deliveryFees.campus.fee).toBe(2.5);
+      expect(merchant.merchantDetails.deliveryFees.campus.freeThreshold).toBe(
+        0
+      );
+
+      expect(merchant.merchantDetails.deliveryFees.pickup.enabled).toBe(true);
+      expect(merchant.merchantDetails.deliveryFees.pickup.fee).toBe(1.0);
+
+      expect(merchant.merchantDetails.deliveryFees.freeDeliveryForAll).toBe(
+        false
+      );
+      expect(merchant.merchantDetails.deliveryFees.combinedOrderDiscount).toBe(
+        0
+      );
+    });
+
+    it("should allow merchant to customize delivery fees", async () => {
+      /**
+       * Test that merchants can override platform defaults
+       */
+      const merchantUser = {
+        email: "custom@student.uitm.edu.my",
+        password: "SecurePass123!",
+        profile: {
+          username: "custommerchant",
+          fullName: "Custom Merchant",
+          phoneNumber: "0123456780",
+          campus: "SHAH_ALAM",
+          faculty: "COMPUTER_SCIENCE_MATH",
+        },
+        roles: ["consumer", "merchant"],
+        merchantDetails: {
+          shopName: "Custom Shop",
+          shopSlug: "custom-shop",
+          isVerified: true,
+          deliveryFees: {
+            personal: {
+              enabled: true,
+              fee: 8.0,
+              freeThreshold: 100,
+            },
+            campus: {
+              enabled: true,
+              fee: 3.0,
+              freeThreshold: 50,
+            },
+            pickup: {
+              enabled: false, // Disabled
+              fee: 0,
+            },
+            freeDeliveryForAll: false,
+            combinedOrderDiscount: 10, // 10% discount
+          },
+        },
+      };
+
+      const merchant = await User.create(merchantUser);
+
+      expect(merchant.merchantDetails.deliveryFees.personal.fee).toBe(8.0);
+      expect(merchant.merchantDetails.deliveryFees.personal.freeThreshold).toBe(
+        100
+      );
+      expect(merchant.merchantDetails.deliveryFees.campus.fee).toBe(3.0);
+      expect(merchant.merchantDetails.deliveryFees.campus.freeThreshold).toBe(
+        50
+      );
+      expect(merchant.merchantDetails.deliveryFees.pickup.enabled).toBe(false);
+      expect(merchant.merchantDetails.deliveryFees.combinedOrderDiscount).toBe(
+        10
+      );
+    });
+
+    it("should validate delivery fee range (0-100)", async () => {
+      /**
+       * Test that fees must be between 0 and 100 RM
+       */
+      const invalidMerchant = {
+        email: "invalid@student.uitm.edu.my",
+        password: "SecurePass123!",
+        profile: {
+          username: "invalidmerchant",
+          fullName: "Invalid Merchant",
+          phoneNumber: "0123456781",
+          campus: "SHAH_ALAM",
+          faculty: "COMPUTER_SCIENCE_MATH",
+        },
+        roles: ["consumer", "merchant"],
+        merchantDetails: {
+          shopName: "Invalid Shop",
+          shopSlug: "invalid-shop",
+          isVerified: true,
+          deliveryFees: {
+            personal: {
+              enabled: true,
+              fee: 150.0, // ❌ Exceeds max
+            },
+          },
+        },
+      };
+
+      await expect(User.create(invalidMerchant)).rejects.toThrow();
+    });
+
+    it("should validate negative fees are not allowed", async () => {
+      /**
+       * Test that fees cannot be negative
+       */
+      const negativeMerchant = {
+        email: "negative@student.uitm.edu.my",
+        password: "SecurePass123!",
+        profile: {
+          username: "negativemerchant",
+          fullName: "Negative Merchant",
+          phoneNumber: "0123456782",
+          campus: "SHAH_ALAM",
+          faculty: "COMPUTER_SCIENCE_MATH",
+        },
+        roles: ["consumer", "merchant"],
+        merchantDetails: {
+          shopName: "Negative Shop",
+          shopSlug: "negative-shop",
+          isVerified: true,
+          deliveryFees: {
+            campus: {
+              enabled: true,
+              fee: -5.0, // ❌ Negative
+            },
+          },
+        },
+      };
+
+      await expect(User.create(negativeMerchant)).rejects.toThrow();
+    });
+
+    it("should allow free delivery for all orders", async () => {
+      /**
+       * Test that merchants can enable free delivery for all
+       */
+      const freeMerchant = {
+        email: "free@student.uitm.edu.my",
+        password: "SecurePass123!",
+        profile: {
+          username: "freemerchant",
+          fullName: "Free Merchant",
+          phoneNumber: "0123456783",
+          campus: "SHAH_ALAM",
+          faculty: "COMPUTER_SCIENCE_MATH",
+        },
+        roles: ["consumer", "merchant"],
+        merchantDetails: {
+          shopName: "Free Shop",
+          shopSlug: "free-shop",
+          isVerified: true,
+          deliveryFees: {
+            freeDeliveryForAll: true, // ✅ Free delivery
+          },
+        },
+      };
+
+      const merchant = await User.create(freeMerchant);
+      expect(merchant.merchantDetails.deliveryFees.freeDeliveryForAll).toBe(
+        true
+      );
+    });
+
+    it("should set deliverable campuses for UiTM merchants", async () => {
+      /**
+       * Test that merchants can specify which campuses they deliver to
+       */
+      const campusMerchant = {
+        email: "campus@student.uitm.edu.my",
+        password: "SecurePass123!",
+        profile: {
+          username: "campusmerchant",
+          fullName: "Campus Merchant",
+          phoneNumber: "0123456784",
+          campus: "SHAH_ALAM",
+          faculty: "COMPUTER_SCIENCE_MATH",
+        },
+        roles: ["consumer", "merchant"],
+        merchantDetails: {
+          shopName: "Campus Shop",
+          shopSlug: "campus-shop",
+          isVerified: true,
+          deliverableCampuses: ["SHAH_ALAM", "PUNCAK_ALAM"],
+        },
+      };
+
+      const merchant = await User.create(campusMerchant);
+      expect(merchant.merchantDetails.deliverableCampuses).toEqual([
+        "SHAH_ALAM",
+        "PUNCAK_ALAM",
+      ]);
+    });
+
+    it("should maintain backward compatibility for existing merchants without delivery fees", async () => {
+      /**
+       * CRITICAL: Existing merchants without deliveryFees should still work
+       * and get platform defaults automatically
+       */
+      const legacyMerchant = {
+        email: "legacy@student.uitm.edu.my",
+        password: "SecurePass123!",
+        profile: {
+          username: "legacymerchant",
+          fullName: "Legacy Merchant",
+          phoneNumber: "0123456785",
+          campus: "SHAH_ALAM",
+          faculty: "COMPUTER_SCIENCE_MATH",
+        },
+        roles: ["consumer", "merchant"],
+        merchantDetails: {
+          shopName: "Legacy Shop",
+          shopSlug: "legacy-shop",
+          isVerified: true,
+          // NO deliveryFees field - should get defaults
+        },
+      };
+
+      const merchant = await User.create(legacyMerchant);
+
+      // Should have default fees even though not specified
+      expect(merchant.merchantDetails.deliveryFees).toBeDefined();
+      expect(merchant.merchantDetails.deliveryFees.personal.fee).toBe(5.0);
+      expect(merchant.merchantDetails.deliveryFees.campus.fee).toBe(2.5);
+      expect(merchant.merchantDetails.deliveryFees.pickup.fee).toBe(1.0);
+    });
+  });
 });

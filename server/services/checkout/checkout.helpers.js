@@ -93,9 +93,13 @@ const validateCheckoutItems = async (items) => {
  * @param {Array} validatedItems - Validated items with seller info
  * @param {String} deliveryMethod - Delivery method for fee calculation
  * @param {String} paymentMethod - Payment method (affects fees)
- * @returns {Array} Array of seller groups with pricing
+ * @returns {Promise<Array>} Array of seller groups with pricing
  */
-const groupItemsBySeller = (validatedItems, deliveryMethod, paymentMethod) => {
+const groupItemsBySeller = async (
+  validatedItems,
+  deliveryMethod,
+  paymentMethod
+) => {
   const sellerMap = new Map();
 
   // Group items by seller
@@ -128,27 +132,36 @@ const groupItemsBySeller = (validatedItems, deliveryMethod, paymentMethod) => {
     group.subtotal += item.itemTotal;
   });
 
-  // Calculate fees for each seller group
-  const sellerGroups = Array.from(sellerMap.values()).map((group) => {
-    const deliveryFee = calcDeliveryFee(deliveryMethod, null);
+  // Calculate fees for each seller group (async)
+  const sellerGroupsPromises = Array.from(sellerMap.values()).map(
+    async (group) => {
+      // Calculate delivery fee with merchant-specific settings
+      const deliveryFee = await calcDeliveryFee(
+        deliveryMethod,
+        group.sellerId,
+        group.subtotal
+      );
 
-    // Calculate platform and Stripe fees
-    const feeBreakdown = calculateFeeBreakdown(group.subtotal, deliveryFee);
+      // Calculate platform and Stripe fees
+      const feeBreakdown = calculateFeeBreakdown(group.subtotal, deliveryFee);
 
-    const platformFee = feeBreakdown.platformFee;
-    const stripeFee = paymentMethod === "cod" ? 0 : feeBreakdown.stripeFee;
-    const totalAmount = group.subtotal + deliveryFee;
-    const sellerReceives = totalAmount - platformFee - stripeFee;
+      const platformFee = feeBreakdown.platformFee;
+      const stripeFee = paymentMethod === "cod" ? 0 : feeBreakdown.stripeFee;
+      const totalAmount = group.subtotal + deliveryFee;
+      const sellerReceives = totalAmount - platformFee - stripeFee;
 
-    return {
-      ...group,
-      deliveryFee,
-      platformFee,
-      stripeFee,
-      totalAmount,
-      sellerReceives: Math.max(0, sellerReceives),
-    };
-  });
+      return {
+        ...group,
+        deliveryFee,
+        platformFee,
+        stripeFee,
+        totalAmount,
+        sellerReceives: Math.max(0, sellerReceives),
+      };
+    }
+  );
+
+  const sellerGroups = await Promise.all(sellerGroupsPromises);
 
   return sellerGroups;
 };
@@ -292,6 +305,44 @@ const checkPaymentMethodAllowed = (paymentMethod, totalAmount) => {
   return { allowed: true, reason: null };
 };
 
+/**
+ * Validate campus delivery for all sellers
+ * @param {Array} sellerGroups - Array of seller groups
+ * @param {String} campusKey - Campus enum key
+ * @returns {Promise<{valid: boolean, reason: string|null, invalidSellers: Array}>}
+ */
+const validateCampusDeliveryForSellers = async (sellerGroups, campusKey) => {
+  if (!campusKey) {
+    return { valid: false, reason: "Campus not specified", invalidSellers: [] };
+  }
+
+  const { validateCampusDelivery } = require("../order/order.helpers");
+  const invalidSellers = [];
+
+  for (const group of sellerGroups) {
+    const validation = await validateCampusDelivery(group.sellerId, campusKey);
+
+    if (!validation.valid) {
+      invalidSellers.push({
+        sellerId: group.sellerId,
+        sellerName: group.sellerName,
+        reason: validation.reason,
+      });
+    }
+  }
+
+  if (invalidSellers.length > 0) {
+    const sellerNames = invalidSellers.map((s) => s.sellerName).join(", ");
+    return {
+      valid: false,
+      reason: `The following seller(s) do not deliver to this campus: ${sellerNames}`,
+      invalidSellers,
+    };
+  }
+
+  return { valid: true, reason: null, invalidSellers: [] };
+};
+
 module.exports = {
   validateCheckoutItems,
   groupItemsBySeller,
@@ -299,5 +350,6 @@ module.exports = {
   reserveStock,
   releaseStock,
   validateDeliveryAddress,
+  validateCampusDeliveryForSellers,
   checkPaymentMethodAllowed,
 };

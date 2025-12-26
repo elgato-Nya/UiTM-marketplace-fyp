@@ -1,5 +1,9 @@
 const { User } = require("../../models/user");
-const { handleServiceError, handleNotFoundError } = require("../base.service");
+const {
+  handleServiceError,
+  handleNotFoundError,
+  convertAddressEnumsToValues,
+} = require("../base.service");
 const logger = require("../../utils/logger");
 const { createNotFoundError, AppError } = require("../../utils/errors");
 
@@ -30,7 +34,10 @@ const getUserAddresses = async (userId, addressType) => {
       addresses = addresses.filter((addr) => addr.type === addressType);
     }
 
-    return addresses || [];
+    // Convert enum keys to values for client display
+    const convertedAddresses = convertAddressEnumsToValues(addresses);
+
+    return convertedAddresses || [];
   } catch (error) {
     handleServiceError(error, "getUserAddresses", {
       userId: userId.toString(),
@@ -48,7 +55,9 @@ const getAddressById = async (userId, addressId) => {
     }
 
     const address = user.addresses.id(addressId);
-    return address || null;
+
+    // Convert enum keys to values for client display
+    return convertAddressEnumsToValues(address);
   } catch (error) {
     handleServiceError(error, "getAddressById", {
       userId: userId.toString(),
@@ -84,8 +93,9 @@ const addUserAddress = async (userId, addressData) => {
     user.lastActive = new Date();
     user.isActive = true;
     await user.save();
-    // Return the newly created address
-    return newAddress;
+
+    // Convert enum keys to values for client display
+    return convertAddressEnumsToValues(newAddress);
   } catch (error) {
     handleServiceError(error, "addUserAddress", {
       userId: userId.toString(),
@@ -116,8 +126,8 @@ const updateUserAddress = async (userId, addressId, updateData) => {
     }
 
     await user.save();
-    // Return the updated address
-    return updatedAddress;
+    // Convert enum keys to values for client display
+    return convertAddressEnumsToValues(updatedAddress);
   } catch (error) {
     handleServiceError(error, "updateUserAddress", {
       userId: userId.toString(),
@@ -269,7 +279,8 @@ const getDefaultAddress = async (userId, type = null) => {
       (address) => address.isDefault && (type ? address.type === type : true)
     );
 
-    return defaultAddress || null;
+    // Convert enum keys to values for client display
+    return convertAddressEnumsToValues(defaultAddress);
   } catch (error) {
     handleServiceError(error, "getDefaultAddress", {
       userId: userId.toString(),

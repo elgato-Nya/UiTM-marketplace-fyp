@@ -20,6 +20,10 @@ process.env.JWT_ACCESS_SECRET =
 process.env.JWT_REFRESH_SECRET =
   "test-jwt-refresh-secret-min-64-chars-for-testing-purposes-only";
 
+// Mock email service
+process.env.CLIENT_URL = "http://localhost:3000";
+process.env.SES_FROM_EMAIL = "test@example.com";
+
 // Suppress console.log during tests unless debugging
 if (!process.env.DEBUG_TESTS) {
   console.log = jest.fn();

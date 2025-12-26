@@ -17,6 +17,9 @@
 const { UserValidator } = require("./user.validator");
 const { isValidUiTMEmail, isValidEmail } = UserValidator;
 
+// Import CampusEnum for campus validation
+const { CampusEnum } = require("../../utils/enums/user.enum");
+
 class MerchantValidator {
   /**
    * Validate UiTM verification email (for merchant verification)
@@ -229,6 +232,52 @@ class MerchantValidator {
     const urlRegex = /^(https?:\/\/)|(\/uploads\/)/;
     return urlRegex.test(url);
   }
+
+  // ================== DELIVERY FEE VALIDATION ==================
+
+  /**
+   * Validate delivery fee amount
+   * RULES: Numeric, 0-100 range (RM)
+   */
+  static isValidDeliveryFee(fee) {
+    if (typeof fee !== "number") return false;
+    if (Number.isNaN(fee)) return false;
+    if (fee < 0 || fee > 100) return false;
+    return true;
+  }
+
+  /**
+   * Validate free delivery threshold
+   * RULES: Numeric, 0 or positive (RM)
+   */
+  static isValidFreeThreshold(threshold) {
+    if (typeof threshold !== "number") return false;
+    if (Number.isNaN(threshold)) return false;
+    if (threshold < 0) return false;
+    return true;
+  }
+
+  /**
+   * Validate deliverable campuses array
+   * RULES: Array of valid CampusEnum keys, no duplicates
+   */
+  static isValidDeliverableCampuses(campuses) {
+    if (!Array.isArray(campuses)) return false;
+
+    const validCampusKeys = Object.keys(CampusEnum);
+
+    // Check each campus is a valid string key
+    for (const campus of campuses) {
+      if (typeof campus !== "string") return false;
+      if (!validCampusKeys.includes(campus)) return false;
+    }
+
+    // Check for duplicates
+    const uniqueCampuses = [...new Set(campuses)];
+    if (uniqueCampuses.length !== campuses.length) return false;
+
+    return true;
+  }
 }
 
 /**
@@ -291,6 +340,14 @@ const merchantErrorMessages = () => ({
   },
   businessEmail: {
     invalid: "Business email must be a valid email address",
+  },
+  // ================== NEW: Delivery Fee Validation Messages ==================
+  deliveryFee: {
+    invalidFee: "Delivery fee must be a number between 0 and 100 (RM)",
+    invalidThreshold:
+      "Free delivery threshold must be a non-negative number (RM)",
+    invalidCampuses:
+      "Deliverable campuses must be an array of valid campus keys from CampusEnum, with no duplicates",
   },
 });
 

@@ -100,6 +100,55 @@ export const getMerchantStats = async () => {
   }
 };
 
+/**
+ * Get merchant's delivery fee settings (authenticated)
+ * @returns {Promise<Object>} Delivery fee settings
+ */
+export const getDeliverySettings = async () => {
+  try {
+    const response = await api.get("/merchants/settings/delivery");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching delivery settings:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update merchant's delivery fee settings (authenticated)
+ * @param {Object} settings - Delivery fee settings
+ * @param {number} settings.personalDeliveryFee - Personal delivery fee (0-100)
+ * @param {number} settings.campusDeliveryFee - Campus delivery fee (0-100)
+ * @param {number} settings.pickupFee - Pickup fee (0-100)
+ * @param {number} settings.freeDeliveryThreshold - Free delivery threshold (>= 0)
+ * @param {Array<string>} settings.deliverableCampuses - Deliverable campus keys
+ * @returns {Promise<Object>} Updated delivery fee settings
+ */
+export const updateDeliverySettings = async (settings) => {
+  try {
+    const response = await api.put("/merchants/settings/delivery", settings);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating delivery settings:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get delivery fees for a specific listing (public)
+ * @param {string} listingId - Listing ID
+ * @returns {Promise<Object>} Delivery fee information for listing
+ */
+export const getListingDeliveryFees = async (listingId) => {
+  try {
+    const response = await api.get(`/listings/${listingId}/delivery-fees`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching listing delivery fees:", error);
+    throw error;
+  }
+};
+
 export default {
   searchMerchants,
   getMerchantBySlug,
@@ -107,4 +156,7 @@ export default {
   getMerchantProfile,
   createOrUpdateMerchant,
   getMerchantStats,
+  getDeliverySettings,
+  updateDeliverySettings,
+  getListingDeliveryFees,
 };

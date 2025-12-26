@@ -91,21 +91,100 @@ const UserSchema = new mongoose.Schema(
       },
       campus: {
         type: String,
-        required: [true, userErrorMessages.campus.required],
+        required: false, // ✅ CHANGED: Optional for non-UiTM users
         trim: true,
         enum: {
-          values: Object.keys(CampusEnum), // Standardized to use keys
+          values: Object.keys(CampusEnum),
           message: userErrorMessages.campus.invalid,
         },
+        default: null, // Allow null for non-UiTM users
       },
       faculty: {
         type: String,
-        required: [true, userErrorMessages.faculty.required],
+        required: false, // ✅ CHANGED: Optional for non-UiTM users
         trim: true,
         enum: {
-          values: Object.keys(FacultyEnum), // Already using keys
+          values: Object.keys(FacultyEnum),
           message: userErrorMessages.faculty.invalid,
         },
+        default: null, // Allow null for non-UiTM users
+      },
+      // ✅ NEW: Enhanced optional profile fields
+      location: {
+        type: String,
+        trim: true,
+        maxlength: [100, "Location must not exceed 100 characters"],
+        default: "",
+      },
+      website: {
+        type: String,
+        trim: true,
+        maxlength: [200, "Website URL must not exceed 200 characters"],
+        validate: {
+          validator: function (url) {
+            if (!url) return true; // Optional field
+            // Basic URL validation
+            return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(
+              url
+            );
+          },
+          message: "Please provide a valid website URL",
+        },
+        default: "",
+      },
+      socialLinks: {
+        twitter: {
+          type: String,
+          trim: true,
+          maxlength: [100, "Twitter handle must not exceed 100 characters"],
+          default: "",
+        },
+        instagram: {
+          type: String,
+          trim: true,
+          maxlength: [100, "Instagram handle must not exceed 100 characters"],
+          default: "",
+        },
+        facebook: {
+          type: String,
+          trim: true,
+          maxlength: [100, "Facebook profile must not exceed 100 characters"],
+          default: "",
+        },
+        linkedin: {
+          type: String,
+          trim: true,
+          maxlength: [100, "LinkedIn profile must not exceed 100 characters"],
+          default: "",
+        },
+      },
+      yearOfStudy: {
+        type: Number,
+        min: [1, "Year of study must be at least 1"],
+        max: [10, "Year of study must not exceed 10"],
+        default: null,
+      },
+      programOfStudy: {
+        type: String,
+        trim: true,
+        maxlength: [150, "Program of study must not exceed 150 characters"],
+        default: "",
+      },
+      interests: {
+        type: [String],
+        validate: {
+          validator: function (interests) {
+            if (!interests || interests.length === 0) return true;
+            // Max 10 interests, each max 50 chars
+            return (
+              interests.length <= 10 &&
+              interests.every((interest) => interest.length <= 50)
+            );
+          },
+          message:
+            "You can add up to 10 interests, each up to 50 characters long",
+        },
+        default: [],
       },
     },
 

@@ -1,4 +1,5 @@
 import * as yup from "yup";
+import { isUiTMEmail } from "../utils/emailUtils";
 
 /**
  * Merchant Validation Schemas
@@ -45,17 +46,9 @@ export const businessEmailSchema = yup.object().shape({
     .nullable(),
 });
 
-/**
- * Helper: Check if email is UiTM domain
- */
-export const isUiTMEmail = (email) => {
-  if (!email) return false;
-  return /^[a-zA-Z0-9]+@[\w.-]*\.?uitm\.edu\.my$/.test(email.toLowerCase());
-};
-
 export default {
   merchantVerificationSchema,
   businessEmailSchema,
-  isUiTMEmail,
+  isUiTMEmail, // Re-export for backward compatibility
   errorMessages,
 };

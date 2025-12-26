@@ -2,12 +2,15 @@ const BaseController = require("../base.controller");
 const { merchantService } = require("../../services/user");
 const asyncHandler = require("../../utils/asyncHandler");
 const { sanitizeObject, sanitizeQuery } = require("../../utils/sanitizer");
+const { MerchantValidator } = require("../../validators/user");
+const { Listing } = require("../../models");
+const mongoose = require("mongoose");
 
 /**
  * Merchant Controller
  *
  * PURPOSE: Handle merchant-specific HTTP requests and responses
- * SCOPE: Shop management, merchant verification, shop search, metrics
+ * SCOPE: Shop management, merchant verification, shop search, metrics, delivery settings
  * PATTERN: Function-based approach with BaseController utilities
  * FEATURES:
  * - Shop CRUD operations
@@ -15,6 +18,7 @@ const { sanitizeObject, sanitizeQuery } = require("../../utils/sanitizer");
  * - Shop search and discovery
  * - Metrics and rating updates
  * - Admin verification functions
+ * - Delivery fee settings management
  */
 
 // Create BaseController instance for utility methods
@@ -407,6 +411,266 @@ const updateBusinessEmail = asyncHandler(async (req, res) => {
   );
 }, "update_business_email");
 
+// ================== DELIVERY FEE SETTINGS ==================
+
+/**
+ * Get merchant's delivery fee settings
+ * GET /api/merchants/settings/delivery
+ */
+const getDeliverySettings = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  // Get merchant with delivery fees
+  const merchant = await merchantService.getMerchantById(userId);
+
+  if (!merchant) {
+    return res.status(404).json({
+      success: false,
+      message: "Merchant not found",
+    });
+  }
+
+  // Return delivery settings (will have defaults from schema if not customized)
+  const deliverySettings = {
+    personal: merchant.merchantDetails?.deliveryFees?.personal || {
+      enabled: true,
+      fee: 5.0,
+    },
+    campus: merchant.merchantDetails?.deliveryFees?.campus || {
+      enabled: true,
+      fee: 2.5,
+    },
+    pickup: merchant.merchantDetails?.deliveryFees?.pickup || {
+      enabled: true,
+      fee: 1.0,
+    },
+    freeDeliveryThreshold: merchant.merchantDetails?.freeDeliveryThreshold || 0,
+    deliverableCampuses: merchant.merchantDetails?.deliverableCampuses || [],
+  };
+
+  baseController.logAction("get_delivery_settings", req, { userId });
+
+  return baseController.sendSuccess(
+    res,
+    deliverySettings,
+    "Delivery settings retrieved successfully"
+  );
+}, "get_delivery_settings");
+
+/**
+ * Update merchant's delivery fee settings
+ * PUT /api/merchants/settings/delivery
+ */
+const updateDeliverySettings = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const {
+    personalDeliveryFee,
+    campusDeliveryFee,
+    pickupFee,
+    freeDeliveryThreshold,
+    deliverableCampuses,
+  } = sanitizeObject(req.body);
+
+  // Validate delivery fees if provided
+  if (personalDeliveryFee !== undefined) {
+    if (!MerchantValidator.isValidDeliveryFee(personalDeliveryFee)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid personal delivery fee. Must be between 0 and 100 RM.",
+      });
+    }
+  }
+
+  if (campusDeliveryFee !== undefined) {
+    if (!MerchantValidator.isValidDeliveryFee(campusDeliveryFee)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid campus delivery fee. Must be between 0 and 100 RM.",
+      });
+    }
+  }
+
+  if (pickupFee !== undefined) {
+    if (!MerchantValidator.isValidDeliveryFee(pickupFee)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pickup fee. Must be between 0 and 100 RM.",
+      });
+    }
+  }
+
+  if (freeDeliveryThreshold !== undefined) {
+    if (!MerchantValidator.isValidFreeThreshold(freeDeliveryThreshold)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid free delivery threshold. Must be a non-negative number.",
+      });
+    }
+  }
+
+  // Validate deliverable campuses if provided
+  if (deliverableCampuses !== undefined) {
+    if (!MerchantValidator.isValidDeliverableCampuses(deliverableCampuses)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid deliverable campuses. Must be an array of valid campus keys with no duplicates.",
+      });
+    }
+  }
+
+  // Build update object
+  const updateData = {};
+
+  if (personalDeliveryFee !== undefined) {
+    updateData["merchantDetails.deliveryFees.personal.fee"] =
+      personalDeliveryFee;
+    updateData["merchantDetails.deliveryFees.personal.enabled"] =
+      personalDeliveryFee > 0;
+  }
+
+  if (campusDeliveryFee !== undefined) {
+    updateData["merchantDetails.deliveryFees.campus.fee"] = campusDeliveryFee;
+    updateData["merchantDetails.deliveryFees.campus.enabled"] =
+      campusDeliveryFee > 0;
+  }
+
+  if (pickupFee !== undefined) {
+    updateData["merchantDetails.deliveryFees.pickup.fee"] = pickupFee;
+    updateData["merchantDetails.deliveryFees.pickup.enabled"] = pickupFee > 0;
+  }
+
+  if (freeDeliveryThreshold !== undefined) {
+    updateData["merchantDetails.freeDeliveryThreshold"] = freeDeliveryThreshold;
+  }
+
+  if (deliverableCampuses !== undefined) {
+    updateData["merchantDetails.deliverableCampuses"] = deliverableCampuses;
+  }
+
+  // Update merchant settings
+  const result = await merchantService.updateMerchantSettings(
+    userId,
+    updateData
+  );
+
+  if (!result) {
+    return res.status(404).json({
+      success: false,
+      message: "Merchant not found",
+    });
+  }
+
+  baseController.logAction("update_delivery_settings", req, {
+    userId,
+    personalFee: personalDeliveryFee,
+    campusFee: campusDeliveryFee,
+    pickupFee,
+    threshold: freeDeliveryThreshold,
+    campusCount: deliverableCampuses?.length || 0,
+  });
+
+  // Return formatted response
+  const responseData = {
+    personal: result.merchantDetails?.deliveryFees?.personal || {
+      enabled: true,
+      fee: 5.0,
+    },
+    campus: result.merchantDetails?.deliveryFees?.campus || {
+      enabled: true,
+      fee: 2.5,
+    },
+    pickup: result.merchantDetails?.deliveryFees?.pickup || {
+      enabled: true,
+      fee: 1.0,
+    },
+    freeDeliveryThreshold: result.merchantDetails?.freeDeliveryThreshold || 0,
+    deliverableCampuses: result.merchantDetails?.deliverableCampuses || [],
+  };
+
+  return baseController.sendSuccess(
+    res,
+    responseData,
+    "Delivery settings updated successfully"
+  );
+}, "update_delivery_settings");
+
+/**
+ * Get delivery fees for a specific listing (public)
+ * GET /api/listings/:id/delivery-fees
+ */
+const getListingDeliveryFees = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Validate listing ID
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid listing ID",
+    });
+  }
+
+  // Get listing
+  const listing = await Listing.findById(id).select("seller.userId");
+
+  if (!listing) {
+    return res.status(404).json({
+      success: false,
+      message: "Listing not found",
+    });
+  }
+
+  // Get merchant's delivery settings
+  const merchant = await merchantService.getMerchantById(listing.seller.userId);
+
+  if (!merchant) {
+    return res.status(404).json({
+      success: false,
+      message: "Merchant not found",
+    });
+  }
+
+  // Extract delivery settings from merchant
+  const deliveryFees = merchant.deliveryFees || {
+    personal: { enabled: true, fee: 5.0 },
+    campus: { enabled: true, fee: 2.5 },
+    pickup: { enabled: true, fee: 1.0 },
+  };
+
+  const deliverableCampuses = merchant.deliverableCampuses || [];
+  const freeDeliveryThreshold = merchant.freeDeliveryThreshold || 0;
+
+  // Format response to match frontend expectations
+  const deliverySettings = {
+    personal: {
+      enabled: deliveryFees.personal?.enabled !== false,
+      fee: deliveryFees.personal?.fee || 5.0,
+    },
+    campus: {
+      enabled: deliveryFees.campus?.enabled !== false,
+      fee: deliveryFees.campus?.fee || 2.5,
+    },
+    pickup: {
+      enabled: deliveryFees.pickup?.enabled !== false,
+      fee: deliveryFees.pickup?.fee || 1.0,
+    },
+    freeDeliveryThreshold,
+    deliverableCampuses,
+  };
+
+  baseController.logAction("get_listing_delivery_fees", req, {
+    listingId: id,
+    merchantId: listing.seller.userId,
+  });
+
+  return baseController.sendSuccess(
+    res,
+    deliverySettings,
+    "Delivery fees retrieved successfully"
+  );
+}, "get_listing_delivery_fees");
+
 module.exports = {
   getMerchantProfile,
   createOrUpdateMerchant,
@@ -422,4 +686,8 @@ module.exports = {
   submitMerchantVerification,
   verifyMerchantEmail,
   updateBusinessEmail,
+  // Delivery fee settings
+  getDeliverySettings,
+  updateDeliverySettings,
+  getListingDeliveryFees,
 };

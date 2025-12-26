@@ -4,6 +4,7 @@ const {
   merchantErrorMessages,
 } = require("../../validators/user");
 const { UserValidator } = require("../../validators/user");
+const { CampusEnum } = require("../../utils/enums/user.enum");
 
 const {
   isValidShopName,
@@ -246,6 +247,79 @@ const merchantSchema = new mongoose.Schema(
         type: Number,
         min: [0, "Views count cannot be negative"],
         default: 0,
+      },
+    },
+
+    // ================== DELIVERY FEE SETTINGS ==================
+    deliveryFees: {
+      type: {
+        personal: {
+          enabled: { type: Boolean, default: true },
+          fee: {
+            type: Number,
+            default: 5.0,
+            min: [0, "Delivery fee cannot be negative"],
+            max: [100, "Delivery fee cannot exceed RM 100"],
+          },
+          freeThreshold: {
+            type: Number,
+            default: 0,
+            min: [0, "Free delivery threshold cannot be negative"],
+          },
+        },
+        campus: {
+          enabled: { type: Boolean, default: true },
+          fee: {
+            type: Number,
+            default: 2.5,
+            min: [0, "Delivery fee cannot be negative"],
+            max: [100, "Delivery fee cannot exceed RM 100"],
+          },
+          freeThreshold: {
+            type: Number,
+            default: 0,
+            min: [0, "Free delivery threshold cannot be negative"],
+          },
+        },
+        pickup: {
+          enabled: { type: Boolean, default: true },
+          fee: {
+            type: Number,
+            default: 1.0,
+            min: [0, "Delivery fee cannot be negative"],
+            max: [100, "Delivery fee cannot exceed RM 100"],
+          },
+        },
+        freeDeliveryForAll: { type: Boolean, default: false },
+        combinedOrderDiscount: {
+          type: Number,
+          default: 0,
+          min: [0, "Discount cannot be negative"],
+          max: [100, "Discount cannot exceed 100%"],
+        },
+      },
+      default: function () {
+        return {
+          personal: { enabled: true, fee: 5.0, freeThreshold: 0 },
+          campus: { enabled: true, fee: 2.5, freeThreshold: 0 },
+          pickup: { enabled: true, fee: 1.0 },
+          freeDeliveryForAll: false,
+          combinedOrderDiscount: 0,
+        };
+      },
+    },
+
+    deliverableCampuses: {
+      type: [String],
+      default: [],
+      validate: {
+        validator: function (campuses) {
+          // All campuses must be valid enum keys
+          const validCampusKeys = Object.keys(CampusEnum);
+          return campuses.every((campus) => validCampusKeys.includes(campus));
+        },
+        message:
+          "Invalid campus key in deliverable campuses. Must be one of the CampusEnum keys.",
       },
     },
   },

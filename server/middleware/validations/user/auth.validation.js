@@ -101,28 +101,46 @@ const bioValidation = (fieldName = "profile.bio") => {
 
 const campusValidation = (fieldName = "profile.campus") => {
   return body(fieldName)
-    .notEmpty()
-    .withMessage(userErrorMessages.campus.required)
-    .bail()
+    .optional() // ✅ CHANGED: Optional for all users
     .trim()
-    .isIn(Object.keys(CampusEnum))
-    .withMessage(userErrorMessages.campus.invalid)
-    .bail()
-    .custom((campus) => {
-      return isValidCampus(campus);
+    .custom((campus, { req }) => {
+      // If campus is provided, validate it
+      if (campus) {
+        if (!Object.keys(CampusEnum).includes(campus)) {
+          throw new Error(userErrorMessages.campus.invalid);
+        }
+        if (!isValidCampus(campus)) {
+          throw new Error(userErrorMessages.campus.invalid);
+        }
+      }
+      // If UiTM email, campus is required
+      if (req.body.email && isValidUiTMEmail(req.body.email) && !campus) {
+        throw new Error(userErrorMessages.campus.required);
+      }
+      return true;
     })
     .withMessage(userErrorMessages.campus.invalid);
 };
 
 const facultyValidation = (fieldName = "profile.faculty") => {
   return body(fieldName)
-    .notEmpty()
-    .withMessage(userErrorMessages.faculty.required)
+    .optional() // ✅ CHANGED: Optional for all users
     .trim()
-    .isIn(Object.keys(FacultyEnum))
-    .withMessage(userErrorMessages.faculty.invalid)
-    .custom((faculty) => {
-      return isValidFaculty(faculty);
+    .custom((faculty, { req }) => {
+      // If faculty is provided, validate it
+      if (faculty) {
+        if (!Object.keys(FacultyEnum).includes(faculty)) {
+          throw new Error(userErrorMessages.faculty.invalid);
+        }
+        if (!isValidFaculty(faculty)) {
+          throw new Error(userErrorMessages.faculty.invalid);
+        }
+      }
+      // If UiTM email, faculty is required
+      if (req.body.email && isValidUiTMEmail(req.body.email) && !faculty) {
+        throw new Error(userErrorMessages.faculty.required);
+      }
+      return true;
     })
     .withMessage(userErrorMessages.faculty.invalid);
 };

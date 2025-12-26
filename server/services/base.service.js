@@ -167,11 +167,106 @@ const getEnumKeyByValue = (enumObj, value) => {
  * Returns Enum Value by Key
  *
  * PURPOSE: Get enum value from key
- * USAGE: const campusValue = this.getEnumValueByKey(CampusEnum, 'MAIN');
+ * USAGE: const campusValue = getEnumValueByKey(CampusEnum, 'SHAH_ALAM');
+ * @param {Object} enumObj - The enum object
+ * @param {String} key - The enum key
+ * @returns {String|null} The enum value or null if key is null/undefined
  */
 const getEnumValueByKey = (enumObj, key) => {
+  if (!key) return null; // ✅ CHANGED: Handle null/undefined gracefully
   return enumObj[key] || null;
 };
+
+/**
+ * Convert Enum Keys to Values for Response
+ *
+ * PURPOSE: Convert enum keys (stored in DB) to values (sent to client)
+ * LOGIC: Client sends keys -> DB stores keys -> Server retrieves keys ->
+ *        This function converts keys to values -> Client receives values
+ *
+ * @param {Object|Array} data - Data object or array containing enum keys
+ * @param {Object} enumMappings - Object mapping field paths to enum objects
+ *        Example: {
+ *          'campusAddress.campus': CampusEnum,
+ *          'personalAddress.state': StateEnum,
+ *          'status': OrderStatusEnum
+ *        }
+ * @returns {Object|Array} Data with enum values instead of keys
+ *
+ * USAGE:
+ *   const address = convertEnumsToValues(addressData, {
+ *     'campusAddress.campus': CampusEnum,
+ *     'personalAddress.state': StateEnum
+ *   });
+ */
+const convertEnumsToValues = (data, enumMappings = {}) => {
+  if (!data) return data;
+
+  // Handle array
+  if (Array.isArray(data)) {
+    return data.map((item) => convertEnumsToValues(item, enumMappings));
+  }
+
+  // Handle both Mongoose documents and plain objects
+  const obj =
+    data && typeof data.toObject === "function" ? data.toObject() : data;
+
+  if (!obj || typeof obj !== "object") return obj;
+
+  // Create a deep copy to avoid mutation
+  const result = { ...obj };
+
+  // Convert each mapped field
+  for (const [fieldPath, enumObj] of Object.entries(enumMappings)) {
+    const keys = fieldPath.split(".");
+    let current = result;
+    let parent = null;
+    let lastKey = null;
+
+    // Navigate to the field
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (!current[keys[i]]) break;
+      parent = current;
+      current = current[keys[i]];
+      lastKey = keys[i];
+
+      // Ensure we copy nested objects
+      if (parent && typeof current === "object" && !Array.isArray(current)) {
+        parent[lastKey] = { ...current };
+        current = parent[lastKey];
+      }
+    }
+
+    const finalKey = keys[keys.length - 1];
+
+    // Convert the enum key to value if it exists
+    if (current && current[finalKey]) {
+      const enumValue = getEnumValueByKey(enumObj, current[finalKey]);
+      if (enumValue) {
+        current[finalKey] = enumValue;
+      }
+    }
+  }
+
+  return result;
+};
+
+/**
+ * Convert Address Enum Keys to Values (Convenience wrapper)
+ *
+ * PURPOSE: Shorthand for converting address-specific enums
+ * @param {Object|Array} data - Address object or array of addresses
+ * @returns {Object|Array} Address(es) with enum values instead of keys
+ */
+const convertAddressEnumsToValues = (data) => {
+  const { CampusEnum, StateEnum } = require("../utils/enums/user.enum");
+
+  return convertEnumsToValues(data, {
+    "campusAddress.campus": CampusEnum,
+    "personalAddress.state": StateEnum,
+  });
+};
+
 module.exports = {
   handleServiceError,
   handleNotFoundError,
@@ -181,4 +276,6 @@ module.exports = {
   buildSelect,
   getEnumKeyByValue,
   getEnumValueByKey,
+  convertEnumsToValues,
+  convertAddressEnumsToValues,
 };

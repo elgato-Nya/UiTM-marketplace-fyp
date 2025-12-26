@@ -23,6 +23,7 @@ import InfoList from "../../components/common/List/InfoList";
 import ActionGrid from "../../components/common/Grid/ActionGrid";
 import { getObjectValueByKey } from "../../utils/commonFunction";
 import { CAMPUS_OPTIONS, FACULTY_OPTIONS } from "../../constants/authConstant";
+import { isUiTMEmail } from "../../utils/emailUtils";
 
 function ProfilePage() {
   const { theme } = useTheme();
@@ -116,6 +117,7 @@ function ProfilePage() {
   const displayUsername =
     currentProfile?.username || currentUser?.username || "User";
   const displayEmail = currentUser?.email || "";
+  const isUiTMUser = isUiTMEmail(displayEmail);
 
   // Configuration for reusable components
   const roleChips = roles.map((role) => ({
@@ -149,18 +151,23 @@ function ProfilePage() {
           ]
         : [],
     },
-    {
-      id: "campus",
-      icon: <LocationCity color="primary" />,
-      label: "Campus",
-      value: currentProfile.campus || "Not specified",
-    },
-    {
-      id: "faculty",
-      icon: <School color="primary" />,
-      label: "Faculty",
-      value: currentProfile.faculty || "Not specified",
-    },
+    // ✅ CHANGED: Only show campus/faculty for UiTM users
+    ...(isUiTMUser
+      ? [
+          {
+            id: "campus",
+            icon: <LocationCity color="primary" />,
+            label: "Campus",
+            value: currentProfile.campus || "Not specified",
+          },
+          {
+            id: "faculty",
+            icon: <School color="primary" />,
+            label: "Faculty",
+            value: currentProfile.faculty || "Not specified",
+          },
+        ]
+      : []),
   ];
 
   const quickActionsData = [

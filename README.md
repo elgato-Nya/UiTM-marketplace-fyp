@@ -16,7 +16,7 @@
 | **Payment**        | Stripe (Checkout v8.2, Webhooks)                |
 | **Security**       | JWT, bcrypt, Helmet, express-rate-limit         |
 | **Deployment**     | Nginx reverse proxy, PM2, GitHub Actions CI/CD  |
-| **Testing**        | Jest, Supertest (359 tests, 99% pass rate)      |
+| **Testing**        | Jest, Supertest (415 tests, 100% pass rate)      |
 
 ---
 

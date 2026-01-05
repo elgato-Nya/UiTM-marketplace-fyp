@@ -1,380 +1,303 @@
 import React from "react";
-import {
-  Box,
-  Container,
-  Typography,
-  Card,
-  CardContent,
-  Grid,
-  Chip,
-  Paper,
-} from "@mui/material";
-import { Code, Lightbulb, Speed, Security } from "@mui/icons-material";
+import { Box, Container, Typography, Chip, IconButton } from "@mui/material";
+import { Code, Security, Speed, Lightbulb, GitHub, Email } from "@mui/icons-material";
 import { useTheme } from "../../hooks/useTheme";
 import { Logo } from "../../components/common/Logo";
+
+const expertise = [
+  { icon: Code, label: "Full-Stack Development" },
+  { icon: Security, label: "Security & Privacy" },
+  { icon: Speed, label: "Performance" },
+  { icon: Lightbulb, label: "System Design" },
+];
+
+const techStack = ["React", "Node.js", "MongoDB", "Express", "AWS", "Stripe"];
 
 function NekodezPage() {
   const { theme } = useTheme();
 
-  const expertise = [
-    {
-      icon: <Code />,
-      title: "Full-Stack Development",
-      color: theme.palette.primary.main,
-    },
-    {
-      icon: <Security />,
-      title: "Security & Privacy",
-      color: theme.palette.error.main,
-    },
-    {
-      icon: <Speed />,
-      title: "Performance Optimization",
-      color: theme.palette.warning.main,
-    },
-    {
-      icon: <Lightbulb />,
-      title: "System Design",
-      color: theme.palette.secondary.main,
-    },
-  ];
-
   return (
     <Box sx={{ width: "100%", minHeight: "100vh" }}>
-      {/* Hero Section with Gradient */}
+      {/* Hero */}
       <Box
         sx={{
-          position: "relative",
-          background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 50%, ${theme.palette.secondary.main} 100%)`,
+          bgcolor: theme.palette.primary.main,
           color: "white",
-          py: { xs: 8, md: 12 },
-          overflow: "hidden",
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background:
-              "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%)",
-          },
-          "&::after": {
-            content: '""',
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background:
-              "radial-gradient(circle at 80% 80%, rgba(255,255,255,0.1) 0%, transparent 50%)",
-          },
+          py: { xs: 8, md: 14 },
+          textAlign: "center",
         }}
       >
-        <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
-          <Box sx={{ textAlign: "center" }}>
-            <Box sx={{ mb: 3 }}>
-              <Logo
-                variant="stacked"
-                type="brand"
-                height={{ xs: 140, md: 180 }}
-                sx={{
-                  filter: "drop-shadow(2px 2px 8px rgba(0,0,0,0.3))",
-                }}
-              />
-            </Box>
-
-            <Typography
-              variant="h5"
-              sx={{
-                mb: 3,
-                opacity: 0.95,
-                fontWeight: 300,
-                fontSize: { xs: "1.2rem", md: "1.5rem" },
-              }}
-            >
-              Developer • Creator • Innovator
-            </Typography>
-            <Box
-              sx={{
-                display: "flex",
-                gap: 1,
-                justifyContent: "center",
-                flexWrap: "wrap",
-              }}
-            >
+        <Container maxWidth="sm">
+          <Box sx={{ mb: 3 }}>
+            <Logo
+              variant="stacked"
+              type="brand"
+              height={{ xs: 100, md: 140 }}
+              sx={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.15))" }}
+            />
+          </Box>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 400,
+              opacity: 0.9,
+              mb: 3,
+              letterSpacing: 1,
+            }}
+          >
+            Developer · Creator · Innovator
+          </Typography>
+          <Box sx={{ display: "flex", gap: 1, justifyContent: "center", flexWrap: "wrap" }}>
+            {["MERN Stack", "Cloud", "Security"].map((tag, i) => (
               <Chip
-                label="MERN Stack"
+                key={i}
+                label={tag}
+                size="small"
                 sx={{
-                  bgcolor: "rgba(255,255,255,0.2)",
+                  bgcolor: "rgba(255,255,255,0.15)",
                   color: "white",
-                  fontWeight: 600,
+                  fontWeight: 500,
                   backdropFilter: "blur(10px)",
                 }}
               />
-              <Chip
-                label="Cloud Enthusiast"
-                sx={{
-                  bgcolor: "rgba(255,255,255,0.2)",
-                  color: "white",
-                  fontWeight: 600,
-                  backdropFilter: "blur(10px)",
-                }}
-              />
-              <Chip
-                label="Security Focused"
-                sx={{
-                  bgcolor: "rgba(255,255,255,0.2)",
-                  color: "white",
-                  fontWeight: 600,
-                  backdropFilter: "blur(10px)",
-                }}
-              />
-            </Box>
+            ))}
           </Box>
         </Container>
       </Box>
 
-      {/* About Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 10 } }}>
-        <Grid container spacing={4}>
-          {/* Bio Card */}
-          <Grid size={{ xs: 12 }}>
-            <Card
-              elevation={4}
-              sx={{
-                height: "100%",
-                background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.background.default} 100%)`,
-              }}
-            >
-              <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontWeight: 700,
-                    mb: 3,
-                    color: theme.palette.primary.main,
-                  }}
-                >
-                  About Nekodez
-                </Typography>
-
-                <Typography
-                  variant="body1"
-                  sx={{
-                    mb: 2,
-                    lineHeight: 1.8,
-                    fontSize: { xs: "0.75rem", md: "1.1rem" },
-                    textAlign: "justify",
-                  }}
-                >
-                  Nekodez is a full-stack developer with a deep curiosity for
-                  how things work. From the internals of modern web systems to
-                  the subtle details of user experience. Blending creativity
-                  with analytical thinking, Nekodez builds solutions that are
-                  clean, scalable, secure, and genuinely helpful to real users.
-                </Typography>
-
-                <Typography
-                  variant="body1"
-                  sx={{
-                    mb: 2,
-                    lineHeight: 1.8,
-                    fontSize: { xs: "0.75rem", md: "1.1rem" },
-                    textAlign: "justify",
-                  }}
-                >
-                  With strong experience in the MERN stack (MongoDB, Express,
-                  React, Node.js), Nekodez focuses on crafting robust
-                  applications such as campus-centric e-commerce platforms,
-                  authentication systems, and cloud-ready services. Every
-                  feature is approached with an emphasis on architecture, data
-                  integrity, and long-term maintainability.
-                </Typography>
-
-                <Typography
-                  variant="body1"
-                  sx={{
-                    mb: 2,
-                    lineHeight: 1.8,
-                    fontSize: { xs: "0.75rem", md: "1.1rem" },
-                    textAlign: "justify",
-                  }}
-                >
-                  Security and system design play a major role in the
-                  development philosophy. From proper access control to token
-                  flows and deployment practices, the goal is always to build
-                  platforms that are dependable and production-ready, not just
-                  “working.”
-                </Typography>
-
-                <Typography
-                  variant="body1"
-                  sx={{
-                    mb: 2,
-                    lineHeight: 1.8,
-                    fontSize: { xs: "0.75rem", md: "1.1rem" },
-                    textAlign: "justify",
-                  }}
-                >
-                  Nekodez is also a believer in constant improvement. Whether
-                  it’s learning new backend strategies, exploring cloud
-                  services, experimenting with CI/CD, or understanding how AI
-                  enhances developer workflows, the journey never stops.
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Stats Card */}
-          {/*
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Card
-              elevation={4}
-              sx={{
-                height: "100%",
-                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                color: "white",
-              }}
-            >
-              <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-                <Typography
-                  variant="h4"
-                  sx={{ fontWeight: 700, mb: 4, textAlign: "center" }}
-                >
-                  Highlights
-                </Typography>
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                  <Box sx={{ textAlign: "center" }}>
-                    <Typography
-                      variant="h2"
-                      sx={{ fontWeight: 800, mb: 1, opacity: 0.9 }}
-                    >
-                      2
-                    </Typography>
-                    <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Years Experience
-                    </Typography>
-                  </Box>
-                  <Divider sx={{ bgcolor: "rgba(255,255,255,0.2)" }} />
-                  <Box sx={{ textAlign: "center" }}>
-                    <Typography
-                      variant="h2"
-                      sx={{ fontWeight: 800, mb: 1, opacity: 0.9 }}
-                    >
-                      50+
-                    </Typography>
-                    <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Projects Delivered
-                    </Typography>
-                  </Box>
-                  <Divider sx={{ bgcolor: "rgba(255,255,255,0.2)" }} />
-                  <Box sx={{ textAlign: "center" }}>
-                    <Typography
-                      variant="h2"
-                      sx={{ fontWeight: 800, mb: 1, opacity: 0.9 }}
-                    >
-                      100%
-                    </Typography>
-                    <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Client Satisfaction
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          */}
-        </Grid>
-
-        {/* Mission Statement */}
-        <Box sx={{ mt: { xs: 6, md: 10 } }}>
-          <Card
-            elevation={4}
+      {/* About */}
+      <Container maxWidth="md" sx={{ py: { xs: 6, md: 10 } }}>
+        <Box sx={{ textAlign: "center", mb: { xs: 4, md: 6 } }}>
+          <Typography
+            variant="overline"
             sx={{
-              background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.secondary.dark} 100%)`,
-              color: "white",
+              color: theme.palette.primary.main,
+              fontWeight: 600,
+              letterSpacing: 2,
             }}
           >
-            <CardContent sx={{ p: { xs: 3, md: 6 }, textAlign: "center" }}>
-              <Typography
-                variant="h4"
-                sx={{ fontWeight: 700, mb: 3, opacity: 0.95 }}
-              >
-                Mission
-              </Typography>
-              <Typography
-                variant="h6"
-                sx={{
-                  maxWidth: 800,
-                  mx: "auto",
-                  lineHeight: 1.8,
-                  fontWeight: 300,
-                  opacity: 0.95,
-                }}
-              >
-                "To build meaningful, reliable, and future-proof digital
-                products while growing as a developer and as a person."
-              </Typography>
-            </CardContent>
-          </Card>
-        </Box>
-
-        {/* Expertise Section */}
-        <Box sx={{ mt: { xs: 6, md: 10 } }}>
+            About
+          </Typography>
           <Typography
-            variant="h3"
+            variant="h4"
+            component="h2"
             sx={{
               fontWeight: 700,
-              mb: 4,
-              textAlign: "center",
-              color: theme.palette.primary.main,
+              mt: 1,
+              mb: 3,
+              fontSize: { xs: "1.5rem", md: "2.25rem" },
             }}
           >
-            Areas of Expertise
+            Building Digital Solutions
           </Typography>
-          <Grid container spacing={3}>
-            {expertise.map((item, index) => (
-              <Grid size={{ xs: 6, md: 3 }} key={index}>
-                <Paper
-                  elevation={3}
+        </Box>
+
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{
+            lineHeight: 1.9,
+            fontSize: { xs: "1rem", md: "1.125rem" },
+            textAlign: "center",
+            mb: 3,
+          }}
+        >
+          Nekodez is a full-stack developer with a passion for building clean,
+          scalable, and secure applications. Specializing in the MERN stack, the
+          focus is on creating solutions that are not just functional, but
+          genuinely helpful to real users.
+        </Typography>
+
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{
+            lineHeight: 1.9,
+            fontSize: { xs: "1rem", md: "1.125rem" },
+            textAlign: "center",
+          }}
+        >
+          From authentication systems to cloud-ready services, every feature is
+          approached with an emphasis on architecture, data integrity, and
+          long-term maintainability.
+        </Typography>
+      </Container>
+
+      {/* Expertise */}
+      <Box sx={{ bgcolor: theme.palette.background.default, py: { xs: 6, md: 10 } }}>
+        <Container maxWidth="md">
+          <Typography
+            variant="overline"
+            sx={{
+              display: "block",
+              textAlign: "center",
+              color: theme.palette.primary.main,
+              fontWeight: 600,
+              letterSpacing: 2,
+            }}
+          >
+            Expertise
+          </Typography>
+          <Typography
+            variant="h4"
+            component="h2"
+            sx={{
+              fontWeight: 700,
+              textAlign: "center",
+              mt: 1,
+              mb: { xs: 4, md: 6 },
+              fontSize: { xs: "1.5rem", md: "2.25rem" },
+            }}
+          >
+            Areas of Focus
+          </Typography>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "repeat(2, 1fr)", md: "repeat(4, 1fr)" },
+              gap: { xs: 2, md: 3 },
+            }}
+          >
+            {expertise.map((item, i) => (
+              <Box
+                key={i}
+                sx={{
+                  textAlign: "center",
+                  p: { xs: 2, md: 3 },
+                  borderRadius: 2,
+                  bgcolor: theme.palette.background.paper,
+                  border: `1px solid ${theme.palette.divider}`,
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    borderColor: theme.palette.primary.main,
+                    transform: "translateY(-2px)",
+                  },
+                }}
+              >
+                <Box
                   sx={{
-                    p: 3,
-                    height: "100%",
-                    textAlign: "center",
-                    transition: "all 0.3s ease",
-                    border: `2px solid transparent`,
-                    "&:hover": {
-                      transform: "translateY(-8px)",
-                      borderColor: item.color,
-                      boxShadow: `0 12px 24px ${item.color}40`,
-                    },
+                    width: 48,
+                    height: 48,
+                    borderRadius: "10px",
+                    bgcolor: `${theme.palette.primary.main}15`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    mx: "auto",
+                    mb: 1.5,
                   }}
                 >
-                  <Box
-                    sx={{
-                      display: "inline-flex",
-                      p: 2,
-                      borderRadius: "50%",
-                      bgcolor: `${item.color}20`,
-                      color: item.color,
-                      mb: 2,
-                    }}
-                  >
-                    {React.cloneElement(item.icon, { sx: { fontSize: 40 } })}
-                  </Box>
-                  <Typography
-                    variant="h6"
-                    sx={{ fontWeight: 600, color: item.color }}
-                  >
-                    {item.title}
-                  </Typography>
-                </Paper>
-              </Grid>
+                  <item.icon sx={{ color: theme.palette.primary.main, fontSize: 24 }} />
+                </Box>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 600, fontSize: { xs: "0.75rem", md: "0.875rem" } }}
+                >
+                  {item.label}
+                </Typography>
+              </Box>
             ))}
-          </Grid>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* Tech Stack */}
+      <Container maxWidth="md" sx={{ py: { xs: 6, md: 10 }, textAlign: "center" }}>
+        <Typography
+          variant="overline"
+          sx={{
+            color: theme.palette.primary.main,
+            fontWeight: 600,
+            letterSpacing: 2,
+          }}
+        >
+          Technology
+        </Typography>
+        <Typography
+          variant="h4"
+          component="h2"
+          sx={{
+            fontWeight: 700,
+            mt: 1,
+            mb: 3,
+            fontSize: { xs: "1.5rem", md: "2.25rem" },
+          }}
+        >
+          Tools of Choice
+        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 1.5,
+            justifyContent: "center",
+          }}
+        >
+          {techStack.map((tech, i) => (
+            <Chip
+              key={i}
+              label={tech}
+              variant="outlined"
+              sx={{
+                borderRadius: "8px",
+                fontWeight: 500,
+                fontSize: "0.875rem",
+              }}
+            />
+          ))}
         </Box>
       </Container>
+
+      {/* Mission */}
+      <Box
+        sx={{
+          bgcolor: theme.palette.primary.main,
+          color: "white",
+          py: { xs: 6, md: 8 },
+          textAlign: "center",
+        }}
+      >
+        <Container maxWidth="sm">
+          <Typography
+            variant="overline"
+            sx={{ opacity: 0.8, letterSpacing: 2 }}
+          >
+            Mission
+          </Typography>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 500,
+              mt: 2,
+              lineHeight: 1.6,
+              fontStyle: "italic",
+              fontSize: { xs: "1.125rem", md: "1.5rem" },
+            }}
+          >
+            "To build meaningful, reliable, and future-proof digital products
+            while growing as a developer and as a person."
+          </Typography>
+          <Box sx={{ mt: 4, display: "flex", justifyContent: "center", gap: 1 }}>
+            <IconButton
+              href="https://github.com/elgato-nya"
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ color: "white", "&:hover": { bgcolor: "rgba(255,255,255,0.1)" } }}
+              aria-label="GitHub"
+            >
+              <GitHub />
+            </IconButton>
+            <IconButton
+              href="mailto:nekodez@example.com"
+              sx={{ color: "white", "&:hover": { bgcolor: "rgba(255,255,255,0.1)" } }}
+              aria-label="Email"
+            >
+              <Email />
+            </IconButton>
+          </Box>
+        </Container>
+      </Box>
     </Box>
   );
 }

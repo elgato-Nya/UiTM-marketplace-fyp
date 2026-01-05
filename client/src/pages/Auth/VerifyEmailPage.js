@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { CheckCircle, Error, Email } from "@mui/icons-material";
 import api from "../../services/api";
+import { ROUTES } from "../../constants/routes";
 
 const VerifyEmailPage = () => {
   const [searchParams] = useSearchParams();
@@ -50,7 +51,7 @@ const VerifyEmailPage = () => {
           setCountdown(count);
           if (count === 0) {
             clearInterval(interval);
-            navigate("/auth/login");
+            navigate(ROUTES.AUTH.LOGIN);
           }
         }, 1000);
 
@@ -139,7 +140,7 @@ const VerifyEmailPage = () => {
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => navigate("/auth/login")}
+                onClick={() => navigate(ROUTES.AUTH.LOGIN)}
                 sx={{ mt: 3 }}
               >
                 Go to Login Now
@@ -176,7 +177,7 @@ const VerifyEmailPage = () => {
                 )}
                 <Button
                   variant="outlined"
-                  onClick={() => navigate("/auth/login")}
+                  onClick={() => navigate(ROUTES.AUTH.LOGIN)}
                 >
                   Back to Login
                 </Button>

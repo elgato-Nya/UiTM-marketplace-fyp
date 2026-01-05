@@ -19,6 +19,17 @@ const orderItemSchema = new mongoose.Schema(
       required: [true, orderErrorMessages.requiredId.listing],
       validate: [isValidMongoId, userErrorMessages.mongoId.invalid.listing],
     },
+    variantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
+    // Snapshot of variant details at time of order for historical accuracy
+    variantSnapshot: {
+      name: { type: String, default: null },
+      sku: { type: String, default: null },
+      price: { type: Number, default: null },
+      attributes: { type: mongoose.Schema.Types.Mixed, default: null },
+    },
     name: {
       type: String,
       required: [true, listingErrorMessages.name.required],
@@ -69,7 +80,28 @@ const orderItemSchema = new mongoose.Schema(
       // Snapshot of listing type at time of order (for stock management)
     },
   },
-  { _id: false }
+  { _id: false, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
+
+// Virtual to check if order item has a variant
+orderItemSchema.virtual("hasVariant").get(function () {
+  return this.variantId != null;
+});
+
+// Virtual to get effective price (variant price if applicable)
+orderItemSchema.virtual("effectivePrice").get(function () {
+  if (this.variantSnapshot?.price != null) {
+    return this.variantSnapshot.price;
+  }
+  return this.price;
+});
+
+// Virtual to get display name with variant
+orderItemSchema.virtual("displayName").get(function () {
+  if (this.variantSnapshot?.name) {
+    return `${this.name} - ${this.variantSnapshot.name}`;
+  }
+  return this.name;
+});
 
 module.exports = orderItemSchema;

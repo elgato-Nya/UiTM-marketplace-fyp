@@ -38,6 +38,7 @@ const CartModel = new mongoose.Schema(
 );
 
 CartModel.index({ "items.listing": 1 });
+CartModel.index({ "items.listing": 1, "items.variantId": 1 });
 CartModel.index({ lastActivity: -1 });
 
 CartModel.virtual("totalItems").get(function () {
@@ -49,19 +50,52 @@ CartModel.virtual("totalItemsQuantity").get(function () {
   return this.items.reduce((total, item) => total + (item.quantity || 0), 0);
 });
 
-CartModel.methods.findItem = function (listingId) {
-  return this.items.find(
-    (item) => item.listing.toString() === listingId.toString()
-  );
+/**
+ * Find item by listing ID and optional variant ID
+ * @param {ObjectId|string} listingId
+ * @param {ObjectId|string|null} variantId - Optional variant ID
+ * @returns {Object|undefined}
+ */
+CartModel.methods.findItem = function (listingId, variantId = null) {
+  return this.items.find((item) => {
+    const listingMatches = item.listing.toString() === listingId.toString();
+
+    // If variantId is provided, both must match
+    if (variantId) {
+      return (
+        listingMatches &&
+        item.variantId &&
+        item.variantId.toString() === variantId.toString()
+      );
+    }
+
+    // If no variantId, find item without variant
+    return listingMatches && !item.variantId;
+  });
 };
 
-CartModel.methods.addOrUpdateItem = function (listingId, quantity) {
-  const existingItem = this.findItem(listingId);
+/**
+ * Add or update item with optional variant support
+ * @param {ObjectId|string} listingId
+ * @param {number} quantity
+ * @param {Object|null} variantData - Optional variant data { variantId, snapshot }
+ */
+CartModel.methods.addOrUpdateItem = function (
+  listingId,
+  quantity,
+  variantData = null
+) {
+  const variantId = variantData?.variantId || null;
+  const existingItem = this.findItem(listingId, variantId);
 
   // Update quantity if item exists, else add new item
   if (existingItem) {
     existingItem.quantity += quantity; // Sum quantities instead of replacing
     existingItem.lastUpdatedAt = Date.now();
+    // Update variant snapshot if provided (in case variant details changed)
+    if (variantData?.snapshot) {
+      existingItem.variantSnapshot = variantData.snapshot;
+    }
   } else {
     if (this.items.length >= CartLimits.MAX_ITEMS) {
       throw new AppError(
@@ -70,20 +104,47 @@ CartModel.methods.addOrUpdateItem = function (listingId, quantity) {
         "CART_LIMIT_REACHED"
       );
     }
-    this.items.push({
+
+    const newItem = {
       listing: listingId,
       quantity,
       lastUpdatedAt: Date.now(),
       addedAt: Date.now(),
-    });
+    };
+
+    // Add variant data if provided
+    if (variantId) {
+      newItem.variantId = variantId;
+    }
+    if (variantData?.snapshot) {
+      newItem.variantSnapshot = variantData.snapshot;
+    }
+
+    this.items.push(newItem);
   }
   this.lastActivity = Date.now();
   return this;
 };
-CartModel.methods.removeItem = function (listingId) {
-  const itemIndex = this.items.findIndex(
-    (item) => item.listing.toString() === listingId.toString()
-  );
+
+/**
+ * Remove item by listing ID and optional variant ID
+ * @param {ObjectId|string} listingId
+ * @param {ObjectId|string|null} variantId - Optional variant ID
+ */
+CartModel.methods.removeItem = function (listingId, variantId = null) {
+  const itemIndex = this.items.findIndex((item) => {
+    const listingMatches = item.listing.toString() === listingId.toString();
+
+    if (variantId) {
+      return (
+        listingMatches &&
+        item.variantId &&
+        item.variantId.toString() === variantId.toString()
+      );
+    }
+
+    return listingMatches && !item.variantId;
+  });
 
   if (itemIndex === -1) {
     throw new AppError(
@@ -127,8 +188,18 @@ CartModel.methods.clearCart = function () {
   return this;
 };
 
-CartModel.methods.updateItemQuantity = function (listingId, quantity) {
-  const item = this.findItem(listingId);
+/**
+ * Update item quantity by listing ID and optional variant ID
+ * @param {ObjectId|string} listingId
+ * @param {number} quantity
+ * @param {ObjectId|string|null} variantId - Optional variant ID
+ */
+CartModel.methods.updateItemQuantity = function (
+  listingId,
+  quantity,
+  variantId = null
+) {
+  const item = this.findItem(listingId, variantId);
 
   if (!item) {
     throw new AppError(
@@ -159,7 +230,7 @@ CartModel.statics.findOrCreateCart = async function (userId) {
 CartModel.statics.getCartWithDetails = async function (userId) {
   return this.findOne({ userId }).populate({
     path: "items.listing",
-    select: "name price stock images isAvailable category seller type",
+    select: "name price stock images isAvailable category seller type variants",
   });
 };
 

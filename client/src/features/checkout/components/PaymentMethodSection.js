@@ -126,7 +126,7 @@ const PaymentMethodSectionContent = ({
           </Typography>
 
           {/* Alert for unavailable payment methods */}
-          <Alert severity="info" sx={{ mb: 2, py: { xs: 1, sm: 1.5 } }}>
+          {/* <Alert severity="info" sx={{ mb: 2, py: { xs: 1, sm: 1.5 } }}>
             <Typography
               variant="body2"
               sx={{
@@ -144,12 +144,11 @@ const PaymentMethodSectionContent = ({
                 lineHeight: { xs: 1.4, sm: 1.5 },
               }}
             >
-              Stripe Connect is not available in Malaysia. Nekodez is currently
-              working on integrating alternative payment gateways to support
-              credit/debit cards and e-wallet payments. For now, only Cash on
-              Delivery (COD) is available.
+              Stripe Connect Express is not available in Malaysia. Nekodez is
+              currently working on it. For now, only Cash on Delivery (COD) is
+              available.
             </Typography>
-          </Alert>
+          </Alert> */}
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>

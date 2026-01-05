@@ -111,31 +111,103 @@ const createOrder = async (userId, orderData) => {
       }
 
       // Only check stock for products, not services
-      if (listing.type === "product" && item.quantity > listing.stock) {
-        logger.warn(
-          `Order creation failed: Insufficient stock for listing ${item.listingId}. Requested: ${item.quantity}, Available: ${listing.stock}`,
-          { userId, listingId: item.listingId, requested: item.quantity }
-        );
-        return createValidationError(
-          `Insufficient stock for listing ${item.listingId}, only ${listing.stock} left.`,
-          { userId, listingId: item.listingId, requested: item.quantity },
-          "INSUFFICIENT_STOCK"
-        );
+      if (listing.type === "product") {
+        // Determine available stock based on variant or listing
+        let availableStock;
+        let variant = null;
+
+        if (item.variantId) {
+          variant = listing.variants?.id(item.variantId);
+          if (!variant) {
+            logger.warn(
+              `Order creation failed: Variant ${item.variantId} not found for listing ${item.listingId}`,
+              { userId, listingId: item.listingId, variantId: item.variantId }
+            );
+            return createValidationError(
+              `Variant ${item.variantId} not found for listing ${item.listingId}`,
+              { userId, listingId: item.listingId, variantId: item.variantId },
+              "VARIANT_NOT_FOUND"
+            );
+          }
+          if (!variant.isAvailable) {
+            logger.warn(
+              `Order creation failed: Variant ${item.variantId} is unavailable`,
+              { userId, listingId: item.listingId, variantId: item.variantId }
+            );
+            return createValidationError(
+              `Variant is unavailable for listing ${item.listingId}`,
+              { userId, listingId: item.listingId, variantId: item.variantId },
+              "VARIANT_UNAVAILABLE"
+            );
+          }
+          availableStock = variant.stock;
+        } else {
+          availableStock = listing.stock;
+        }
+
+        if (item.quantity > availableStock) {
+          logger.warn(
+            `Order creation failed: Insufficient stock for listing ${item.listingId}. Requested: ${item.quantity}, Available: ${availableStock}`,
+            {
+              userId,
+              listingId: item.listingId,
+              variantId: item.variantId || null,
+              requested: item.quantity,
+            }
+          );
+          return createValidationError(
+            `Insufficient stock for listing ${item.listingId}, only ${availableStock} left.`,
+            {
+              userId,
+              listingId: item.listingId,
+              variantId: item.variantId || null,
+              requested: item.quantity,
+            },
+            "INSUFFICIENT_STOCK"
+          );
+        }
       }
 
-      const itemTotal = listing.price * item.quantity;
+      // Determine price based on variant or listing
+      let itemPrice = listing.price;
+      let variantSnapshot = null;
+
+      if (item.variantId && listing.variants) {
+        const variant = listing.variants.id(item.variantId);
+        if (variant) {
+          itemPrice = variant.price;
+          variantSnapshot = {
+            name: variant.name,
+            sku: variant.sku,
+            price: variant.price,
+            attributes: variant.attributes,
+          };
+        }
+      }
+
+      const itemTotal = itemPrice * item.quantity;
       subtotal += itemTotal;
 
-      processedItems.push({
+      const processedItem = {
         listingId: listing._id,
         name: listing.name,
         description: listing.description || "",
-        price: listing.price,
+        price: itemPrice,
         quantity: item.quantity,
         images: listing.images || [],
         discount: 0,
         type: listing.type, // Store type to check later for stock updates
-      });
+      };
+
+      // Add variant data if present
+      if (item.variantId) {
+        processedItem.variantId = item.variantId;
+      }
+      if (variantSnapshot) {
+        processedItem.variantSnapshot = variantSnapshot;
+      }
+
+      processedItems.push(processedItem);
     }
 
     const seller = await User.findById(sellerId).select(
@@ -232,13 +304,23 @@ const createOrder = async (userId, orderData) => {
     // Only update stock for products, not services
     const stockUpdates = processedItems
       .filter((item) => item.type === "product")
-      .map((item) =>
-        Listing.findByIdAndUpdate(
-          item.listingId,
-          { $inc: { stock: -item.quantity } },
-          { new: true }
-        )
-      );
+      .map((item) => {
+        if (item.variantId) {
+          // Update variant stock using the model method
+          return Listing.findById(item.listingId).then((listing) => {
+            if (listing) {
+              return listing.deductVariantStock(item.variantId, item.quantity);
+            }
+          });
+        } else {
+          // Update listing stock directly
+          return Listing.findByIdAndUpdate(
+            item.listingId,
+            { $inc: { stock: -item.quantity } },
+            { new: true }
+          );
+        }
+      });
 
     if (stockUpdates.length > 0) {
       await Promise.all(stockUpdates);
@@ -577,13 +659,23 @@ const cancelOrder = async (orderId, userId, reason, description = "") => {
           item.type || listingTypeMap.get(item.listingId.toString());
         return itemType === "product"; // Only restore stock for products
       })
-      .map((item) =>
-        Listing.findByIdAndUpdate(
-          item.listingId,
-          { $inc: { stock: item.quantity } },
-          { new: true }
-        )
-      );
+      .map((item) => {
+        if (item.variantId) {
+          // Restore variant stock using the model method
+          return Listing.findById(item.listingId).then((listing) => {
+            if (listing) {
+              return listing.restoreVariantStock(item.variantId, item.quantity);
+            }
+          });
+        } else {
+          // Restore listing stock directly
+          return Listing.findByIdAndUpdate(
+            item.listingId,
+            { $inc: { stock: item.quantity } },
+            { new: true }
+          );
+        }
+      });
 
     if (stockRestorations.length > 0) {
       await Promise.all(stockRestorations);

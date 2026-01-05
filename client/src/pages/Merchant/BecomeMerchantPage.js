@@ -55,7 +55,7 @@ function BecomeMerchantPage() {
   // Redirect to merchant dashboard if already verified
   useEffect(() => {
     if (isVerified) {
-      navigate("/merchant/store");
+      navigate(ROUTES.MERCHANT.STORE);
     }
   }, [isVerified, navigate]);
 

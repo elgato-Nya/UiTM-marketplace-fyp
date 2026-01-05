@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import orderService from "../service/orderService";
+import { extractThunkError } from "../../../store/utils/thunkErrorHandler";
 
 const initialState = {
   // Orders lists
@@ -46,8 +47,7 @@ export const createOrder = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response.data.message ||
-          "An error occurred while creating the order."
+        extractThunkError(error, "Failed to place order. Please try again.")
       );
     }
   }
@@ -61,8 +61,7 @@ export const fetchMyOrders = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response.data.message ||
-          "An error occurred while fetching orders."
+        extractThunkError(error, "Failed to load your orders.")
       );
     }
   }
@@ -76,8 +75,7 @@ export const fetchSellerOrders = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response.data.message ||
-          "An error occurred while fetching seller orders."
+        extractThunkError(error, "Failed to load seller orders.")
       );
     }
   }
@@ -91,8 +89,7 @@ export const fetchOrderById = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response.data.message ||
-          "An error occurred while fetching the order."
+        extractThunkError(error, "Failed to load order details.")
       );
     }
   }
@@ -109,8 +106,7 @@ export const updateOrderStatus = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response.data.message ||
-          "An error occurred while updating the order status."
+        extractThunkError(error, "Failed to update order status.")
       );
     }
   }
@@ -127,8 +123,7 @@ export const cancelOrder = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response.data.message ||
-          "An error occurred while cancelling the order."
+        extractThunkError(error, "Failed to cancel order. Please try again.")
       );
     }
   }
@@ -142,8 +137,7 @@ export const fetchOrderAnalytics = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response.data.message ||
-          "An error occurred while fetching order analytics."
+        extractThunkError(error, "Failed to load order analytics.")
       );
     }
   }

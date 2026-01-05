@@ -1,7 +1,12 @@
 const { body, param, query } = require("express-validator");
 const { handleValidationErrors } = require("../validation.error");
 
-const { ListingCategory } = require("../../../utils/enums/listing.enum");
+const {
+  ListingCategory,
+  VariantLimits,
+  QuoteLimits,
+  QuoteFieldType,
+} = require("../../../utils/enums/listing.enum");
 const {
   ListingValidator,
   listingErrorMessages,
@@ -17,6 +22,15 @@ const {
   isValidListingDescription,
   isValidListingStock,
   isValidType,
+  isValidVariantName,
+  isValidSku,
+  isValidVariantPrice,
+  isValidVariantStock,
+  isValidVariantAttributes,
+  isValidVariantImages,
+  isValidVariantsArray,
+  isValidQuoteSettings,
+  isCategoryMatchingType,
 } = ListingValidator;
 
 // ================ REUSABLE VALIDATION RULE CHAINS ================
@@ -87,7 +101,14 @@ const listingCategoryValidation = (fieldname = "category") => {
     .custom((category) => {
       return isValidCategory(category);
     })
-    .withMessage(listingErrorMessages.category.invalid);
+    .withMessage(listingErrorMessages.category.invalid)
+    .bail()
+    .custom((category, { req }) => {
+      const type = req.body.type;
+      if (!type) return true; // Type validation will handle missing type
+      return isCategoryMatchingType(category, type);
+    })
+    .withMessage(listingErrorMessages.category.typeMismatch);
 };
 
 const listingImagesValidation = (fieldname = "images") => {
@@ -105,9 +126,13 @@ const listingImagesValidation = (fieldname = "images") => {
 
 const listingStockValidation = (fieldname = "stock") => {
   return body(fieldname)
-    .if(body("type").equals("product")) // Only validate stock for products
+    .if((value, { req }) => {
+      // Stock required for products WITHOUT variants
+      const hasVariants = req.body.variants && req.body.variants.length > 0;
+      return req.body.type === "product" && !hasVariants;
+    })
     .notEmpty()
-    .withMessage(listingErrorMessages.stock.required)
+    .withMessage(listingErrorMessages.stock.conditionalRequired)
     .bail()
     .isInt({ min: 0 })
     .withMessage(listingErrorMessages.stock.invalid)
@@ -117,6 +142,147 @@ const listingStockValidation = (fieldname = "stock") => {
       return isValidListingStock(stock);
     })
     .withMessage(listingErrorMessages.stock.invalid);
+};
+
+// ================ VARIANT VALIDATION RULE CHAINS ================
+
+const variantNameValidation = (fieldname = "name") => {
+  return body(fieldname)
+    .notEmpty()
+    .withMessage(listingErrorMessages.variant.name.required)
+    .bail()
+    .trim()
+    .isLength({
+      min: VariantLimits.MIN_VARIANT_NAME_LENGTH,
+      max: VariantLimits.MAX_VARIANT_NAME_LENGTH,
+    })
+    .withMessage(listingErrorMessages.variant.name.invalid)
+    .bail()
+    .custom((name) => isValidVariantName(name))
+    .withMessage(listingErrorMessages.variant.name.invalid);
+};
+
+const variantSkuValidation = (fieldname = "sku") => {
+  return body(fieldname)
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: VariantLimits.MAX_SKU_LENGTH })
+    .withMessage(listingErrorMessages.variant.sku.invalid)
+    .custom((sku) => isValidSku(sku))
+    .withMessage(listingErrorMessages.variant.sku.invalid);
+};
+
+const variantPriceValidation = (fieldname = "price") => {
+  return body(fieldname)
+    .notEmpty()
+    .withMessage(listingErrorMessages.variant.price.required)
+    .bail()
+    .isFloat({ min: 0 })
+    .withMessage(listingErrorMessages.variant.price.invalid)
+    .bail()
+    .toFloat()
+    .custom((price) => isValidVariantPrice(price))
+    .withMessage(listingErrorMessages.variant.price.invalid);
+};
+
+const variantStockValidation = (fieldname = "stock") => {
+  return body(fieldname)
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage(listingErrorMessages.variant.stock.invalid)
+    .bail()
+    .toInt()
+    .custom((stock) => isValidVariantStock(stock))
+    .withMessage(listingErrorMessages.variant.stock.invalid);
+};
+
+const variantAttributesValidation = (fieldname = "attributes") => {
+  return body(fieldname)
+    .optional({ nullable: true })
+    .custom((attributes) => isValidVariantAttributes(attributes))
+    .withMessage(listingErrorMessages.variant.attributes.invalid);
+};
+
+const variantImagesValidation = (fieldname = "images") => {
+  return body(fieldname)
+    .optional({ nullable: true })
+    .isArray({ max: VariantLimits.MAX_VARIANT_IMAGES })
+    .withMessage(listingErrorMessages.variant.images.invalid)
+    .custom((images) => isValidVariantImages(images))
+    .withMessage(listingErrorMessages.variant.images.invalid);
+};
+
+const variantIsAvailableValidation = (fieldname = "isAvailable") => {
+  return body(fieldname)
+    .optional()
+    .isBoolean()
+    .withMessage(listingErrorMessages.variant.isAvailable.invalid)
+    .toBoolean();
+};
+
+/**
+ * Validates variants array when creating/updating a listing with variants
+ */
+const listingVariantsValidation = (fieldname = "variants") => {
+  return body(fieldname)
+    .optional({ nullable: true })
+    .isArray({ max: VariantLimits.MAX_VARIANTS_PER_LISTING })
+    .withMessage(listingErrorMessages.variant.array.limitReached)
+    .custom((variants, { req }) => {
+      if (!variants || variants.length === 0) return true;
+
+      const listingType = req.body.type || "product";
+
+      // Check each variant and get detailed error
+      for (let i = 0; i < variants.length; i++) {
+        const error = ListingValidator.getVariantValidationError(
+          variants[i],
+          listingType,
+          i
+        );
+        if (error) {
+          throw new Error(error);
+        }
+      }
+
+      return true;
+    })
+    .withMessage(listingErrorMessages.variant.invalid);
+};
+
+/**
+ * Validates quote settings when creating/updating a listing
+ */
+const listingQuoteSettingsValidation = (fieldname = "quoteSettings") => {
+  return body(fieldname)
+    .optional({ nullable: true })
+    .custom((quoteSettings, { req }) => {
+      // Quote settings only valid for services
+      if (quoteSettings?.enabled && req.body.type !== "service") {
+        throw new Error(listingErrorMessages.quoteSettings.serviceOnly);
+      }
+      return isValidQuoteSettings(quoteSettings);
+    })
+    .withMessage(listingErrorMessages.quoteSettings.invalid);
+};
+
+/**
+ * Conditional price validation - price optional if variants exist or quote-based
+ */
+const conditionalPriceValidation = (fieldname = "price") => {
+  return body(fieldname)
+    .if((value, { req }) => {
+      const hasVariants = req.body.variants && req.body.variants.length > 0;
+      const isQuoteBased = req.body.quoteSettings?.enabled === true;
+      // Price required only if no variants and not quote-based
+      return !hasVariants && !isQuoteBased;
+    })
+    .notEmpty()
+    .withMessage(listingErrorMessages.price.conditionalRequired)
+    .bail()
+    .isFloat({ min: 0 })
+    .withMessage(listingErrorMessages.price.invalid)
+    .toFloat();
 };
 
 const paramIdValidation = (fieldName) => {
@@ -129,19 +295,29 @@ const paramIdValidation = (fieldName) => {
 };
 
 // ================ COMPLETE VALIDATION MIDDLEWARES ================
+
+/**
+ * Validate create listing request
+ * Supports both legacy mode (price/stock at listing level) and variant mode
+ */
 const validateCreateListing = [
   listingTypeValidation("type"),
   listingNameValidation("name"),
   listingDescriptionValidation("description"),
-  listingPriceValidation("price"),
+  conditionalPriceValidation("price"), // Conditional based on variants/quote
   listingCategoryValidation("category"),
   listingImagesValidation("images"),
-  listingStockValidation("stock"),
+  listingStockValidation("stock"), // Conditional based on variants
+  listingVariantsValidation("variants"), // Optional variants array
+  listingQuoteSettingsValidation("quoteSettings"), // Optional quote settings (services only)
   handleValidationErrors,
 ];
 
+/**
+ * Validate update listing request
+ * All fields optional for partial updates
+ */
 const validateUpdateListing = [
-  // Make all fields optional for updates (unlike creation)
   listingTypeValidation("type").optional(),
   listingNameValidation("name").optional(),
   listingDescriptionValidation("description").optional(),
@@ -149,6 +325,45 @@ const validateUpdateListing = [
   listingCategoryValidation("category").optional(),
   listingImagesValidation("images").optional(),
   listingStockValidation("stock").optional(),
+  listingVariantsValidation("variants").optional(),
+  listingQuoteSettingsValidation("quoteSettings").optional(),
+  handleValidationErrors,
+];
+
+/**
+ * Validate single variant when adding to a listing
+ */
+const validateAddVariant = [
+  variantNameValidation("name"),
+  variantPriceValidation("price"),
+  variantSkuValidation("sku"),
+  variantStockValidation("stock"),
+  variantAttributesValidation("attributes"),
+  variantImagesValidation("images"),
+  variantIsAvailableValidation("isAvailable"),
+  handleValidationErrors,
+];
+
+/**
+ * Validate single variant when updating
+ */
+const validateUpdateVariant = [
+  variantNameValidation("name").optional(),
+  variantPriceValidation("price").optional(),
+  variantSkuValidation("sku").optional(),
+  variantStockValidation("stock").optional(),
+  variantAttributesValidation("attributes").optional(),
+  variantImagesValidation("images").optional(),
+  variantIsAvailableValidation("isAvailable").optional(),
+  handleValidationErrors,
+];
+
+/**
+ * Validate variant ID parameter
+ */
+const validateVariantIdParam = [
+  paramIdValidation("id"),
+  paramIdValidation("variantId"),
   handleValidationErrors,
 ];
 
@@ -262,4 +477,8 @@ module.exports = {
   validateGetListing,
   validatePagination,
   validateSellerIdParam,
+  // Variant-specific validations
+  validateAddVariant,
+  validateUpdateVariant,
+  validateVariantIdParam,
 };

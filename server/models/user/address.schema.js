@@ -72,8 +72,10 @@ const AddressSchema = new mongoose.Schema(
         trim: true,
         validate: {
           validator: function (value) {
-            // Only validate enum if value is provided (for campus type)
-            if (!value && this.type !== "campus") return true;
+            // Skip validation if not campus type or no value
+            if (this.type !== "campus") return true;
+            if (!value) return true;
+            // Only accept enum keys (ARAU, SHAH_ALAM, etc.)
             return Object.keys(CampusEnum).includes(value);
           },
           message: addressErrorMessages.campus.invalid,
@@ -169,8 +171,10 @@ const AddressSchema = new mongoose.Schema(
         trim: true,
         validate: {
           validator: function (value) {
-            // Only validate enum if value is provided (for personal type)
-            if (!value && this.type !== "personal") return true;
+            // Skip validation if not personal type or no value
+            if (this.type !== "personal") return true;
+            if (!value) return true;
+            // Only accept enum keys (SELANGOR, JOHOR, etc.)
             return Object.keys(StateEnum).includes(value);
           },
           message: addressErrorMessages.state.invalid,
@@ -312,15 +316,19 @@ AddressSchema.pre("save", function (next) {
 AddressSchema.virtual("formattedAddress").get(function () {
   if (this.type === "campus" && this.campusAddress) {
     const { building, floor, room, campus } = this.campusAddress;
+    // Convert campus key to display value
+    const campusLabel = CampusEnum[campus] || campus;
 
-    return `${floor}${room}, ${building}, ${campus}`;
+    return `${floor}${room}, ${building}, ${campusLabel}`;
   } else if (this.type === "personal" && this.personalAddress) {
     const { addressLine1, addressLine2, city, state, postcode } =
       this.personalAddress;
+    // Convert state key to display value
+    const stateLabel = StateEnum[state] || state;
 
     return `${addressLine1},${
       addressLine2 ? `, ${addressLine2}` : ""
-    }, ${postcode}, ${city}, ${state}`;
+    }, ${postcode}, ${city}, ${stateLabel}`;
   } else if (this.type === "pickup" && this.pickupDetails) {
     const { location, pickupTime } = this.pickupDetails;
     const formattedTime = pickupTime

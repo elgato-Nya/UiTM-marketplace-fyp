@@ -14,7 +14,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useTheme } from "../../hooks/useTheme";
 import { useAuth } from "../../features/auth/hooks/useAuth";
 import { useProfile } from "../../features/profile/hooks/useProfile";
-import { AvatarUploadZone } from "../../components/common/ImageUpload";
+import AvatarUploadZone from "../../components/common/ImageUpload/AvatarUploadZone";
 import InlineEditField from "../../features/profile/components/InlineEditField";
 import DynamicSkeleton from "../../components/ui/Skeleton/DynamicSkeleton";
 import InfoCard from "../../components/common/Card/InfoCard";
@@ -24,6 +24,7 @@ import ActionGrid from "../../components/common/Grid/ActionGrid";
 import { getObjectValueByKey } from "../../utils/commonFunction";
 import { CAMPUS_OPTIONS, FACULTY_OPTIONS } from "../../constants/authConstant";
 import { isUiTMEmail } from "../../utils/emailUtils";
+import { ROUTES } from "../../constants/routes";
 
 function ProfilePage() {
   const { theme } = useTheme();
@@ -175,14 +176,14 @@ function ProfilePage() {
       id: "orders",
       icon: <Schedule />,
       title: "My Orders",
-      href: "/orders/purchases",
+      href: ROUTES.ORDERS.PURCHASES,
       color: "primary",
     },
     {
       id: "addresses",
       icon: <LocationCity />,
       title: "Addresses",
-      href: "/profile/addresses",
+      href: ROUTES.PROFILE.ADDRESSES,
       color: "primary",
     },
     ...(roles.includes("merchant")
@@ -191,7 +192,7 @@ function ProfilePage() {
             id: "store",
             icon: <School />,
             title: "My Store",
-            href: "/merchant/store",
+            href: ROUTES.MERCHANT.STORE,
             color: "secondary",
           },
         ]
@@ -254,7 +255,7 @@ function ProfilePage() {
             content={
               <Button
                 component={Link}
-                to="/profile/security"
+                to={ROUTES.PROFILE.SECURITY}
                 variant="outlined"
                 fullWidth
                 startIcon={<Edit />}

@@ -41,7 +41,7 @@ import { ROUTES } from "../../constants/routes";
 import DynamicSkeleton from "../../components/ui/Skeleton/DynamicSkeleton";
 import SnackbarContainer from "../../components/ui/SnackbarContainer";
 import ConfirmDialog from "../../components/common/Dialog/ConfirmDialog";
-import { BackButton } from "../../components/common/Navigation";
+import BackButton from "../../components/common/Navigation/BackButton";
 
 // Order components
 import OrderStatusBadge from "../../features/orders/components/OrderStatusBadge";
@@ -227,7 +227,11 @@ function OrderDetailPage() {
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
           <Link
             component={RouterLink}
-            to={userRole === "buyer" ? "/orders/purchases" : "/orders/sales"}
+            to={
+              userRole === "buyer"
+                ? ROUTES.ORDERS.PURCHASES
+                : ROUTES.ORDERS.SALES
+            }
             underline="hover"
             color="inherit"
           >

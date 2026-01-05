@@ -6,7 +6,7 @@ const {
 } = require("../../../validators/cart/cart.validator");
 const { userErrorMessages } = require("../../../validators");
 
-const { isValidQuantity, isValidListingId } = CartValidator;
+const { isValidQuantity, isValidListingId, isValidVariantId } = CartValidator;
 
 // ================ REUSABLE VALIDATION RULE CHAINS ================
 
@@ -64,16 +64,49 @@ const quantityValidation = (fieldName = "quantity") => {
     .withMessage(cartErrorMessages.quantity.invalid);
 };
 
+/**
+ * Validate optional variant ID in request body
+ */
+const variantIdBodyValidation = (fieldName = "variantId") => {
+  return body(fieldName)
+    .optional({ nullable: true })
+    .trim()
+    .isMongoId()
+    .withMessage(cartErrorMessages.variantId.invalid)
+    .bail()
+    .custom((variantId) => {
+      return isValidVariantId(variantId);
+    })
+    .withMessage(cartErrorMessages.variantId.invalid);
+};
+
+/**
+ * Validate variant ID in URL parameters
+ */
+const variantIdParamValidation = (paramName = "variantId") => {
+  return param(paramName)
+    .optional()
+    .trim()
+    .isMongoId()
+    .withMessage(cartErrorMessages.variantId.invalid)
+    .bail()
+    .custom((variantId) => {
+      return isValidVariantId(variantId);
+    })
+    .withMessage(cartErrorMessages.variantId.invalid);
+};
+
 // ================ COMPLETE VALIDATION MIDDLEWARES ================
 
 /**
  * Validate Add to Cart Request
  *
  * @route   POST /api/cart/add
- * @body    { listingId: string, quantity: number }
+ * @body    { listingId: string, quantity: number, variantId?: string }
  */
 const validateAddToCart = [
   listingIdBodyValidation("listingId"),
+  variantIdBodyValidation("variantId"),
   quantityValidation("quantity"),
   handleValidationErrors,
 ];
@@ -83,10 +116,12 @@ const validateAddToCart = [
  *
  * @route   PATCH /api/cart/item/:listingId
  * @param   listingId
+ * @query   variantId (optional)
  * @body    { quantity: number }
  */
 const validateUpdateCartItem = [
   listingIdParamValidation("listingId"),
+  variantIdParamValidation("variantId"),
   quantityValidation("quantity"),
   handleValidationErrors,
 ];
@@ -96,9 +131,11 @@ const validateUpdateCartItem = [
  *
  * @route   DELETE /api/cart/item/:listingId
  * @param   listingId
+ * @query   variantId (optional)
  */
 const validateRemoveFromCart = [
   listingIdParamValidation("listingId"),
+  variantIdParamValidation("variantId"),
   handleValidationErrors,
 ];
 
@@ -123,4 +160,6 @@ module.exports = {
   listingIdBodyValidation,
   listingIdParamValidation,
   quantityValidation,
+  variantIdBodyValidation,
+  variantIdParamValidation,
 };

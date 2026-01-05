@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 import authService from "../service/authService";
+import { extractThunkError } from "../../../store/utils/thunkErrorHandler";
 
 // Helper function to safely get from localStorage
 const getFromLocalStorage = (key) => {
@@ -41,25 +42,12 @@ export const login = createAsyncThunk(
         sessionExpiry: response.data.sessionExpiry,
       };
     } catch (error) {
-      // Extract error from server response structure
-      // Development: error.response.data.error.message
-      // Production: error.response.data.message
-      const responseData = error.response?.data;
-      const errorMessage =
-        responseData?.error?.message || // Development format
-        responseData?.message || // Production format
-        "Unable to complete login. Please try again.";
-
-      const errorCode =
-        responseData?.error?.code || // Development format
-        responseData?.code || // Production format
-        "LOGIN_ERROR";
-
-      return rejectWithValue({
-        message: errorMessage,
-        code: errorCode,
-        statusCode: error.response?.status || 500,
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Unable to complete login. Please check your credentials and try again."
+        )
+      );
     }
   }
 );
@@ -77,20 +65,12 @@ export const register = createAsyncThunk(
           "Registration successful. Please check your email to verify your account.",
       };
     } catch (error) {
-      const responseData = error.response?.data;
-      const errorMessage =
-        responseData?.error?.message ||
-        responseData?.message ||
-        "Unable to complete registration. Please try again.";
-
-      const errorCode =
-        responseData?.error?.code || responseData?.code || "REGISTRATION_ERROR";
-
-      return rejectWithValue({
-        message: errorMessage,
-        code: errorCode,
-        statusCode: error.response?.status || 500,
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Unable to complete registration. Please check your information and try again."
+        )
+      );
     }
   }
 );
@@ -107,20 +87,12 @@ export const handleRefreshToken = createAsyncThunk(
         sessionExpiry: response.data.sessionExpiry,
       };
     } catch (error) {
-      const responseData = error.response?.data;
-      const errorMessage =
-        responseData?.error?.message ||
-        responseData?.message ||
-        "Session expired. Please log in again.";
-
-      const errorCode =
-        responseData?.error?.code || responseData?.code || "SESSION_EXPIRED";
-
-      return rejectWithValue({
-        message: errorMessage,
-        code: errorCode,
-        statusCode: error.response?.status || 401,
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Your session has expired. Please log in again."
+        )
+      );
     }
   }
 );
@@ -137,20 +109,10 @@ export const logout = createAsyncThunk(
         statusCode: 200,
       };
     } catch (error) {
-      const responseData = error.response?.data;
-      const errorMessage =
-        responseData?.error?.message ||
-        responseData?.message ||
-        "Logout completed locally";
-
-      const errorCode =
-        responseData?.error?.code || responseData?.code || "LOGOUT_ERROR";
-
-      return rejectWithValue({
-        message: errorMessage,
-        code: errorCode,
-        statusCode: error.response?.status || 500,
-      });
+      // Even on logout error, we want to clear local state
+      return rejectWithValue(
+        extractThunkError(error, "Logout completed locally")
+      );
     }
   }
 );
@@ -165,22 +127,12 @@ export const resetPassword = createAsyncThunk(
           response.data.message || "Password reset link sent to your email",
       };
     } catch (error) {
-      const responseData = error.response?.data;
-      const errorMessage =
-        responseData?.error?.message ||
-        responseData?.message ||
-        "Unable to send reset email. Please try again.";
-
-      const errorCode =
-        responseData?.error?.code ||
-        responseData?.code ||
-        "RESET_PASSWORD_ERROR";
-
-      return rejectWithValue({
-        message: errorMessage,
-        code: errorCode,
-        statusCode: error.response?.status || 500,
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Unable to send password reset email. Please try again."
+        )
+      );
     }
   }
 );
@@ -328,7 +280,9 @@ const authSlice = createSlice({
         state.roles = [];
         state.token = null;
         state.refreshToken = null;
-        state.error = action.payload;
+        // Don't set error for refresh token failures - it's a silent background operation
+        // The user will be redirected to login if needed
+        state.error = null;
       })
 
       // Logout

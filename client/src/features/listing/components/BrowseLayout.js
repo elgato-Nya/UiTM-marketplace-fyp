@@ -8,7 +8,7 @@ import {
 import BrowseHeader from "./BrowseHeader";
 import ListingFilters from "./ListingFilters";
 import ListingGrid from "./ListingGrid";
-import { ErrorAlert } from "../../../components/common/Alert";
+import ErrorAlert from "../../../components/common/Alert/ErrorAlert";
 import { useTheme } from "../../../hooks/useTheme";
 
 /**

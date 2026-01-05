@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Box, Button, Typography, Link } from "@mui/material";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { Box, Typography, Link } from "@mui/material";
+import { Link as RouterLink, useNavigate, useLocation } from "react-router-dom";
 
 import { useTheme } from "../../hooks/useTheme";
 import { useAuth } from "../../features/auth/hooks/useAuth";
@@ -8,11 +8,10 @@ import { useSnackbar } from "../../hooks/useSnackbar";
 import { register } from "../../features/auth/store/authSlice";
 import DynamicForm from "../../components/common/Form/DynamicForm";
 import DynamicSkeleton from "../../components/ui/Skeleton/DynamicSkeleton";
-import { EmailVerificationModal } from "../../components/common/Modal";
+import RegistrationSuccessModal from "../../components/common/Modal/RegistrationSuccessModal";
 import { registerFormConfig } from "../../config/forms/authForms";
 import { registerValidator } from "../../validation/authValidator";
 import { ROUTES } from "../../constants/routes";
-import authService from "../../features/auth/service/authService";
 import { isUiTMEmail } from "../../utils/emailUtils";
 
 function RegisterPage() {
@@ -20,63 +19,40 @@ function RegisterPage() {
   const { registerUser, error, isLoading, clearAuthError } = useAuth();
   const { showSnackbar } = useSnackbar();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [registerError, setRegisterError] = useState("");
   const [registeredEmail, setRegisteredEmail] = useState("");
-  const [showResendOption, setShowResendOption] = useState(false);
-  const [isResending, setIsResending] = useState(false);
 
-  // Modal state
+  // Modal state - simplified
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalStatus, setModalStatus] = useState("idle"); // 'idle' | 'loading' | 'success' | 'error'
-  const [modalError, setModalError] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
 
+  // Clear errors on mount, unmount, and location change
   useEffect(() => {
     clearAuthError();
     setRegisterError("");
 
     return () => {
       clearAuthError();
+      setRegisterError("");
     };
-  }, [clearAuthError]);
+  }, [clearAuthError, location.pathname]);
 
   useEffect(() => {
     if (error && error.message) {
       setRegisterError(error.message);
-      showSnackbar(error.message, "error");
+      // Close modal and show error in form
+      setModalOpen(false);
+      setIsRegistering(false);
     }
-  }, [error, showSnackbar]);
-
-  const handleResendVerification = async () => {
-    if (!registeredEmail) return;
-
-    setIsResending(true);
-    setModalStatus("loading");
-
-    try {
-      await authService.resendVerificationEmail(registeredEmail);
-      setModalStatus("success");
-      setShowResendOption(false);
-    } catch (error) {
-      // Extract error from server response structure
-      const responseData = error.response?.data;
-      const errorMessage =
-        responseData?.error?.message || // Development format
-        responseData?.message || // Production format
-        "Unable to resend verification email. Please try again.";
-      setModalError(errorMessage);
-      setModalStatus("error");
-    } finally {
-      setIsResending(false);
-    }
-  };
+  }, [error]);
 
   const handleRegister = async (data) => {
     try {
       setRegisterError("");
       clearAuthError();
-      setShowResendOption(false);
-      setModalStatus("loading");
+      setIsRegistering(true);
       setModalOpen(true);
 
       const registrationData = {
@@ -97,10 +73,10 @@ function RegisterPage() {
 
       // Check if registration was successful
       if (register.fulfilled.match(result)) {
-        setModalStatus("success");
-        setShowResendOption(true);
+        setIsRegistering(false);
+        // Modal will now show success state
 
-        // Navigate to login after showing modal for 5 seconds
+        // Navigate to login after 3 seconds
         setTimeout(() => {
           navigate(ROUTES.AUTH.LOGIN, {
             state: {
@@ -109,28 +85,34 @@ function RegisterPage() {
               email: registrationData.email,
             },
           });
-        }, 2000);
+        }, 3000);
       } else if (result.payload?.message) {
-        // Handle registration failure - error message from server
+        // Handle registration failure
         setRegisterError(result.payload.message);
-        setModalError(result.payload.message);
-        setModalStatus("error");
+        setModalOpen(false);
+        setIsRegistering(false);
+        showSnackbar(result.payload.message, "error");
       }
-    } catch (error) {
-      // Error is already set in Redux state and will be handled by useEffect
-      console.error("Registration error:", error);
-      setModalError(error.message || "Registration failed");
-      setModalStatus("error");
+    } catch (err) {
+      setModalOpen(false);
+      setIsRegistering(false);
+      showSnackbar(err.message || "Registration failed", "error");
     }
   };
 
   const handleCloseModal = () => {
-    setModalOpen(false);
-    // Reset modal state after a delay
-    setTimeout(() => {
-      setModalStatus("idle");
-      setModalError("");
-    }, 300);
+    // Only allow closing after success (not during loading)
+    if (!isRegistering) {
+      setModalOpen(false);
+      // Navigate to login
+      navigate(ROUTES.AUTH.LOGIN, {
+        state: {
+          message:
+            "Registration successful! Please verify your email and then log in.",
+          email: registeredEmail,
+        },
+      });
+    }
   };
 
   // Show skeleton while loading
@@ -179,38 +161,6 @@ function RegisterPage() {
         error={registerError}
       />
 
-      {/* Resend Verification Option - shown after successful registration */}
-      {showResendOption && registeredEmail && (
-        <Box
-          sx={{
-            textAlign: "center",
-            mt: { xs: 1.5, sm: 2 },
-            mb: { xs: 1.5, sm: 2 },
-          }}
-        >
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mb: 1, fontSize: { xs: "0.8rem", sm: "0.875rem" } }}
-          >
-            Didn't receive the email?
-          </Typography>
-          <Button
-            onClick={handleResendVerification}
-            disabled={isResending}
-            variant="text"
-            size="small"
-            sx={{
-              color: theme.palette.primary.main,
-              fontSize: { xs: "0.8rem", sm: "0.875rem" },
-              "&:hover": { textDecoration: "underline" },
-            }}
-          >
-            {isResending ? "Sending..." : "Resend Verification Email"}
-          </Button>
-        </Box>
-      )}
-
       {/* Sign in link */}
       <Box sx={{ textAlign: "center", mt: { xs: 3, sm: 4 } }}>
         <Typography
@@ -221,7 +171,7 @@ function RegisterPage() {
           Already have an account?{" "}
           <Link
             component={RouterLink}
-            to="/auth/login"
+            to={ROUTES.AUTH.LOGIN}
             sx={{
               color: theme.palette.primary.main,
               textDecoration: "none",
@@ -243,26 +193,22 @@ function RegisterPage() {
           sx={{ fontSize: { xs: "0.7rem", sm: "0.75rem" } }}
         >
           By creating an account, you agree to our{" "}
-          <Link href="/terms" color="primary">
+          <Link href={ROUTES.TERMS} color="primary">
             Terms of Service
           </Link>{" "}
           and{" "}
-          <Link href="/privacy" color="primary">
+          <Link href={ROUTES.PRIVACY} color="primary">
             Privacy Policy
           </Link>
         </Typography>
       </Box>
 
-      {/* Email Verification Modal */}
-      <EmailVerificationModal
+      {/* Registration Success Modal */}
+      <RegistrationSuccessModal
         open={modalOpen}
         onClose={handleCloseModal}
-        status={modalStatus}
-        type="register"
         email={registeredEmail}
-        error={modalError}
-        onResend={handleResendVerification}
-        isResending={isResending}
+        isLoading={isRegistering}
       />
     </Box>
   );

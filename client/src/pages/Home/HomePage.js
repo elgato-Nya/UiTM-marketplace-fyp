@@ -150,13 +150,6 @@ function HomePage() {
        * - Add admin approval workflow in ContactManagementPage
        * - Create public endpoint (no auth required)
        * - Index: { type: 1, status: 1, isPublic: 1, rating: -1 }
-       *
-       * WHY REMOVED: Previous TestimonialsCarousel used fake placeholder data
-       * (hardcoded names, fake avatars from pravatar.cc, mock reviews)
-       * which is unprofessional for enterprise-level platform.
-       *
-       * UPDATE: CustomerFeedbackSection now implemented above - replace this comment
-       * once public API endpoint is ready and admin approval workflow is in place.
        */}
 
       {/* Call to Action Section */}

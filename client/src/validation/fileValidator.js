@@ -53,9 +53,11 @@ export const validateFileType = (
   acceptedTypes = FILE_VALIDATION_DEFAULTS.acceptedTypes
 ) => {
   if (!acceptedTypes.includes(file.type)) {
+    const fileExt = file.name.split(".").pop()?.toUpperCase() || "Unknown";
+    const acceptedList = formatAcceptedTypes(acceptedTypes);
     return {
       valid: false,
-      error: `Invalid file type: ${file.name}. Accepted: ${formatAcceptedTypes(acceptedTypes)}`,
+      error: `"${file.name}" is not a supported file type. Please use ${acceptedList} format instead of ${fileExt}.`,
     };
   }
   return { valid: true, error: null };
@@ -75,9 +77,10 @@ export const validateFileSize = (
   const fileSizeMB = bytesToMB(file.size);
 
   if (fileSizeMB > maxSize) {
+    const overBy = (fileSizeMB - maxSize).toFixed(1);
     return {
       valid: false,
-      error: `File too large: ${file.name}. Size: ${fileSizeMB.toFixed(2)}MB. Max: ${maxSize}MB`,
+      error: `"${file.name}" is too large (${fileSizeMB.toFixed(1)}MB). Maximum file size is ${maxSize}MB. Please compress or resize your image.`,
     };
   }
   return { valid: true, error: null };
@@ -136,7 +139,7 @@ export const validateFiles = (files, options = {}) => {
   // Check max files
   if (fileArray.length > maxFiles) {
     errors.push(
-      `Maximum ${maxFiles} file${maxFiles > 1 ? "s" : ""} allowed. You selected ${fileArray.length}.`
+      `You can only upload up to ${maxFiles} image${maxFiles > 1 ? "s" : ""} at a time. You selected ${fileArray.length}. The first ${maxFiles} will be processed.`
     );
     // Take only first maxFiles
     fileArray.splice(maxFiles);

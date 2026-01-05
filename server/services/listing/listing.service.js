@@ -591,6 +591,400 @@ const toggleAvailability = async (listingId, userId) => {
   }
 };
 
+// ======================   VARIANT SERVICE METHODS   ========================
+
+/**
+ * Add a variant to an existing listing
+ * @param {String} listingId - ID of the listing
+ * @param {String} userId - ID of the user (for authorization)
+ * @param {Object} variantData - Variant data to add
+ * @returns {Promise<Object>} - The added variant
+ * NOTE: Authorization handled by isListingOwner middleware
+ */
+const addVariant = async (listingId, userId, variantData) => {
+  try {
+    const listing = await Listing.findById(listingId);
+
+    if (!listing) {
+      return handleNotFoundError("Listing", "LISTING_NOT_FOUND", "addVariant", {
+        listingId,
+        userId,
+      });
+    }
+
+    // Initialize variants array if it doesn't exist
+    if (!listing.variants) {
+      listing.variants = [];
+    }
+
+    // Check variant limit
+    const { VariantLimits } = require("../../utils/enums/listing.enum");
+    if (listing.variants.length >= VariantLimits.MAX_VARIANTS_PER_LISTING) {
+      const { createBadRequestError } = require("../../utils/errors");
+      throw createBadRequestError(
+        `Maximum ${VariantLimits.MAX_VARIANTS_PER_LISTING} variants allowed per listing`,
+        "VARIANT_LIMIT_REACHED"
+      );
+    }
+
+    // Validate stock is provided for products
+    if (
+      listing.type === "product" &&
+      (variantData.stock === undefined || variantData.stock === null)
+    ) {
+      const { createValidationError } = require("../../utils/errors");
+      throw createValidationError(
+        "Stock is required for product variants",
+        [],
+        "VARIANT_STOCK_REQUIRED"
+      );
+    }
+
+    // Add the variant
+    listing.variants.push(sanitizeObject(variantData));
+    await listing.save();
+
+    const addedVariant = listing.variants[listing.variants.length - 1];
+
+    logger.info("Variant added successfully", {
+      listingId: listingId.toString(),
+      variantId: addedVariant._id.toString(),
+      variantName: addedVariant.name,
+      userId: userId.toString(),
+      action: "add_variant",
+    });
+
+    return addedVariant.toObject();
+  } catch (error) {
+    return handleServiceError(error, "addVariant", {
+      listingId,
+      userId,
+      variantName: variantData?.name,
+    });
+  }
+};
+
+/**
+ * Update an existing variant
+ * @param {String} listingId - ID of the listing
+ * @param {String} variantId - ID of the variant to update
+ * @param {String} userId - ID of the user (for authorization)
+ * @param {Object} updateData - Data to update
+ * @returns {Promise<Object>} - The updated variant
+ */
+const updateVariant = async (listingId, variantId, userId, updateData) => {
+  try {
+    const listing = await Listing.findById(listingId);
+
+    if (!listing) {
+      return handleNotFoundError(
+        "Listing",
+        "LISTING_NOT_FOUND",
+        "updateVariant",
+        { listingId, userId }
+      );
+    }
+
+    const variant = listing.getVariant(variantId);
+    if (!variant) {
+      return handleNotFoundError(
+        "Variant",
+        "VARIANT_NOT_FOUND",
+        "updateVariant",
+        { listingId, variantId, userId }
+      );
+    }
+
+    // Sanitize and apply updates
+    const sanitizedData = sanitizeObject(updateData);
+
+    // Prevent updating protected fields
+    delete sanitizedData._id;
+    delete sanitizedData.createdAt;
+
+    Object.assign(variant, sanitizedData);
+    await listing.save();
+
+    logger.info("Variant updated successfully", {
+      listingId: listingId.toString(),
+      variantId: variantId.toString(),
+      updatedFields: Object.keys(sanitizedData),
+      userId: userId.toString(),
+      action: "update_variant",
+    });
+
+    return variant.toObject();
+  } catch (error) {
+    return handleServiceError(error, "updateVariant", {
+      listingId,
+      variantId,
+      userId,
+    });
+  }
+};
+
+/**
+ * Delete a variant (soft delete by marking unavailable)
+ * @param {String} listingId - ID of the listing
+ * @param {String} variantId - ID of the variant to delete
+ * @param {String} userId - ID of the user (for authorization)
+ * @param {Boolean} permanent - If true, permanently remove; if false, soft delete
+ * @returns {Promise<Object>} - Result of deletion
+ */
+const deleteVariant = async (
+  listingId,
+  variantId,
+  userId,
+  permanent = false
+) => {
+  try {
+    const listing = await Listing.findById(listingId);
+
+    if (!listing) {
+      return handleNotFoundError(
+        "Listing",
+        "LISTING_NOT_FOUND",
+        "deleteVariant",
+        { listingId, userId }
+      );
+    }
+
+    const variant = listing.getVariant(variantId);
+    if (!variant) {
+      return handleNotFoundError(
+        "Variant",
+        "VARIANT_NOT_FOUND",
+        "deleteVariant",
+        { listingId, variantId, userId }
+      );
+    }
+
+    if (permanent) {
+      // Permanently remove the variant
+      listing.variants.pull(variantId);
+      await listing.save();
+
+      logger.info("Variant permanently deleted", {
+        listingId: listingId.toString(),
+        variantId: variantId.toString(),
+        userId: userId.toString(),
+        action: "permanent_delete_variant",
+      });
+
+      return { deleted: true, permanent: true };
+    } else {
+      // Soft delete - mark as unavailable
+      variant.isAvailable = false;
+      await listing.save();
+
+      logger.info("Variant soft deleted (marked unavailable)", {
+        listingId: listingId.toString(),
+        variantId: variantId.toString(),
+        userId: userId.toString(),
+        action: "soft_delete_variant",
+      });
+
+      return { deleted: true, permanent: false, variant: variant.toObject() };
+    }
+  } catch (error) {
+    return handleServiceError(error, "deleteVariant", {
+      listingId,
+      variantId,
+      userId,
+      permanent,
+    });
+  }
+};
+
+/**
+ * Get a specific variant by ID
+ * @param {String} listingId - ID of the listing
+ * @param {String} variantId - ID of the variant
+ * @returns {Promise<Object>} - The variant
+ */
+const getVariant = async (listingId, variantId) => {
+  try {
+    const listing = await Listing.findById(listingId);
+
+    if (!listing) {
+      return handleNotFoundError("Listing", "LISTING_NOT_FOUND", "getVariant", {
+        listingId,
+      });
+    }
+
+    const variant = listing.getVariant(variantId);
+    if (!variant) {
+      return handleNotFoundError("Variant", "VARIANT_NOT_FOUND", "getVariant", {
+        listingId,
+        variantId,
+      });
+    }
+
+    return variant.toObject();
+  } catch (error) {
+    return handleServiceError(error, "getVariant", { listingId, variantId });
+  }
+};
+
+/**
+ * Get all variants for a listing
+ * @param {String} listingId - ID of the listing
+ * @param {Object} options - Query options
+ * @param {Boolean} options.includeUnavailable - Include unavailable variants
+ * @returns {Promise<Array>} - Array of variants
+ */
+const getListingVariants = async (listingId, options = {}) => {
+  try {
+    const { includeUnavailable = false } = options;
+
+    const listing = await Listing.findById(listingId).select("variants type");
+
+    if (!listing) {
+      return handleNotFoundError(
+        "Listing",
+        "LISTING_NOT_FOUND",
+        "getListingVariants",
+        { listingId }
+      );
+    }
+
+    if (!listing.variants || listing.variants.length === 0) {
+      return [];
+    }
+
+    let variants = listing.variants.map((v) => v.toObject());
+
+    if (!includeUnavailable) {
+      variants = variants.filter((v) => v.isAvailable);
+    }
+
+    return variants;
+  } catch (error) {
+    return handleServiceError(error, "getListingVariants", { listingId });
+  }
+};
+
+/**
+ * Deduct stock from a specific variant
+ * @param {String} listingId - ID of the listing
+ * @param {String} variantId - ID of the variant
+ * @param {Number} quantity - Quantity to deduct
+ * @returns {Promise<Object>} - Updated variant
+ */
+const deductVariantStock = async (listingId, variantId, quantity) => {
+  try {
+    const listing = await Listing.findById(listingId);
+
+    if (!listing) {
+      return handleNotFoundError(
+        "Listing",
+        "LISTING_NOT_FOUND",
+        "deductVariantStock",
+        { listingId }
+      );
+    }
+
+    const variant = listing.getVariant(variantId);
+    if (!variant) {
+      return handleNotFoundError(
+        "Variant",
+        "VARIANT_NOT_FOUND",
+        "deductVariantStock",
+        { listingId, variantId }
+      );
+    }
+
+    // Check if this is a service (no stock management needed)
+    if (listing.type === "service") {
+      return variant.toObject();
+    }
+
+    // Check stock availability
+    if (variant.stock < quantity) {
+      const { createBadRequestError } = require("../../utils/errors");
+      createBadRequestError(
+        `Insufficient stock. Available: ${variant.stock}, Requested: ${quantity}`,
+        "INSUFFICIENT_VARIANT_STOCK"
+      );
+    }
+
+    variant.stock -= quantity;
+    await listing.save();
+
+    logger.info("Variant stock deducted", {
+      listingId: listingId.toString(),
+      variantId: variantId.toString(),
+      quantity,
+      newStock: variant.stock,
+      action: "deduct_variant_stock",
+    });
+
+    return variant.toObject();
+  } catch (error) {
+    return handleServiceError(error, "deductVariantStock", {
+      listingId,
+      variantId,
+      quantity,
+    });
+  }
+};
+
+/**
+ * Restore stock to a specific variant (for order cancellation)
+ * @param {String} listingId - ID of the listing
+ * @param {String} variantId - ID of the variant
+ * @param {Number} quantity - Quantity to restore
+ * @returns {Promise<Object>} - Updated variant
+ */
+const restoreVariantStock = async (listingId, variantId, quantity) => {
+  try {
+    const listing = await Listing.findById(listingId);
+
+    if (!listing) {
+      return handleNotFoundError(
+        "Listing",
+        "LISTING_NOT_FOUND",
+        "restoreVariantStock",
+        { listingId }
+      );
+    }
+
+    const variant = listing.getVariant(variantId);
+    if (!variant) {
+      return handleNotFoundError(
+        "Variant",
+        "VARIANT_NOT_FOUND",
+        "restoreVariantStock",
+        { listingId, variantId }
+      );
+    }
+
+    // Skip for services
+    if (listing.type === "service") {
+      return variant.toObject();
+    }
+
+    variant.stock += quantity;
+    await listing.save();
+
+    logger.info("Variant stock restored", {
+      listingId: listingId.toString(),
+      variantId: variantId.toString(),
+      quantity,
+      newStock: variant.stock,
+      action: "restore_variant_stock",
+    });
+
+    return variant.toObject();
+  } catch (error) {
+    return handleServiceError(error, "restoreVariantStock", {
+      listingId,
+      variantId,
+      quantity,
+    });
+  }
+};
+
 module.exports = {
   createListing,
   getListingById,
@@ -599,15 +993,12 @@ module.exports = {
   updateListing,
   deleteListing,
   toggleAvailability,
+  // Variant methods
+  addVariant,
+  updateVariant,
+  deleteVariant,
+  getVariant,
+  getListingVariants,
+  deductVariantStock,
+  restoreVariantStock,
 };
-
-// TODO: Really think about what is really necessary in this file and remove anything that is not
-// server/services/listing/listing-search.service.js
-/**
- * searchListings(filters, pagination)
- * getListingsByCategory(category, options)
- * getListingsByPriceRange(min, max, options)
- * getFeaturedListings(options)
- * getRecentListings(options)
- * Justification: Search is complex enough to warrant separate service, enables caching and optimization.
- */

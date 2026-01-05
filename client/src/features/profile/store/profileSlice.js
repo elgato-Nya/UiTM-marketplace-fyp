@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 import profileService from "../service/profileService";
+import { extractThunkError } from "../../../store/utils/thunkErrorHandler";
 
 const initialState = {
   user: null,
@@ -21,14 +22,12 @@ export const fetchUserProfile = createAsyncThunk(
         roles: response.data.roles,
       };
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to fetch profile",
-        statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Failed to load your profile. Please refresh the page."
+        )
+      );
     }
   }
 );
@@ -44,15 +43,12 @@ export const updateUserProfile = createAsyncThunk(
         roles: response.data.roles,
       };
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to update profile",
-        statusCode: error.response?.status || 500,
-        validationErrors: error.response?.data?.errors || null,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Failed to update profile. Please check your input and try again."
+        )
+      );
     }
   }
 );
@@ -66,14 +62,12 @@ export const changePassword = createAsyncThunk(
         message: response.data.message || "Password changed successfully",
       };
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to change password",
-        statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Failed to change password. Please check your current password and try again."
+        )
+      );
     }
   }
 );

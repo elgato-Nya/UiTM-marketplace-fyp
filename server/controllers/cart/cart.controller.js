@@ -20,13 +20,19 @@ const getCart = asyncHandler(async (req, res) => {
 
 const addToCart = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { listingId, quantity } = sanitizeObject(req.body);
+  const { listingId, quantity, variantId } = sanitizeObject(req.body);
 
-  const result = await cartService.addToCart(userId, listingId, quantity);
+  const result = await cartService.addToCart(
+    userId,
+    listingId,
+    quantity,
+    variantId || null
+  );
 
   baseController.logAction("add_to_cart", req, {
     userId: userId.toString(),
     listingId: listingId.toString(),
+    variantId: variantId?.toString() || null,
     quantity,
   });
 
@@ -40,18 +46,20 @@ const addToCart = asyncHandler(async (req, res) => {
 
 const updateCartItem = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { listingId } = req.params;
+  const { listingId, variantId } = req.params;
   const { quantity } = sanitizeObject(req.body);
 
   const result = await cartService.updateCartItemQuantity(
     userId,
     listingId,
-    quantity
+    quantity,
+    variantId || null
   );
 
   baseController.logAction("update_cart_item", req, {
     userId: userId.toString(),
     listingId: listingId.toString(),
+    variantId: variantId?.toString() || null,
     quantity,
   });
 
@@ -64,13 +72,18 @@ const updateCartItem = asyncHandler(async (req, res) => {
 
 const removeFromCart = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { listingId } = req.params;
+  const { listingId, variantId } = req.params;
 
-  const result = await cartService.removeFromCart(userId, listingId);
+  const result = await cartService.removeFromCart(
+    userId,
+    listingId,
+    variantId || null
+  );
 
   baseController.logAction("remove_from_cart", req, {
     userId: userId.toString(),
     listingId: listingId.toString(),
+    variantId: variantId?.toString() || null,
   });
 
   return baseController.sendSuccess(

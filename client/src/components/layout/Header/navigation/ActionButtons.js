@@ -38,7 +38,7 @@ function ActionButtons({
         <IconButton
           color="inherit"
           component={Link}
-          to="/cart"
+          to={ROUTES.CART}
           aria-label={`Shopping cart with ${cartCount} items`}
           size={isSmallScreen ? "small" : "medium"}
         >
@@ -53,7 +53,7 @@ function ActionButtons({
         <IconButton
           color="inherit"
           component={Link}
-          to="/wishlist"
+          to={ROUTES.WISHLIST}
           aria-label={`Wishlist with ${wishlistCount} items`}
           size={isSmallScreen ? "small" : "medium"}
         >

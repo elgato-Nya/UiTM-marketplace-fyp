@@ -1,20 +1,31 @@
 const mongoose = require("mongoose");
 
-const { ListingCategory } = require("../../utils/enums/listing.enum");
+const {
+  ListingCategory,
+  VariantLimits,
+} = require("../../utils/enums/listing.enum");
 const {
   ListingValidator,
   listingErrorMessages,
   userErrorMessages,
 } = require("../../validators");
+const VariantSchema = require("./variant.schema");
+const { QuoteSettingsSchema } = require("./quoteSettings.schema");
 
-const { isValidListingName, isValidListingDescription, isValidImagesArray } =
-  ListingValidator;
+const {
+  isValidListingName,
+  isValidListingDescription,
+  isValidImagesArray,
+  isValidVariantsArray,
+  isValidQuoteSettings,
+} = ListingValidator;
 
 /**
  * Listing Model
  *
- * PURPOSE: Basic listing schema for e-commerce
- * FEATURES: Name, description, price, category, images, stock
+ * PURPOSE: Basic listing schema for e-commerce with variant support
+ * FEATURES: Name, description, price, category, images, stock, variants, quote system
+ * BACKWARD COMPATIBILITY: Existing listings without variants continue to work
  */
 
 const ListingSchema = new mongoose.Schema(
@@ -47,7 +58,15 @@ const ListingSchema = new mongoose.Schema(
 
     price: {
       type: Number,
-      required: [true, listingErrorMessages.price.required],
+      required: [
+        function () {
+          // Price required if NO variants AND NOT quote-based
+          const hasVariants = this.variants && this.variants.length > 0;
+          const isQuoteBased = this.quoteSettings?.enabled === true;
+          return !hasVariants && !isQuoteBased;
+        },
+        listingErrorMessages.price.conditionalRequired,
+      ],
       min: [0, listingErrorMessages.price.invalid],
       index: true,
     },
@@ -74,12 +93,20 @@ const ListingSchema = new mongoose.Schema(
 
     stock: {
       type: Number,
-      required: function () {
-        return this.type === "product"; // Only required for products
-      },
+      required: [
+        function () {
+          // Stock required for products WITHOUT variants
+          const hasVariants = this.variants && this.variants.length > 0;
+          return this.type === "product" && !hasVariants;
+        },
+        listingErrorMessages.stock.conditionalRequired,
+      ],
       min: [0, "Stock cannot be negative"],
       default: function () {
-        return this.type === "product" ? 0 : undefined;
+        // Only set default for products without variants
+        const hasVariants = this.variants && this.variants.length > 0;
+        if (this.type === "product" && !hasVariants) return 0;
+        return undefined;
       },
     },
 
@@ -93,6 +120,52 @@ const ListingSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
       index: true,
+    },
+
+    // ======================   Variants (Optional)   ========================
+    variants: {
+      type: [VariantSchema],
+      default: undefined, // Not required - backward compatible
+      validate: [
+        {
+          validator: function (variants) {
+            if (!variants || variants.length === 0) return true;
+            return variants.length <= VariantLimits.MAX_VARIANTS_PER_LISTING;
+          },
+          message: listingErrorMessages.variant.array.limitReached,
+        },
+        {
+          validator: function (variants) {
+            if (!variants || variants.length === 0) return true;
+            // Validate stock is set for each variant if listing is a product
+            if (this.type === "product") {
+              return variants.every(
+                (v) => v.stock !== undefined && v.stock !== null
+              );
+            }
+            return true;
+          },
+          message: listingErrorMessages.variant.stock.required,
+        },
+      ],
+    },
+
+    // ======================   Quote Settings (Services Only)   ========================
+    quoteSettings: {
+      type: QuoteSettingsSchema,
+      default: undefined, // Not required - backward compatible
+      validate: [
+        {
+          validator: function (quoteSettings) {
+            // Quote settings only valid for services
+            if (quoteSettings?.enabled && this.type !== "service") {
+              return false;
+            }
+            return true;
+          },
+          message: listingErrorMessages.quoteSettings.serviceOnly,
+        },
+      ],
     },
 
     // ======================   Seller Information   ========================
@@ -150,9 +223,37 @@ ListingSchema.index({ "seller.userType": 1, isAvailable: 1 });
 ListingSchema.index({ "seller.shopSlug": 1, isAvailable: 1 });
 ListingSchema.index({ "seller.isVerifiedMerchant": 1, category: 1 });
 
-// Virtual for checking if listing is in stock
+// Variant-specific indexes
+ListingSchema.index({ "variants._id": 1 });
+ListingSchema.index(
+  { "variants.sku": 1, "seller.userId": 1 },
+  { sparse: true }
+);
+ListingSchema.index({ "variants.isAvailable": 1, isAvailable: 1 });
+ListingSchema.index({ "quoteSettings.enabled": 1, type: 1 }, { sparse: true });
+
+// ======================   Virtuals   ========================
+
+// Virtual for checking if listing has variants
+ListingSchema.virtual("hasVariants").get(function () {
+  return Array.isArray(this.variants) && this.variants.length > 0;
+});
+
+// Virtual for checking if listing is quote-based
+ListingSchema.virtual("isQuoteBased").get(function () {
+  return this.quoteSettings?.enabled === true;
+});
+
+// Virtual for checking if listing is in stock (updated for variants)
 ListingSchema.virtual("inStock").get(function () {
   if (this.type === "service") return true; // Services are always "in stock"
+
+  // If has variants, check variant stock
+  if (this.variants && this.variants.length > 0) {
+    return this.variants.some((v) => v.isAvailable && v.stock > 0);
+  }
+
+  // Legacy mode: check listing-level stock
   return this.stock > 0;
 });
 
@@ -168,6 +269,141 @@ ListingSchema.virtual("sellerProfileUrl").get(function () {
   }
   return `/user/${this.seller.username}`;
 });
+
+// ======================   Instance Methods   ========================
+
+/**
+ * Get the minimum price (from variants or base price)
+ * @returns {number|null} Minimum price or null if quote-based
+ */
+ListingSchema.methods.getMinPrice = function () {
+  if (this.quoteSettings?.enabled) {
+    return this.quoteSettings.minPrice || null;
+  }
+
+  if (this.variants && this.variants.length > 0) {
+    const availableVariants = this.variants.filter((v) => v.isAvailable);
+    if (availableVariants.length === 0) return null;
+    return Math.min(...availableVariants.map((v) => v.price));
+  }
+
+  return this.price;
+};
+
+/**
+ * Get the maximum price (from variants or base price)
+ * @returns {number|null} Maximum price or null if quote-based
+ */
+ListingSchema.methods.getMaxPrice = function () {
+  if (this.quoteSettings?.enabled) {
+    return this.quoteSettings.maxPrice || null;
+  }
+
+  if (this.variants && this.variants.length > 0) {
+    const availableVariants = this.variants.filter((v) => v.isAvailable);
+    if (availableVariants.length === 0) return null;
+    return Math.max(...availableVariants.map((v) => v.price));
+  }
+
+  return this.price;
+};
+
+/**
+ * Get the total stock (sum of all variant stocks or base stock)
+ * @returns {number|null} Total stock or null for services
+ */
+ListingSchema.methods.getTotalStock = function () {
+  if (this.type === "service") return null;
+
+  if (this.variants && this.variants.length > 0) {
+    return this.variants.reduce((total, v) => {
+      if (v.isAvailable && v.stock !== undefined) {
+        return total + v.stock;
+      }
+      return total;
+    }, 0);
+  }
+
+  return this.stock || 0;
+};
+
+/**
+ * Get a specific variant by ID
+ * @param {ObjectId|string} variantId
+ * @returns {Object|null} Variant subdocument or null
+ */
+ListingSchema.methods.getVariant = function (variantId) {
+  if (!this.variants || this.variants.length === 0) return null;
+  return this.variants.id(variantId) || null;
+};
+
+/**
+ * Get available variants only
+ * @returns {Array} Array of available variants
+ */
+ListingSchema.methods.getAvailableVariants = function () {
+  if (!this.variants) return [];
+  return this.variants.filter((v) => v.isAvailable);
+};
+
+/**
+ * Check if a specific variant is in stock
+ * @param {ObjectId|string} variantId
+ * @returns {boolean}
+ */
+ListingSchema.methods.isVariantInStock = function (variantId) {
+  const variant = this.getVariant(variantId);
+  if (!variant) return false;
+  if (this.type === "service") return variant.isAvailable;
+  return variant.isAvailable && variant.stock > 0;
+};
+
+/**
+ * Deduct stock from a specific variant
+ * @param {ObjectId|string} variantId
+ * @param {number} quantity
+ * @returns {Promise<boolean>} Success status
+ */
+ListingSchema.methods.deductVariantStock = async function (
+  variantId,
+  quantity
+) {
+  const variant = this.getVariant(variantId);
+  if (!variant) {
+    throw new Error(`Variant ${variantId} not found`);
+  }
+  if (this.type === "service") return true; // Services don't have stock
+
+  if (variant.stock < quantity) {
+    throw new Error(`Insufficient stock for variant ${variantId}`);
+  }
+  variant.stock -= quantity;
+  await this.save();
+  return true;
+};
+
+/**
+ * Restore stock to a specific variant (for order cancellation)
+ * @param {ObjectId|string} variantId
+ * @param {number} quantity
+ * @returns {Promise<boolean>} Success status
+ */
+ListingSchema.methods.restoreVariantStock = async function (
+  variantId,
+  quantity
+) {
+  const variant = this.getVariant(variantId);
+  if (!variant) {
+    throw new Error(`Variant ${variantId} not found`);
+  }
+  if (this.type === "service") return true; // Services don't have stock
+
+  variant.stock += quantity;
+  await this.save();
+  return true;
+};
+
+// ======================   Static Methods   ========================
 
 // Static method to get listings by seller
 ListingSchema.statics.findBySeller = function (userId, options = {}) {

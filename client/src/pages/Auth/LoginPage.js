@@ -10,13 +10,14 @@ import DynamicSkeleton from "../../components/ui/Skeleton/DynamicSkeleton";
 import { loginFormConfig } from "../../config/forms/authForms";
 import { loginValidation } from "../../validation/authValidator";
 import authService from "../../features/auth/service/authService";
+import { ROUTES } from "../../constants/routes";
 
 // Forgot Password Link Component
 const ForgotPasswordLink = ({ theme }) => (
   <Box sx={{ textAlign: "right" }}>
     <Link
       component={RouterLink}
-      to="/auth/forgot-password"
+      to={ROUTES.AUTH.FORGOT_PASSWORD}
       variant="body2"
       sx={{
         color: theme.palette.primary.main,
@@ -40,15 +41,16 @@ function LoginPage() {
   const [isResending, setIsResending] = useState(false);
   const [lastEmail, setLastEmail] = useState("");
 
-  // Clear auth error on component mount and unmount
+  // Clear auth error on component mount, unmount, and location change
   useEffect(() => {
     clearAuthError();
     setLoginError("");
 
     return () => {
       clearAuthError();
+      setLoginError("");
     };
-  }, [clearAuthError]);
+  }, [clearAuthError, location.pathname]);
 
   useEffect(() => {
     if (error && error.message) {
@@ -205,7 +207,7 @@ function LoginPage() {
           New to MarKet?{" "}
           <Link
             component={RouterLink}
-            to="/auth/register"
+            to={ROUTES.AUTH.REGISTER}
             sx={{
               color: theme.palette.primary.main,
               textDecoration: "none",
@@ -227,11 +229,11 @@ function LoginPage() {
           sx={{ fontSize: { xs: "0.7rem", sm: "0.75rem" } }}
         >
           By signing in, you agree to our{" "}
-          <Link href="/terms" color="primary">
+          <Link href={ROUTES.TERMS} color="primary">
             Terms of Service
           </Link>{" "}
           and{" "}
-          <Link href="/privacy" color="primary">
+          <Link href={ROUTES.PRIVACY} color="primary">
             Privacy Policy
           </Link>
         </Typography>

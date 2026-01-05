@@ -20,7 +20,22 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
   const [isZoomed, setIsZoomed] = useState(false);
   const [thumbnailStartIndex, setThumbnailStartIndex] = useState(0);
   const maxSteps = images.length;
-  const visibleThumbnails = 3; // Show 3 thumbnails at a time (fits mobile screens better)
+
+  // Responsive visible thumbnails: 3 for mobile, 5 for desktop
+  // This is a simple approach - in a real app you might use useMediaQuery
+  const [visibleThumbnails, setVisibleThumbnails] = useState(3);
+
+  // Update visible thumbnails based on window width
+  useEffect(() => {
+    const updateVisibleThumbnails = () => {
+      // md breakpoint is 900px in MUI default theme
+      setVisibleThumbnails(window.innerWidth >= 900 ? 5 : 3);
+    };
+
+    updateVisibleThumbnails();
+    window.addEventListener("resize", updateVisibleThumbnails);
+    return () => window.removeEventListener("resize", updateVisibleThumbnails);
+  }, []);
 
   const handleNext = () => {
     setActiveStep((prevActiveStep) => {

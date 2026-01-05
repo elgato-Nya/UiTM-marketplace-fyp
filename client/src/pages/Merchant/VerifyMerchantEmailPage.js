@@ -61,7 +61,7 @@ function VerifyMerchantEmailPage() {
 
       // Redirect to merchant dashboard after 3 seconds
       setTimeout(() => {
-        navigate("/merchant/store");
+        navigate(ROUTES.MERCHANT.STORE);
       }, 3000);
     } catch (error) {
       setState(VERIFICATION_STATES.ERROR);
@@ -119,7 +119,7 @@ function VerifyMerchantEmailPage() {
               mx="auto"
             >
               <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                âœ… What's Next?
+                âœ?What's Next?
               </Typography>
               <Typography
                 variant="caption"
@@ -145,7 +145,7 @@ function VerifyMerchantEmailPage() {
             <Button
               variant="contained"
               size="large"
-              onClick={() => navigate("/merchant/store")}
+              onClick={() => navigate(ROUTES.MERCHANT.STORE)}
               sx={{ mt: 2 }}
             >
               Go to Merchant Dashboard

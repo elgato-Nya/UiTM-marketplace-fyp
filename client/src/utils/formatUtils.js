@@ -1,4 +1,5 @@
 import { CAMPUS_OPTIONS, FACULTY_OPTIONS } from "../constants/authConstant";
+import { STATE_OPTIONS } from "../constants/addressConstant";
 
 /**
  * Format Utilities
@@ -7,6 +8,7 @@ import { CAMPUS_OPTIONS, FACULTY_OPTIONS } from "../constants/authConstant";
  * FEATURES:
  * - Campus value to label mapping
  * - Faculty value to label mapping
+ * - State value to label mapping
  * - Other display formatting helpers
  */
 
@@ -47,6 +49,23 @@ export const getFacultyLabel = (facultyValue) => {
 };
 
 /**
+ * Get human-readable state label from state value
+ * @param {string} stateValue - State value (e.g., "SELANGOR")
+ * @returns {string} State label (e.g., "Selangor") or the original value
+ *
+ * @example
+ * getStateLabel("SELANGOR") // "Selangor"
+ * getStateLabel("KUALA_LUMPUR") // "Kuala Lumpur"
+ * getStateLabel(null) // "N/A"
+ */
+export const getStateLabel = (stateValue) => {
+  if (!stateValue) return "N/A";
+
+  const state = STATE_OPTIONS.find((option) => option.value === stateValue);
+  return state ? state.label : stateValue;
+};
+
+/**
  * Truncate text with ellipsis
  * @param {string} text - Text to truncate
  * @param {number} maxLength - Maximum length before truncation
@@ -82,4 +101,33 @@ export const formatPhoneNumber = (phoneNumber) => {
   }
 
   return phoneNumber;
+};
+
+/**
+ * Format price for display
+ * @param {number} price - Price value
+ * @param {boolean} isFree - Whether the item is free
+ * @returns {string} Formatted price with RM prefix
+ *
+ * @example
+ * formatPrice(1234.56) // "RM 1,234.56"
+ * formatPrice(1500000) // "RM 1.5m"
+ * formatPrice(0, true) // "FREE"
+ */
+export const formatPrice = (price, isFree = false) => {
+  if (isFree || price === 0) return "FREE";
+
+  // Use compact notation for large numbers
+  if (price >= 100000) {
+    if (price >= 1000000000) {
+      return `RM ${(price / 1000000000).toFixed(1)}b`;
+    }
+    if (price >= 1000000) {
+      return `RM ${(price / 1000000).toFixed(1)}m`;
+    }
+    return `RM ${(price / 1000).toFixed(1)}k`;
+  }
+
+  // Format with commas for readability
+  return `RM ${price.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
 };

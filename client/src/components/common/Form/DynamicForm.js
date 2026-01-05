@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Box,
   Typography,
   Button,
-  Alert,
   CircularProgress,
   Stepper,
   Step,
@@ -16,7 +15,22 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useTheme } from "../../../hooks/useTheme";
 import { useSnackbar } from "../../../hooks/useSnackbar";
 import DynamicFormField from "./DynamicFormField";
+import ErrorAlert from "../Alert/ErrorAlert";
+import { parseError, mapServerErrorsToForm } from "../../../utils/errorUtils";
 
+/**
+ * DynamicForm Component
+ *
+ * PURPOSE: Flexible form component supporting both controlled and uncontrolled modes
+ *
+ * MODES:
+ * - Uncontrolled (default): Form manages its own state internally
+ * - Controlled: Parent manages state via values + onChange props
+ *
+ * CONTROLLED MODE:
+ * Pass `values` and `onChange` props to enable controlled mode.
+ * This allows form state to persist when the component remounts (e.g., tab navigation)
+ */
 function DynamicForm({
   config,
   validationSchema,
@@ -27,11 +41,25 @@ function DynamicForm({
   defaultValues = {},
   resetOnSuccess = false,
   customContent = null, // Custom content to render before submit button
+  showErrorAlert = true, // Show ErrorAlert component for server errors
+  mapServerErrors = true, // Map server validation errors to form fields
+  // Controlled mode props
+  values = null, // External form values (enables controlled mode)
+  onChange = null, // Callback when form values change
+  hideSubmitButton = false, // Hide submit button (useful when using external submit)
 }) {
   const { theme } = useTheme();
   const { showSnackbar } = useSnackbar();
   const [activeStep, setActiveStep] = useState(0);
   const [passwordVisibility, setPasswordVisibility] = useState({});
+
+  // Determine if controlled mode is enabled
+  const isControlled = values !== null && onChange !== null;
+
+  // Merge default values with external values for controlled mode
+  const mergedDefaultValues = isControlled
+    ? { ...config.defaultValues, ...defaultValues, ...values }
+    : { ...config.defaultValues, ...defaultValues };
 
   const {
     control,
@@ -40,14 +68,73 @@ function DynamicForm({
     trigger,
     watch,
     reset,
+    setError,
+    setValue,
+    getValues,
   } = useForm({
     resolver: validationSchema ? yupResolver(validationSchema) : undefined,
-    defaultValues: { ...config.defaultValues, ...defaultValues },
+    defaultValues: mergedDefaultValues,
     mode: "onChange",
   });
 
   const watchedValues = watch();
   const isMultiStep = config.steps && config.steps.length > 1;
+
+  // Track previous values to prevent infinite loops
+  const prevValuesRef = useRef(values);
+  const isInternalUpdate = useRef(false);
+
+  // Sync external values to form (controlled mode)
+  useEffect(() => {
+    if (!isControlled) return;
+
+    // Compare with previous values to prevent unnecessary resets
+    const prevValues = prevValuesRef.current;
+    if (prevValues === values) return;
+
+    // Check if values actually changed (deep comparison for key fields)
+    const hasChanged = Object.keys(values || {}).some(
+      (key) => values[key] !== prevValues?.[key]
+    );
+
+    if (hasChanged && !isInternalUpdate.current) {
+      // Reset form with new values while preserving other state
+      Object.keys(values).forEach((key) => {
+        if (values[key] !== getValues(key)) {
+          setValue(key, values[key], { shouldValidate: false });
+        }
+      });
+    }
+
+    prevValuesRef.current = values;
+  }, [values, isControlled, setValue, getValues]);
+
+  // Notify parent of form changes (controlled mode)
+  const notifyChange = useCallback(
+    (newValues) => {
+      if (isControlled && onChange) {
+        isInternalUpdate.current = true;
+        onChange(newValues);
+        // Reset flag after a tick to allow next external update
+        setTimeout(() => {
+          isInternalUpdate.current = false;
+        }, 0);
+      }
+    },
+    [isControlled, onChange]
+  );
+
+  // Watch for form changes and notify parent
+  useEffect(() => {
+    if (!isControlled) return;
+
+    // Debounce to avoid excessive updates
+    const timeoutId = setTimeout(() => {
+      notifyChange(watchedValues);
+    }, 50);
+
+    return () => clearTimeout(timeoutId);
+  }, [watchedValues, isControlled, notifyChange]);
 
   // Reset form and stepper ONLY on successful submission (no error) if resetOnSuccess is true
   // This ensures form state is maintained when 4xx errors occur
@@ -58,6 +145,19 @@ function DynamicForm({
       setPasswordVisibility({});
     }
   }, [resetOnSuccess, isLoading, error, reset]);
+
+  // Map server validation errors to form fields when error changes
+  useEffect(() => {
+    if (error && mapServerErrors) {
+      const parsedError = parseError(error);
+      if (
+        parsedError.validationErrors &&
+        parsedError.validationErrors.length > 0
+      ) {
+        mapServerErrorsToForm(parsedError.validationErrors, setError);
+      }
+    }
+  }, [error, mapServerErrors, setError]);
 
   // Handle password visibility toggle
   const handleTogglePassword = (fieldname) => {
@@ -201,84 +301,90 @@ function DynamicForm({
 
         {fields.map(renderField)}
 
-        {/* Step Navigation */}
-        <Box sx={{ mb: 2, mt: 3 }}>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 1.5,
-              flexWrap: "wrap",
-              justifyContent: "flex-start",
-            }}
-          >
-            <Button
-              disabled={stepIndex === 0 || isLoading || isSubmitting}
-              onClick={handleBackStep}
-              variant="outlined"
-              size="medium"
+        {/* Step Navigation - hidden when hideSubmitButton is true */}
+        {!hideSubmitButton && (
+          <Box sx={{ mb: 2, mt: 3 }}>
+            <Box
               sx={{
-                minWidth: { xs: 90, sm: 100 },
-                px: { xs: 2, sm: 2.5 },
+                display: "flex",
+                gap: 1.5,
+                flexWrap: "wrap",
+                justifyContent: "flex-start",
               }}
             >
-              Back
-            </Button>
-
-            {stepIndex === config.steps.length - 1 ? (
               <Button
-                onClick={handleSubmit(handleFormSubmit)}
-                variant="contained"
-                disabled={isLoading || isSubmitting}
+                disabled={stepIndex === 0 || isLoading || isSubmitting}
+                onClick={handleBackStep}
+                variant="outlined"
                 size="medium"
                 sx={{
-                  minWidth: { xs: 140, sm: 160 },
-                  px: { xs: 3, sm: 4 },
-                  bgcolor: theme.palette.primary.main,
-                  "&:hover": { bgcolor: theme.palette.primary.dark },
+                  minWidth: { xs: 90, sm: 100 },
+                  px: { xs: 2, sm: 2.5 },
                 }}
               >
-                {isLoading || isSubmitting ? (
-                  <>
-                    <CircularProgress size={20} sx={{ mr: 1 }} />
-                    {config.submitText || "Submitting..."}
-                  </>
-                ) : (
-                  config.submitText || "Submit"
-                )}
+                Back
               </Button>
-            ) : (
-              <>
+
+              {stepIndex === config.steps.length - 1 ? (
                 <Button
-                  onClick={handleNextStep}
+                  onClick={handleSubmit(handleFormSubmit)}
                   variant="contained"
+                  disabled={isLoading || isSubmitting}
                   size="medium"
                   sx={{
-                    minWidth: { xs: 90, sm: 100 },
-                    px: { xs: 3, sm: 3.5 },
+                    minWidth: { xs: 140, sm: 160 },
+                    px: { xs: 3, sm: 4 },
                     bgcolor: theme.palette.primary.main,
                     "&:hover": { bgcolor: theme.palette.primary.dark },
                   }}
                 >
-                  Next
-                </Button>
-
-                {/* Quick Jump to Final Step for Edit Mode */}
-                {config.allowQuickSave &&
-                  stepIndex < config.steps.length - 1 && (
-                    <Button
-                      onClick={() => setActiveStep(config.steps.length - 1)}
-                      variant="outlined"
-                      size="medium"
-                      color="secondary"
-                      sx={{ ml: "auto", minWidth: { xs: 120, sm: 140 }, px: 2 }}
-                    >
-                      Jump to Save →
-                    </Button>
+                  {isLoading || isSubmitting ? (
+                    <>
+                      <CircularProgress size={20} sx={{ mr: 1 }} />
+                      {config.submitText || "Submitting..."}
+                    </>
+                  ) : (
+                    config.submitText || "Submit"
                   )}
-              </>
-            )}
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    onClick={handleNextStep}
+                    variant="contained"
+                    size="medium"
+                    sx={{
+                      minWidth: { xs: 90, sm: 100 },
+                      px: { xs: 3, sm: 3.5 },
+                      bgcolor: theme.palette.primary.main,
+                      "&:hover": { bgcolor: theme.palette.primary.dark },
+                    }}
+                  >
+                    Next
+                  </Button>
+
+                  {/* Quick Jump to Final Step for Edit Mode */}
+                  {config.allowQuickSave &&
+                    stepIndex < config.steps.length - 1 && (
+                      <Button
+                        onClick={() => setActiveStep(config.steps.length - 1)}
+                        variant="outlined"
+                        size="medium"
+                        color="secondary"
+                        sx={{
+                          ml: "auto",
+                          minWidth: { xs: 120, sm: 140 },
+                          px: 2,
+                        }}
+                      >
+                        Jump to Save →
+                      </Button>
+                    )}
+                </>
+              )}
+            </Box>
           </Box>
-        </Box>
+        )}
       </Box>
     );
   };
@@ -306,11 +412,9 @@ function DynamicForm({
         </Box>
       )}
 
-      {/* Error Alert */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
+      {/* Error Alert - Enhanced with ErrorAlert component */}
+      {error && showErrorAlert && (
+        <ErrorAlert error={error} sx={{ mb: 3, mt: 2 }} compact={false} />
       )}
 
       {/* Form Content */}
@@ -369,52 +473,55 @@ function DynamicForm({
             {/* Custom content slot (e.g., forgot password link) */}
             {customContent && <Box>{customContent}</Box>}
 
-            <Box
-              sx={{
-                display: "flex",
-                gap: 2,
-                mt: 3,
-                justifyContent: "flex-start",
-              }}
-            >
-              {onCancel && (
-                <Button
-                  variant="outlined"
-                  size="medium"
-                  onClick={onCancel}
-                  disabled={isLoading || isSubmitting}
-                  sx={{
-                    minWidth: { xs: 90, sm: 110 },
-                    px: { xs: 2, sm: 2.5 },
-                  }}
-                >
-                  {config.cancelButton?.text || "Cancel"}
-                </Button>
-              )}
-              <Button
-                type="submit"
-                variant="contained"
-                size="medium"
-                fullWidth
-                disabled={isLoading || isSubmitting}
+            {/* Submit button section - can be hidden for external submit control */}
+            {!hideSubmitButton && (
+              <Box
                 sx={{
-                  mx: { xs: 3, md: 4 },
-                  minWidth: { xs: 140, sm: 160 },
-                  py: 1.5,
-                  bgcolor: theme.palette.primary.main,
-                  "&:hover": { bgcolor: theme.palette.primary.dark },
+                  display: "flex",
+                  gap: 2,
+                  mt: 3,
+                  justifyContent: "flex-start",
                 }}
               >
-                {isLoading || isSubmitting ? (
-                  <>
-                    <CircularProgress size={20} sx={{ mr: 1 }} />
-                    {config.submitButton?.loadingText || "Submitting..."}
-                  </>
-                ) : (
-                  config.submitButton?.text || "Submit"
+                {onCancel && (
+                  <Button
+                    variant="outlined"
+                    size="medium"
+                    onClick={onCancel}
+                    disabled={isLoading || isSubmitting}
+                    sx={{
+                      minWidth: { xs: 90, sm: 110 },
+                      px: { xs: 2, sm: 2.5 },
+                    }}
+                  >
+                    {config.cancelButton?.text || "Cancel"}
+                  </Button>
                 )}
-              </Button>
-            </Box>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="medium"
+                  fullWidth
+                  disabled={isLoading || isSubmitting}
+                  sx={{
+                    mx: { xs: 3, md: 4 },
+                    minWidth: { xs: 140, sm: 160 },
+                    py: 1.5,
+                    bgcolor: theme.palette.primary.main,
+                    "&:hover": { bgcolor: theme.palette.primary.dark },
+                  }}
+                >
+                  {isLoading || isSubmitting ? (
+                    <>
+                      <CircularProgress size={20} sx={{ mr: 1 }} />
+                      {config.submitButton?.loadingText || "Submitting..."}
+                    </>
+                  ) : (
+                    config.submitButton?.text || "Submit"
+                  )}
+                </Button>
+              </Box>
+            )}
           </Box>
         )}
       </Box>

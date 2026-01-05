@@ -426,7 +426,42 @@ const updateCheckoutSession = async (sessionId, userId, updateData) => {
       session.paymentMethod = paymentMethod;
     }
 
-    await session.save();
+    // Use save with version increment handling
+    // If there's a version conflict, fetch the latest and retry once
+    try {
+      await session.save();
+    } catch (saveError) {
+      if (
+        saveError.name === "VersionError" ||
+        saveError.message?.includes("version")
+      ) {
+        logger.warn("Version conflict detected, retrying with fresh document", {
+          sessionId: session._id,
+          action: "update_checkout_session_retry",
+        });
+
+        // Fetch fresh document and apply changes
+        const freshSession = await CheckoutSession.findById(session._id);
+        if (freshSession && freshSession.status === "pending") {
+          freshSession.sellerGroups = session.sellerGroups;
+          freshSession.pricing = session.pricing;
+          if (session.deliveryMethod)
+            freshSession.deliveryMethod = session.deliveryMethod;
+          if (session.paymentMethod)
+            freshSession.paymentMethod = session.paymentMethod;
+          if (session.deliveryAddress)
+            freshSession.deliveryAddress = session.deliveryAddress;
+          await freshSession.save();
+
+          // Update reference for response
+          Object.assign(session, freshSession.toObject());
+        } else {
+          throw saveError;
+        }
+      } else {
+        throw saveError;
+      }
+    }
 
     logger.info("Checkout session updated", {
       sessionId: session._id,

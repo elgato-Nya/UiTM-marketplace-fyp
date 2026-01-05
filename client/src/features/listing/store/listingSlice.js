@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import listingService from "../service/listingService";
+import { extractThunkError } from "../../../store/utils/thunkErrorHandler";
 
 const initialState = {
   listings: [],
@@ -19,14 +20,12 @@ export const createListing = createAsyncThunk(
       const response = await listingService.createListing(listingData);
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to create listing",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Failed to create listing. Please check your input and try again."
+        )
+      );
     }
   }
 );
@@ -39,14 +38,12 @@ export const fetchListings = createAsyncThunk(
       const response = await listingService.getAllListings(params);
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch listings",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Failed to load listings. Please refresh the page."
+        )
+      );
     }
   }
 );
@@ -61,14 +58,9 @@ export const fetchListingById = createAsyncThunk(
       const response = await listingService.getListingById(listingId);
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch listing",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to load listing details.")
+      );
     }
   }
 );
@@ -80,14 +72,9 @@ export const fetchMyListings = createAsyncThunk(
       const response = await listingService.getMyListings(params);
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch my listings",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to load your listings.")
+      );
     }
   }
 );
@@ -99,14 +86,9 @@ export const fetchSellerListings = createAsyncThunk(
       const response = await listingService.getSellerListings(sellerId, params);
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch seller listings",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to load seller listings.")
+      );
     }
   }
 );
@@ -118,14 +100,12 @@ export const updateListing = createAsyncThunk(
       const response = await listingService.updateListing(listingId, updates);
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to update listing",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Failed to update listing. Please check your input and try again."
+        )
+      );
     }
   }
 );
@@ -140,14 +120,9 @@ export const deleteListing = createAsyncThunk(
       );
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to delete listing",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to delete listing. Please try again.")
+      );
     }
   }
 );
@@ -159,14 +134,9 @@ export const toggleListingAvailability = createAsyncThunk(
       const response = await listingService.toggleAvailability(listingId);
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to update availability with toggle",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to update listing availability.")
+      );
     }
   }
 );

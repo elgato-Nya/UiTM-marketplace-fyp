@@ -221,9 +221,9 @@ const OrderSummary = ({
                   <Typography
                     variant="subtitle2"
                     sx={{ fontWeight: 600 }}
-                    aria-label={`Total for ${group.sellerName}: ${formatPrice(group.sellerTotal)}`}
+                    aria-label={`Total for ${group.sellerName}: ${formatPrice(group.totalAmount)}`}
                   >
-                    {formatPrice(group.sellerTotal)}
+                    {formatPrice(group.totalAmount)}
                   </Typography>
                 </Box>
               </Box>
@@ -300,7 +300,7 @@ const OrderSummary = ({
             Items Subtotal
           </Typography>
           <Typography variant="body2" component="dd" sx={{ m: 0 }}>
-            {formatPrice(pricing.itemsTotal)}
+            {formatPrice(pricing.subtotal)}
           </Typography>
         </Box>
         <Box

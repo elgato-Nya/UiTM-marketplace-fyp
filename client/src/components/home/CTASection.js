@@ -1,14 +1,11 @@
 import React from "react";
+import { Box, Container, Typography, Button, Stack } from "@mui/material";
 import {
-  Box,
-  Container,
-  Typography,
-  Button,
-  Grid,
-  Card,
-  CardContent,
-} from "@mui/material";
-import { ShoppingBag, Store, People, TrendingUp } from "@mui/icons-material";
+  ArrowForward,
+  Storefront,
+  ShoppingCart,
+  Verified,
+} from "@mui/icons-material";
 import { Link } from "react-router-dom";
 
 import { useTheme } from "../../hooks/useTheme";
@@ -16,147 +13,163 @@ import { useAuth } from "../../features/auth/hooks/useAuth";
 import { ROUTES } from "../../constants/routes";
 
 function CTASection() {
-  const { theme, isAccessible } = useTheme();
-  const { isAuthenticated, isConsumer, isMerchant, isAdmin } = useAuth();
+  const { theme } = useTheme();
+  const { isAuthenticated, isMerchant, isAdmin } = useAuth();
 
   const renderGuestCTA = () => (
     <Box
       sx={{
-        bgcolor: "transparent",
-        background: `linear-gradient(90deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-        color: theme.palette.primary.contrastText,
-        py: 8,
+        position: "relative",
+        overflow: "hidden",
+        py: { xs: 8, md: 10 },
         mb: 4,
+        bgcolor: theme.palette.mode === "dark" ? "grey.900" : "grey.50",
       }}
     >
-      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-        <Grid container spacing={4} alignItems="center">
-          <Grid
-            size={{ xs: 12, md: 6 }}
-            textAlign={{ xs: "center", md: "left" }}
+      {/* Decorative gradient accent */}
+      <Box
+        sx={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 4,
+          background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+        }}
+      />
+
+      <Container maxWidth="md">
+        <Box sx={{ textAlign: "center" }}>
+          {/* Main heading */}
+          <Typography
+            variant="h3"
+            component="h2"
+            sx={{
+              fontWeight: 700,
+              mb: 2,
+              fontSize: { xs: "1.75rem", sm: "2.25rem", md: "2.75rem" },
+              color: "text.primary",
+            }}
           >
-            <Typography
-              variant="h3"
-              component="h2"
-              sx={{
-                fontWeight: "bold",
-                mb: 2,
-                fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" },
-              }}
-            >
-              Ready to Start?
-            </Typography>
-            <Typography
-              variant="h6"
-              sx={{
-                mb: 3,
-                opacity: 0.9,
-                fontSize: { xs: "1rem", sm: "1.25rem" },
-              }}
-            >
-              Join thousands of students and merchants in Malaysia's
-              fastest-growing university marketplace
-            </Typography>
+            Start Your Journey Today
+          </Typography>
+
+          {/* Subtitle */}
+          <Typography
+            variant="body1"
+            sx={{
+              mb: 4,
+              color: "text.secondary",
+              maxWidth: 520,
+              mx: "auto",
+              fontSize: { xs: "0.95rem", sm: "1.1rem" },
+              lineHeight: 1.7,
+            }}
+          >
+            Whether you're looking to discover unique products or grow your
+            business, MarKet connects you with Malaysia's university community.
+          </Typography>
+
+          {/* Feature highlights */}
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={{ xs: 2, sm: 4 }}
+            justifyContent="center"
+            alignItems="center"
+            sx={{ mb: 5 }}
+          >
             <Box
               sx={{
                 display: "flex",
-                gap: 2,
-                flexWrap: "wrap",
-                justifyContent: { xs: "center", md: "flex-start" },
-                alignContent: { xs: "center", md: "flex-start" },
+                alignItems: "center",
+                gap: 1,
+                color: "text.secondary",
               }}
             >
-              <Button
-                component={Link}
-                to={ROUTES.AUTH.REGISTER}
-                variant="contained"
-                size="large"
-                sx={{
-                  bgcolor: "white",
-                  color: theme.palette.primary.main,
-                  minWidth: 160,
-                  "&:hover": {
-                    bgcolor: theme.palette.grey[100],
-                  },
-                }}
-              >
-                Join Now
-              </Button>
-              <Button
-                component={Link}
-                to={`${ROUTES.AUTH.REGISTER}?type=merchant`}
-                variant="outlined"
-                size="large"
-                sx={{
-                  borderColor: "white",
-                  color: "white",
-                  minWidth: 160,
-                  "&:hover": {
-                    borderColor: theme.palette.grey[200],
-                    bgcolor: "rgba(255,255,255,0.1)",
-                  },
-                }}
-              >
-                Start Selling
-              </Button>
+              <Verified sx={{ fontSize: 20, color: "primary.main" }} />
+              <Typography variant="body2">Verified Merchants</Typography>
             </Box>
-          </Grid>
-          <Grid
-            size={{ xs: 12, md: 6 }}
-            aria-label="Platform Statistics"
-            position={"relative"}
-            width={"100%"}
-          >
-            <Grid
-              container
-              spacing={2}
+            <Box
               sx={{
-                justifyContent: { xs: "center", md: "flex-start" },
-                alignContent: { xs: "center", md: "flex-start" },
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                color: "text.secondary",
               }}
             >
-              <Grid
-                size={{ xs: 6 }}
-                sx={{
-                  width: 150,
-                }}
-              >
-                <Card
-                  sx={{
-                    bgcolor: "rgba(255,255,255,0.1)",
-                    color: "white",
-                    border: isAccessible ? `1px solid white` : "none",
-                  }}
-                >
-                  <CardContent sx={{ textAlign: "center", py: 3 }}>
-                    <ShoppingBag sx={{ fontSize: 40, mb: 1 }} />
-                    <Typography variant="h6" fontWeight="bold">
-                      10,000+
-                    </Typography>
-                    <Typography variant="body2">Products & Services</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid size={{ xs: 6 }} sx={{ width: 150 }}>
-                <Card
-                  sx={{
-                    bgcolor: "rgba(255,255,255,0.1)",
-                    color: "white",
-                    border: isAccessible ? `1px solid white` : "none",
-                  }}
-                >
-                  <CardContent sx={{ textAlign: "center", py: 3 }}>
-                    <People sx={{ fontSize: 40, mb: 1 }} />
-                    <Typography variant="h6" fontWeight="bold">
-                      5,000+
-                    </Typography>
-                    <Typography variant="body2">Active Users</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-          </Grid>
-        </Grid>
+              <ShoppingCart sx={{ fontSize: 20, color: "primary.main" }} />
+              <Typography variant="body2">Secure Transactions</Typography>
+            </Box>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                color: "text.secondary",
+              }}
+            >
+              <Storefront sx={{ fontSize: 20, color: "primary.main" }} />
+              <Typography variant="body2">Campus-focused</Typography>
+            </Box>
+          </Stack>
+
+          {/* CTA Buttons */}
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            justifyContent="center"
+            alignItems="center"
+          >
+            <Button
+              component={Link}
+              to={ROUTES.AUTH.REGISTER}
+              variant="contained"
+              size="large"
+              endIcon={<ArrowForward />}
+              sx={{
+                px: 4,
+                py: 1.5,
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "1rem",
+                minWidth: 180,
+              }}
+            >
+              Create Account
+            </Button>
+            <Button
+              component={Link}
+              to={`${ROUTES.AUTH.REGISTER}?type=merchant`}
+              variant="outlined"
+              size="large"
+              startIcon={<Storefront />}
+              sx={{
+                px: 4,
+                py: 1.5,
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "1rem",
+                minWidth: 180,
+              }}
+            >
+              Become a Seller
+            </Button>
+          </Stack>
+
+          {/* Trust note */}
+          <Typography
+            variant="caption"
+            sx={{
+              display: "block",
+              mt: 3,
+              color: "text.disabled",
+            }}
+          >
+            Free to join • No hidden fees • Cancel anytime
+          </Typography>
+        </Box>
       </Container>
     </Box>
   );
@@ -166,39 +179,47 @@ function CTASection() {
       return (
         <Box
           sx={{
-            bgcolor: theme.palette.secondary.main,
-            color: theme.palette.secondary.contrastText,
-            py: 6,
+            py: { xs: 6, md: 8 },
             mb: 4,
+            bgcolor: theme.palette.mode === "dark" ? "grey.900" : "grey.50",
+            borderTop: `3px solid ${theme.palette.secondary.main}`,
           }}
         >
-          <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+          <Container maxWidth="sm">
             <Box sx={{ textAlign: "center" }}>
               <Typography
                 variant="h4"
                 component="h2"
-                sx={{ fontWeight: "bold", mb: 2 }}
+                sx={{
+                  fontWeight: 700,
+                  mb: 1.5,
+                  color: "text.primary",
+                }}
               >
-                Platform Overview
+                Admin Dashboard
               </Typography>
-              <Typography variant="h6" sx={{ mb: 3, opacity: 0.9 }}>
-                Monitor and manage the MarKet ecosystem
+              <Typography
+                variant="body1"
+                sx={{ mb: 4, color: "text.secondary" }}
+              >
+                Monitor platform performance and manage the ecosystem
               </Typography>
               <Button
                 component={Link}
                 to={ROUTES.ADMIN.DASHBOARD}
                 variant="contained"
+                color="secondary"
                 size="large"
+                endIcon={<ArrowForward />}
                 sx={{
-                  bgcolor: "white",
-                  color: theme.palette.secondary.main,
-                  minWidth: 200,
-                  "&:hover": {
-                    bgcolor: theme.palette.grey[100],
-                  },
+                  px: 4,
+                  py: 1.5,
+                  borderRadius: 2,
+                  textTransform: "none",
+                  fontWeight: 600,
                 }}
               >
-                Go to Admin Dashboard
+                Open Dashboard
               </Button>
             </Box>
           </Container>
@@ -210,53 +231,49 @@ function CTASection() {
       return (
         <Box
           sx={{
-            bgcolor: theme.palette.success.main,
-            color: "white",
-            py: 6,
+            py: { xs: 6, md: 8 },
             mb: 4,
+            bgcolor: theme.palette.mode === "dark" ? "grey.900" : "grey.50",
+            borderTop: `3px solid ${theme.palette.success.main}`,
           }}
         >
-          <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-            <Grid container spacing={4} alignItems="center">
-              <Grid size={{ xs: 12, md: 8 }}>
-                <Typography
-                  variant="h4"
-                  component="h2"
-                  sx={{ fontWeight: "bold", mb: 2 }}
-                >
-                  Boost Your Sales
-                </Typography>
-                <Typography variant="h6" sx={{ mb: 3, opacity: 0.9 }}>
-                  List more products, analyze your performance, and reach more
-                  customers
-                </Typography>
-              </Grid>
-              <Grid size={{ xs: 12, md: 4 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    gap: 2,
-                    justifyContent: { xs: "center", md: "flex-end" },
-                  }}
-                >
-                  <Button
-                    component={Link}
-                    to={ROUTES.MERCHANT.LISTINGS.CREATE}
-                    variant="contained"
-                    size="large"
-                    sx={{
-                      bgcolor: "white",
-                      color: theme.palette.success.main,
-                      "&:hover": {
-                        bgcolor: theme.palette.grey[100],
-                      },
-                    }}
-                  >
-                    Add Product
-                  </Button>
-                </Box>
-              </Grid>
-            </Grid>
+          <Container maxWidth="sm">
+            <Box sx={{ textAlign: "center" }}>
+              <Typography
+                variant="h4"
+                component="h2"
+                sx={{
+                  fontWeight: 700,
+                  mb: 1.5,
+                  color: "text.primary",
+                }}
+              >
+                Grow Your Business
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ mb: 4, color: "text.secondary" }}
+              >
+                Add new products and reach more customers today
+              </Typography>
+              <Button
+                component={Link}
+                to={ROUTES.MERCHANT.LISTINGS.CREATE}
+                variant="contained"
+                color="success"
+                size="large"
+                endIcon={<ArrowForward />}
+                sx={{
+                  px: 4,
+                  py: 1.5,
+                  borderRadius: 2,
+                  textTransform: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Add New Listing
+              </Button>
+            </Box>
           </Container>
         </Box>
       );
@@ -266,44 +283,45 @@ function CTASection() {
     return (
       <Box
         sx={{
-          bgcolor: theme.palette.info.main,
-          color: "white",
-          py: 6,
+          py: { xs: 6, md: 8 },
           mb: 4,
+          bgcolor: theme.palette.mode === "dark" ? "grey.900" : "grey.50",
+          borderTop: `3px solid ${theme.palette.primary.main}`,
         }}
       >
-        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+        <Container maxWidth="sm">
           <Box sx={{ textAlign: "center" }}>
             <Typography
               variant="h4"
               component="h2"
-              sx={{ fontWeight: "bold", mb: 2 }}
-            >
-              Discover More
-            </Typography>
-            <Typography variant="h6" sx={{ mb: 3, opacity: 0.9 }}>
-              Explore our categories and find exactly what you need
-            </Typography>
-            <Box
               sx={{
-                display: "flex",
-                gap: 2,
-                justifyContent: "center",
-                flexWrap: "wrap",
+                fontWeight: 700,
+                mb: 1.5,
+                color: "text.primary",
               }}
+            >
+              Explore More
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 4, color: "text.secondary" }}>
+              Discover products and services from verified campus merchants
+            </Typography>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+              justifyContent="center"
             >
               <Button
                 component={Link}
                 to={ROUTES.LISTINGS.PRODUCTS}
                 variant="contained"
                 size="large"
+                endIcon={<ArrowForward />}
                 sx={{
-                  bgcolor: "white",
-                  color: theme.palette.info.main,
-                  minWidth: 160,
-                  "&:hover": {
-                    bgcolor: theme.palette.grey[100],
-                  },
+                  px: 4,
+                  py: 1.5,
+                  borderRadius: 2,
+                  textTransform: "none",
+                  fontWeight: 600,
                 }}
               >
                 Browse All
@@ -313,19 +331,18 @@ function CTASection() {
                 to={`${ROUTES.AUTH.REGISTER}?type=merchant`}
                 variant="outlined"
                 size="large"
+                startIcon={<Storefront />}
                 sx={{
-                  borderColor: "white",
-                  color: "white",
-                  minWidth: 160,
-                  "&:hover": {
-                    borderColor: theme.palette.grey[200],
-                    bgcolor: "rgba(255,255,255,0.1)",
-                  },
+                  px: 4,
+                  py: 1.5,
+                  borderRadius: 2,
+                  textTransform: "none",
+                  fontWeight: 600,
                 }}
               >
-                Start Selling Too
+                Become a Seller
               </Button>
-            </Box>
+            </Stack>
           </Box>
         </Container>
       </Box>

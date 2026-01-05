@@ -60,33 +60,46 @@ router.get("/", getCart);
  * @route   POST /api/cart
  * @desc    Add item to cart or update quantity if exists
  * @access  Private
- * @body    { listingId: string, quantity: number }
+ * @body    { listingId: string, quantity: number, variantId?: string }
  * @returns Updated cart with new item
  * @note    Removes item from wishlist if exists
  * @note    Validates stock availability before adding
+ * @note    variantId is required for listings with variants
  */
 router.post("/", validateAddToCart, addToCart);
 
 /**
  * @route   PATCH /api/cart/item/:listingId
+ * @route   PATCH /api/cart/item/:listingId/variant/:variantId
  * @desc    Update cart item quantity
  * @access  Private
- * @params  listingId - Listing ID to update
+ * @params  listingId - Listing ID to update, variantId (optional) - Variant ID
  * @body    { quantity: number }
  * @returns Updated cart with modified quantity
  * @note    Validates new quantity doesn't exceed stock
  */
 router.patch("/item/:listingId", validateUpdateCartItem, updateCartItem);
+router.patch(
+  "/item/:listingId/variant/:variantId",
+  validateUpdateCartItem,
+  updateCartItem
+);
 
 /**
  * @route   DELETE /api/cart/item/:listingId
+ * @route   DELETE /api/cart/item/:listingId/variant/:variantId
  * @desc    Remove item from cart
  * @access  Private
- * @params  listingId - Cart item ID (preferred) or Listing ID (fallback)
+ * @params  listingId - Cart item ID (preferred) or Listing ID (fallback), variantId (optional)
  * @returns Updated cart without removed item
  * @note    Accepts item._id for null listings or listing._id for backwards compatibility
  */
 router.delete("/item/:listingId", validateRemoveFromCart, removeFromCart);
+router.delete(
+  "/item/:listingId/variant/:variantId",
+  validateRemoveFromCart,
+  removeFromCart
+);
 
 /**
  * @route   DELETE /api/cart

@@ -13,8 +13,9 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import api from "../../services/api";
-import { EmailVerificationModal } from "../../components/common/Modal";
+import EmailVerificationModal from "../../components/common/Modal/EmailVerificationModal";
 import { useTheme } from "../../hooks/useTheme";
+import { ROUTES } from "../../constants/routes";
 
 const forgotPasswordSchema = yup.object().shape({
   email: yup
@@ -204,7 +205,7 @@ const ForgotPasswordPage = () => {
     // If success, redirect to login page
     if (modalStatus === "success") {
       setTimeout(() => {
-        navigate("/auth/login");
+        navigate(ROUTES.AUTH.LOGIN);
       }, 300);
     } else {
       // For errors, just reset modal state
@@ -275,7 +276,7 @@ const ForgotPasswordPage = () => {
         <Box sx={{ textAlign: "center" }}>
           <Link
             component={RouterLink}
-            to="/auth/login"
+            to={ROUTES.AUTH.LOGIN}
             variant="body2"
             sx={{
               color: theme.palette.primary.main,

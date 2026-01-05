@@ -55,20 +55,30 @@ export function useFileValidation(options = {}) {
 
       // Show warnings/errors via snackbar
       if (result.errors.length > 0) {
-        const fileCountErrors = result.errors.filter((e) =>
-          e.includes("Maximum")
+        const fileCountErrors = result.errors.filter(
+          (e) => e.includes("upload up to") || e.includes("Maximum")
         );
-        const otherErrors = result.errors.filter((e) => !e.includes("Maximum"));
+        const otherErrors = result.errors.filter(
+          (e) => !e.includes("upload up to") && !e.includes("Maximum")
+        );
 
         // Show file count as warning
         fileCountErrors.forEach((error) => showWarning(error));
 
-        // Show validation errors as errors
-        otherErrors.forEach((error) => showError(error));
+        // Show validation errors as errors (limit to 3 to avoid spam)
+        const errorsToShow = otherErrors.slice(0, 3);
+        errorsToShow.forEach((error) => showError(error));
+
+        // If more than 3 errors, show a summary
+        if (otherErrors.length > 3) {
+          showError(`And ${otherErrors.length - 3} more file(s) have issues.`);
+        }
       }
 
       if (result.validFiles.length === 0 && result.errors.length > 0) {
-        showError("No valid files selected");
+        showError(
+          "None of the selected files are valid. Please check file types and sizes."
+        );
       }
 
       return result.validFiles;

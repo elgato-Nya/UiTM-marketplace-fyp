@@ -20,6 +20,7 @@ import {
   ArrowForward,
 } from "@mui/icons-material";
 import { useTheme } from "../../../hooks/useTheme";
+import { ROUTES } from "../../../constants/routes";
 
 /**
  * QuickActions Component
@@ -52,7 +53,7 @@ const QuickActions = () => {
       label: "User Management",
       description: "View and manage all users",
       icon: People,
-      path: "/admin/users",
+      path: ROUTES.ADMIN.USERS,
       color: theme.palette.primary.main,
       bgColor: theme.palette.primary.light + "20",
     },
@@ -60,7 +61,7 @@ const QuickActions = () => {
       label: "Merchant Verification",
       description: "Review pending merchant applications",
       icon: VerifiedUser,
-      path: "/admin/merchants/verification",
+      path: ROUTES.ADMIN.MERCHANT,
       color: theme.palette.secondary.main,
       bgColor: theme.palette.secondary.light + "20",
       badge: null, // Will be populated from pending count
@@ -69,7 +70,7 @@ const QuickActions = () => {
       label: "Contact Messages",
       description: "Respond to customer inquiries",
       icon: ContactMail,
-      path: "/admin/contacts",
+      path: ROUTES.ADMIN.CONTACTS,
       color: theme.palette.info.main,
       bgColor: theme.palette.info.light + "20",
     },
@@ -77,7 +78,7 @@ const QuickActions = () => {
       label: "Analytics & Reports",
       description: "View platform analytics",
       icon: Assessment,
-      path: "/admin/reports",
+      path: ROUTES.ADMIN.REPORTS,
       color: theme.palette.success.main,
       bgColor: theme.palette.success.light + "20",
     },
@@ -85,7 +86,7 @@ const QuickActions = () => {
       label: "Manage Listings",
       description: "Review and moderate listings",
       icon: LocalOffer,
-      path: "/admin/listings",
+      path: ROUTES.ADMIN.LISTINGS,
       color: theme.palette.warning.main,
       bgColor: theme.palette.warning.light + "20",
     },
@@ -93,7 +94,7 @@ const QuickActions = () => {
       label: "Transactions",
       description: "View all platform transactions",
       icon: AttachMoney,
-      path: "/admin/transactions",
+      path: ROUTES.ADMIN.TRANSACTIONS,
       color: theme.palette.error.main,
       bgColor: theme.palette.error.light + "20",
     },
@@ -101,7 +102,7 @@ const QuickActions = () => {
       label: "Order Management",
       description: "Manage orders and disputes",
       icon: Store,
-      path: "/admin/orders",
+      path: ROUTES.ADMIN.ORDERS,
       color: "#9c27b0", // Purple
       bgColor: "#9c27b020",
     },
@@ -109,7 +110,7 @@ const QuickActions = () => {
       label: "Support Tickets",
       description: "Handle support requests",
       icon: Chat,
-      path: "/admin/support",
+      path: ROUTES.ADMIN.SUPPORT,
       color: "#00bcd4", // Cyan
       bgColor: "#00bcd420",
     },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Box, Typography } from "@mui/material";
 import { useSnackbar } from "../../../hooks/useSnackbar";
 import { useImageUpload } from "../../../hooks/useImageUpload";
@@ -51,14 +51,34 @@ function ListingImageUpload({
   const [currentPreview, setCurrentPreview] = useState(null);
   const [pendingFiles, setPendingFiles] = useState([]);
 
-  // Sync existing images
+  // Use refs to track previous values for proper comparison
+  const prevExistingRef = useRef(existingImages);
+  const prevNewRef = useRef(newlyUploadedImages);
+
+  // Sync existing images only when content actually changes
   useEffect(() => {
-    setLocalExistingImages(existingImages);
+    const prevExisting = prevExistingRef.current;
+    const hasChanged =
+      existingImages.length !== prevExisting.length ||
+      existingImages.some((img, i) => img !== prevExisting[i]);
+
+    if (hasChanged) {
+      setLocalExistingImages(existingImages);
+      prevExistingRef.current = existingImages;
+    }
   }, [existingImages]);
 
-  // Sync newly uploaded images
+  // Sync newly uploaded images only when content actually changes
   useEffect(() => {
-    setLocalNewImages(newlyUploadedImages);
+    const prevNew = prevNewRef.current;
+    const hasChanged =
+      newlyUploadedImages.length !== prevNew.length ||
+      newlyUploadedImages.some((img, i) => img !== prevNew[i]);
+
+    if (hasChanged) {
+      setLocalNewImages(newlyUploadedImages);
+      prevNewRef.current = newlyUploadedImages;
+    }
   }, [newlyUploadedImages]);
 
   /**

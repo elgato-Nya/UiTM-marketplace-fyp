@@ -68,12 +68,27 @@ api.interceptors.response.use(
     if (error.config?._requestKey) {
       pendingRequests.delete(error.config._requestKey);
     }
+
+    // Debug logging
+    if (process.env.NODE_ENV === "development") {
+      console.log("[API Interceptor] Error:", {
+        status: error.response?.status,
+        url: error.config?.url,
+        hasResponse: !!error.response,
+        errorMessage: error.message,
+        responseData: error.response?.data,
+      });
+    }
+
     const originalRequest = error.config;
 
-    // Handle token expiration (401) or refresh in progress (429)
+    // Handle token expiration (401 only) - NOT rate limiting (429)
+    // 429 errors should be passed through to show user-friendly rate limit messages
     if (
-      (error.response?.status === 401 || error.response?.status === 429) &&
-      !originalRequest._retry
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes("/auth/login") && // Don't retry failed login
+      !originalRequest.url?.includes("/auth/register") // Don't retry failed register
     ) {
       originalRequest._retry = true;
 

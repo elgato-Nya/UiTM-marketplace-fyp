@@ -9,6 +9,11 @@ const {
   handleToggleAvailability,
   handleGetMyListings,
   handleGetSellerListings,
+  handleAddVariant,
+  handleUpdateVariant,
+  handleDeleteVariant,
+  handleGetVariant,
+  handleGetListingVariants,
 } = require("../../controllers/listing/listing.controller");
 const {
   getListingDeliveryFees,
@@ -26,6 +31,9 @@ const {
   validateListingIdParam,
   validatePagination,
   validateSellerIdParam,
+  validateAddVariant,
+  validateUpdateVariant,
+  validateVariantIdParam,
 } = require("../../middleware/validations/listing/listing.validation");
 
 /**
@@ -186,6 +194,81 @@ router.patch(
   isListingOwner("id"),
   validateListingIdParam,
   handleToggleAvailability
+);
+
+// ==================== VARIANT MANAGEMENT ROUTES ====================
+
+/**
+ * @route   GET /api/listings/:id/variants
+ * @desc    Get all variants for a listing
+ * @access  Public (Anyone can view variants)
+ * @params  id - Listing ID
+ * @returns Array of variants for the listing
+ * @note    Public endpoint for browsing variant options
+ */
+router.get("/:id/variants", validateListingIdParam, handleGetListingVariants);
+
+/**
+ * @route   GET /api/listings/:id/variants/:variantId
+ * @desc    Get a specific variant by ID
+ * @access  Public (Anyone can view variant details)
+ * @params  id - Listing ID, variantId - Variant subdocument ID
+ * @returns Single variant data
+ * @note    Public endpoint for viewing specific variant
+ */
+router.get(
+  "/:id/variants/:variantId",
+  validateListingIdParam,
+  validateVariantIdParam,
+  handleGetVariant
+);
+
+/**
+ * @route   POST /api/listings/:id/variants
+ * @desc    Add a new variant to a listing
+ * @access  Private (Owner/Admin only)
+ * @params  id - Listing ID
+ * @body    name, sku (optional), price, stock (for products), attributes (optional), images (optional)
+ * @returns Updated listing with new variant
+ * @note    Ownership verified by isListingOwner middleware
+ */
+router.post(
+  "/:id/variants",
+  isListingOwner("id"),
+  validateAddVariant,
+  handleAddVariant
+);
+
+/**
+ * @route   PUT /api/listings/:id/variants/:variantId
+ * @desc    Update an existing variant
+ * @access  Private (Owner/Admin only)
+ * @params  id - Listing ID, variantId - Variant subdocument ID
+ * @body    Fields to update (name, sku, price, stock, attributes, images, isAvailable)
+ * @returns Updated listing with modified variant
+ * @note    Ownership verified by isListingOwner middleware
+ */
+router.put(
+  "/:id/variants/:variantId",
+  isListingOwner("id"),
+  validateUpdateVariant,
+  handleUpdateVariant
+);
+
+/**
+ * @route   DELETE /api/listings/:id/variants/:variantId
+ * @desc    Remove a variant from a listing
+ * @access  Private (Owner/Admin only)
+ * @params  id - Listing ID, variantId - Variant subdocument ID
+ * @returns Updated listing without the deleted variant
+ * @note    Ownership verified by isListingOwner middleware
+ */
+router.delete(
+  "/:id/variants/:variantId",
+  isListingOwner("id"),
+  validateListingIdParam,
+  validateVariantIdParam,
+  handleDeleteVariant
 );
 
 module.exports = router;

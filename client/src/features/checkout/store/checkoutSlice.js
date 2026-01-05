@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { checkoutService } from "../service/checkoutService";
+import { extractThunkError } from "../../../store/utils/thunkErrorHandler";
 /**
  * Checkout Slice
  *
@@ -30,9 +31,10 @@ export const createSessionFromCart = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to create checkout session"
+        extractThunkError(
+          error,
+          "Failed to create checkout session. Please check your cart and try again."
+        )
       );
     }
   }
@@ -52,9 +54,10 @@ export const createSessionFromListing = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to create checkout session"
+        extractThunkError(
+          error,
+          "Failed to initiate purchase. Please try again."
+        )
       );
     }
   }
@@ -71,9 +74,7 @@ export const getActiveSession = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch checkout session"
+        extractThunkError(error, "Failed to fetch your checkout session.")
       );
     }
   }
@@ -90,9 +91,7 @@ export const updateSession = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to update checkout session"
+        extractThunkError(error, "Failed to update checkout session.")
       );
     }
   }
@@ -109,9 +108,7 @@ export const cancelSession = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to cancel checkout session"
+        extractThunkError(error, "Failed to cancel checkout session.")
       );
     }
   }
@@ -128,9 +125,10 @@ export const createPaymentIntent = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to create payment intent"
+        extractThunkError(
+          error,
+          "Failed to initialize payment. Please try again."
+        )
       );
     }
   }
@@ -147,9 +145,10 @@ export const confirmCheckout = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to confirm checkout"
+        extractThunkError(
+          error,
+          "Failed to confirm your order. Please contact support if payment was charged."
+        )
       );
     }
   }

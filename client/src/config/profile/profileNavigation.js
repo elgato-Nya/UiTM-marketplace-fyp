@@ -8,6 +8,7 @@ import {
   BarChart,
   Notifications,
 } from "@mui/icons-material";
+import { ROUTES } from "../../constants/routes";
 
 export const getProfileNavigation = (roles = []) => {
   const baseNavigation = [
@@ -15,35 +16,35 @@ export const getProfileNavigation = (roles = []) => {
       id: "profile",
       label: "Profile",
       icon: Person,
-      path: "/profile",
+      path: ROUTES.PROFILE.INDEX,
       description: "View and edit your personal information",
     },
     {
       id: "orders",
       label: "My Orders",
       icon: ShoppingBag,
-      path: "/orders/purchases",
+      path: ROUTES.ORDERS.PURCHASES,
       description: "View and manage your orders history and status",
     },
     {
       id: "addresses",
       label: "Addresses",
       icon: LocationOn,
-      path: "/profile/addresses",
+      path: ROUTES.PROFILE.ADDRESSES,
       description: "Manage your saved addresses",
     },
     {
       id: "security",
       label: "Security",
       icon: Security,
-      path: "/profile/security",
+      path: ROUTES.PROFILE.SECURITY,
       description: "Manage your account security settings",
     },
     {
       id: "settings",
       label: "Settings",
       icon: Settings,
-      path: "/profile/settings",
+      path: ROUTES.PROFILE.SETTINGS,
       description: "Add personalization and preferences",
     },
   ];
@@ -53,7 +54,7 @@ export const getProfileNavigation = (roles = []) => {
       id: "store",
       label: "My Store",
       icon: Store,
-      path: "/merchant/store",
+      path: ROUTES.MERCHANT.STORE,
       description: "Manage your store profile and settings",
       isMerchant: true,
     });
@@ -62,7 +63,7 @@ export const getProfileNavigation = (roles = []) => {
       id: "analytics",
       label: "Analytics",
       icon: BarChart,
-      path: "/merchant/analytics",
+      path: ROUTES.MERCHANT.ANALYTICS,
       description: "View insights and analytics for your store",
       isMerchant: true,
     });

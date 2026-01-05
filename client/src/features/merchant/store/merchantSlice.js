@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import merchantService from "../service/merchantService";
+import { extractThunkError } from "../../../store/utils/thunkErrorHandler";
 
 /**
  * Merchant Redux Slice
@@ -49,14 +50,9 @@ export const fetchMyShop = createAsyncThunk(
         isNew: response.data.isNew || false,
       };
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to fetch shop",
-        statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to load shop. Please try again.")
+      );
     }
   }
 );
@@ -74,14 +70,12 @@ export const updateShop = createAsyncThunk(
         user: response.data.user,
       };
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to update shop",
-        statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Failed to update shop. Please check your input and try again."
+        )
+      );
     }
   }
 );
@@ -96,14 +90,9 @@ export const fetchShopStats = createAsyncThunk(
       const response = await merchantService.getShopStats();
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to fetch shop stats",
-        statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to load shop statistics.")
+      );
     }
   }
 );
@@ -121,14 +110,9 @@ export const fetchShopBySlug = createAsyncThunk(
         merchant: response.data.merchant,
       };
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to fetch shop",
-        statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Shop not found or is no longer available.")
+      );
     }
   }
 );
@@ -146,14 +130,9 @@ export const searchMerchants = createAsyncThunk(
         pagination: response.data.pagination,
       };
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to search merchants",
-        statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to search merchants.")
+      );
     }
   }
 );
@@ -171,14 +150,9 @@ export const syncMerchantListings = createAsyncThunk(
         message: response.data.message,
       };
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to sync listings",
-        statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to sync listings.")
+      );
     }
   }
 );

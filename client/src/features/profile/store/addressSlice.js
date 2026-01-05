@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 import addressService from "../service/addressService";
+import { extractThunkError } from "../../../store/utils/thunkErrorHandler";
 
 const initialState = {
   addresses: [],
@@ -25,14 +26,9 @@ export const fetchAddresses = createAsyncThunk(
         type,
       };
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to fetch addresses",
-        statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to load your addresses.")
+      );
     }
   }
 );
@@ -45,12 +41,12 @@ export const createAddress = createAsyncThunk(
       // Backend returns { success: true, data: newAddress, message: "..." }
       return response.data?.data || response.data || response;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to create address",
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Failed to save address. Please check your input."
+        )
+      );
     }
   }
 );
@@ -66,12 +62,9 @@ export const updateAddress = createAsyncThunk(
       // Backend returns { success: true, data: updatedAddress, message: "..." }
       return response.data?.data || response.data || response;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to update address",
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to update address.")
+      );
     }
   }
 );
@@ -85,12 +78,9 @@ export const deleteAddress = createAsyncThunk(
       const responseData = response.data?.data || response.data || response;
       return { _id: addressId, ...responseData };
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to delete address",
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to delete address.")
+      );
     }
   }
 );
@@ -109,14 +99,9 @@ export const setDefaultAddress = createAsyncThunk(
         data: responseData,
       };
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to set default address",
-        statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to set default address.")
+      );
     }
   }
 );
@@ -129,14 +114,9 @@ export const getDefaultAddress = createAsyncThunk(
       // Backend returns { success: true, data: defaultAddress, message: "..." }
       return response.data?.data || response.data || response;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error?.message ||
-          "Failed to get default address",
-        statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to load default address.")
+      );
     }
   }
 );

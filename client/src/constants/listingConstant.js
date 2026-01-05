@@ -71,3 +71,62 @@ export const VALIDATION_RULES = {
   MIN_PRICE: 0,
   MIN_STOCK: 0,
 };
+
+// ========== VARIANT SYSTEM CONSTANTS ==========
+
+/**
+ * Variant Limits - Must match server enums exactly
+ *
+ * Use Cases for Variant Builder:
+ * - Clothing: Size (XS, S, M, L, XL) × Color (Red, Blue, Black) = 15 variants
+ * - Electronics: Storage (64GB, 128GB, 256GB) × Color (Space Gray, Silver) = 6 variants
+ * - Food: Size (Small, Medium, Large) × Flavor (Original, Spicy, BBQ) = 9 variants
+ * - Custom products: Any combination of attributes the seller defines
+ *
+ * The variant builder auto-generates all combinations from variation types,
+ * saving merchants from manually creating each variant individually.
+ */
+export const VARIANT_LIMITS = {
+  MAX_VARIANTS_PER_LISTING: 20, // Supports common product combinations
+  MAX_VARIANT_NAME_LENGTH: 100,
+  MIN_VARIANT_NAME_LENGTH: 1,
+  MAX_SKU_LENGTH: 50,
+  MAX_ATTRIBUTE_KEYS: 10,
+  MAX_ATTRIBUTE_KEY_LENGTH: 50,
+  MAX_ATTRIBUTE_VALUE_LENGTH: 100,
+  MAX_VARIANT_IMAGES: 5,
+};
+
+/**
+ * Quote Limits - Must match server enums exactly
+ */
+export const QUOTE_LIMITS = {
+  MAX_CUSTOM_FIELDS: 10,
+  MAX_FIELD_LABEL_LENGTH: 100,
+  MAX_FIELD_OPTIONS: 20,
+  MIN_DEPOSIT_PERCENTAGE: 0,
+  MAX_DEPOSIT_PERCENTAGE: 100,
+  DEFAULT_RESPONSE_TIME: 24,
+};
+
+/**
+ * Quote Field Types - Must match server enums exactly
+ */
+export const QUOTE_FIELD_TYPES = {
+  TEXT: { value: "text", label: "Text Input" },
+  NUMBER: { value: "number", label: "Number Input" },
+  SELECT: { value: "select", label: "Dropdown Select" },
+  DATE: { value: "date", label: "Date Picker" },
+  TEXTAREA: { value: "textarea", label: "Text Area" },
+};
+
+/**
+ * Variant validation rules
+ */
+export const VARIANT_VALIDATION = {
+  NAME_MIN: VARIANT_LIMITS.MIN_VARIANT_NAME_LENGTH,
+  NAME_MAX: VARIANT_LIMITS.MAX_VARIANT_NAME_LENGTH,
+  SKU_MAX: VARIANT_LIMITS.MAX_SKU_LENGTH,
+  PRICE_MIN: 0,
+  STOCK_MIN: 0,
+};

@@ -86,11 +86,15 @@ function AppContent() {
                 {/* SEO-friendly redirects with type parameter */}
                 <Route
                   path={ROUTES.LISTINGS.PRODUCTS}
-                  element={<Navigate to="/browse?type=product" replace />}
+                  element={
+                    <Navigate to={`${ROUTES.BROWSE}?type=product`} replace />
+                  }
                 />
                 <Route
                   path={ROUTES.LISTINGS.SERVICES}
-                  element={<Navigate to="/browse?type=service" replace />}
+                  element={
+                    <Navigate to={`${ROUTES.BROWSE}?type=service`} replace />
+                  }
                 />
 
                 {/* Cart and Wishlist (Public/Protected) */}
@@ -215,7 +219,7 @@ function AppContent() {
                 </Route>
 
                 {/* Public Pages */}
-                <Route path={ROUTES.ABOUT} element={<AboutPage />} />
+                <Route path={ROUTES.ABOUT.INDEX} element={<AboutPage />} />
                 <Route path="/about/nekodez" element={<NekodezPage />} />
                 <Route path="/contact" element={<ContactUsPage />} />
 

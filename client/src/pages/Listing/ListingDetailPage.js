@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import {
@@ -19,6 +19,7 @@ import {
   Store as StoreIcon,
   Favorite as FavoriteIcon,
   FavoriteBorder as FavoriteBorderIcon,
+  RequestQuote as QuoteIcon,
 } from "@mui/icons-material";
 
 import { useTheme } from "../../hooks/useTheme";
@@ -28,10 +29,13 @@ import useListings from "../../features/listing/hooks/useListings";
 import useWishlist from "../../features/wishlist/hook/useWishlist";
 import { CATEGORY_LABELS } from "../../constants/listingConstant";
 import ImageGallery from "../../features/listing/components/ImageGallery";
-import { ErrorAlert } from "../../components/common/Alert";
-import { BackButton } from "../../components/common/Navigation";
+import VariantAttributeSelector from "../../features/listing/components/variants/VariantAttributeSelector";
+import QuoteRequestForm from "../../features/listing/components/QuoteRequestForm";
+import ErrorAlert from "../../components/common/Alert/ErrorAlert";
+import BackButton from "../../components/common/Navigation/BackButton";
 import { ROUTES } from "../../constants/routes";
 import AddToCartDialog from "../../features/cart/components/AddToCartDialog";
+import BuyNowDialog from "../../features/cart/components/BuyNowDialog";
 import { createSessionFromListing } from "../../features/checkout/store/checkoutSlice";
 
 const ListingDetailPage = () => {
@@ -43,12 +47,49 @@ const ListingDetailPage = () => {
   const { isAuthenticated } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [buyNowDialogOpen, setBuyNowDialogOpen] = useState(false);
 
   const { currentListing, isLoading, error, getListingById, clearCurrent } =
     useListings();
 
   // Wishlist hook
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+
+  // Handle quote request - defined early to avoid conditional hook issues
+  const handleRequestQuote = useCallback(() => {
+    if (!isAuthenticated) {
+      showError("Please log in to request a quote");
+      navigate(ROUTES.AUTH.LOGIN, {
+        state: { from: window.location.pathname },
+      });
+      return;
+    }
+    setQuoteDialogOpen(true);
+  }, [isAuthenticated, showError, navigate]);
+
+  // Handle quote submission
+  const handleQuoteSubmit = useCallback(
+    async (quoteData) => {
+      setQuoteLoading(true);
+      try {
+        // TODO: Implement quote submission API call
+        // For now, just show success message
+        console.log("Quote request submitted:", quoteData);
+        success(
+          "Quote request submitted successfully! The seller will respond soon."
+        );
+        setQuoteDialogOpen(false);
+      } catch (error) {
+        showError(error.message || "Failed to submit quote request");
+      } finally {
+        setQuoteLoading(false);
+      }
+    },
+    [success, showError]
+  );
 
   // Scroll to top when component mounts or listingId changes
   useEffect(() => {
@@ -64,6 +105,56 @@ const ListingDetailPage = () => {
     };
   }, [listingId]);
 
+  // Extract data early to avoid conditional hooks
+  const listing = currentListing || {};
+  const {
+    name = "",
+    description = "",
+    price = 0,
+    category = "",
+    type = "",
+    images = [],
+    stock = 0,
+    isFree = false,
+    isAvailable = false,
+    seller = {},
+    variants = [],
+  } = listing;
+
+  // Check if listing has variants
+  const hasVariants = variants && variants.length > 0;
+
+  // Get available variants only - always call useMemo
+  const availableVariants = useMemo(() => {
+    return hasVariants ? variants.filter((v) => v.isAvailable !== false) : [];
+  }, [hasVariants, variants]);
+
+  // Calculate price range for variants - always call useMemo
+  const priceRange = useMemo(() => {
+    if (!hasVariants || availableVariants.length === 0) {
+      return null;
+    }
+
+    const prices = availableVariants
+      .map((v) => Number(v.price) || 0)
+      .filter((p) => p > 0);
+    if (prices.length === 0) return null;
+
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+
+    return minPrice === maxPrice ? null : { min: minPrice, max: maxPrice };
+  }, [hasVariants, availableVariants]);
+
+  // Determine effective price and stock based on variant selection
+  const effectivePrice = selectedVariant ? selectedVariant.price : price;
+  const effectiveStock = selectedVariant
+    ? selectedVariant.stock
+    : hasVariants
+      ? availableVariants.reduce((sum, v) => sum + (v.stock || 0), 0)
+      : stock;
+
+  // Early returns after all hooks
   if (isLoading) {
     return (
       <Box
@@ -86,19 +177,6 @@ const ListingDetailPage = () => {
     );
   }
 
-  const {
-    name,
-    description,
-    price,
-    category,
-    type,
-    images,
-    stock,
-    isFree,
-    isAvailable,
-    seller = {},
-  } = currentListing;
-
   // Extract seller information - handle both populated and unpopulated cases
   const sellerUser = seller.userId || seller; // userId exists if populated
   const {
@@ -116,7 +194,24 @@ const ListingDetailPage = () => {
   const displayName = shopName || username;
 
   const inWishlist = isInWishlist(listingId);
-  const canAddToCart = isAvailable && (type === "service" || stock > 0);
+
+  // For listings with variants, we now allow opening the dialog without pre-selection
+  // The variant selection happens inside the modal
+  const canAddToCart = hasVariants
+    ? availableVariants.length > 0 // Can open dialog if there are available variants
+    : isAvailable && (type === "service" || stock > 0);
+
+  // For Buy Now, if listing has variants, we need to open a modal for selection
+  // For now, we'll disable direct Buy Now and require going through Add to Cart first
+  const canBuyNow = hasVariants
+    ? selectedVariant &&
+      selectedVariant.isAvailable !== false &&
+      (type === "service" || selectedVariant.stock > 0)
+    : isAvailable && (type === "service" || stock > 0);
+
+  // Check if listing supports quote requests
+  const hasQuoteSettings =
+    type === "service" && currentListing?.quoteSettings?.enabled;
 
   // Format price with spaces (e.g., 1 234 567.89)
   const formatPrice = (price) => {
@@ -138,14 +233,25 @@ const ListingDetailPage = () => {
   };
 
   const handleBuyNow = async () => {
+    // If listing has variants, open modal for selection
+    if (hasVariants && !selectedVariant) {
+      setBuyNowDialogOpen(true);
+      return;
+    }
+
     setIsBuyingNow(true);
     try {
       // For services, quantity is 1; for products, default to 1
       const quantity = 1;
 
       // Create checkout session for direct purchase
+      const sessionData = { listingId, quantity };
+      if (selectedVariant) {
+        sessionData.variantId = selectedVariant._id;
+      }
+
       const result = await dispatch(
-        createSessionFromListing({ listingId, quantity })
+        createSessionFromListing(sessionData)
       ).unwrap();
 
       // Navigate to checkout page
@@ -268,12 +374,42 @@ const ListingDetailPage = () => {
                 fontSize: { xs: "1.75rem", md: "2.25rem" },
               }}
             >
-              {formatPrice(price)}
+              {priceRange && !selectedVariant
+                ? `${formatPrice(priceRange.min)} - ${formatPrice(priceRange.max)}`
+                : formatPrice(effectivePrice)}
+              {hasVariants && !selectedVariant && !priceRange && (
+                <Typography
+                  component="span"
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ ml: 1, fontWeight: 400 }}
+                >
+                  (select variant)
+                </Typography>
+              )}
             </Typography>
           )}
 
+          {/* Variant Selector */}
+          {hasVariants && (
+            <Box sx={{ mb: 2 }}>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                sx={{ mb: 1.5, fontWeight: 600 }}
+              >
+                Select Variant ({availableVariants.length} available)
+              </Typography>
+              <VariantAttributeSelector
+                variants={variants}
+                selectedVariant={selectedVariant}
+                onVariantSelect={(variant) => setSelectedVariant(variant)}
+              />
+            </Box>
+          )}
+
           {/* Stock Status for Products */}
-          {type === "product" && (
+          {type === "product" && !hasVariants && (
             <Box sx={{ mb: 2, mt: 2 }}>
               <Typography
                 variant="body2"
@@ -302,79 +438,106 @@ const ListingDetailPage = () => {
 
           {/* Action Buttons */}
           {isAuthenticated ? (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "row",
-                gap: 1.5,
-                mt: 3,
-                mb: 0,
-              }}
-            >
-              {/* Buy Now */}
-              <Button
-                variant="contained"
-                size="large"
-                onClick={handleBuyNow}
-                disabled={!canAddToCart || isBuyingNow}
+            <>
+              <Box
                 sx={{
-                  py: 1.5,
-                  fontSize: { xs: "0.875rem", sm: "1rem" },
-                  fontWeight: 600,
-                  textTransform: "none",
-                  flex: 1,
+                  display: "flex",
+                  flexDirection: "row",
+                  gap: 1.5,
+                  mt: 3,
+                  mb: 0,
                 }}
               >
-                {isBuyingNow ? (
-                  <>
-                    <CircularProgress size={20} sx={{ mr: 1 }} />
-                    Processing...
-                  </>
-                ) : !canAddToCart ? (
-                  "Unavailable"
-                ) : (
-                  "Buy Now"
-                )}
-              </Button>
-
-              {/* Add to Cart */}
-              <Button
-                variant="outlined"
-                size="large"
-                onClick={handleAddToCartClick}
-                disabled={!canAddToCart}
-                sx={{
-                  py: 1.5,
-                  fontSize: { xs: "0.875rem", sm: "1rem" },
-                  fontWeight: 600,
-                  textTransform: "none",
-                  flex: 1,
-                }}
-              >
-                Add to Cart
-              </Button>
-
-              {/* Wishlist - Icon Only */}
-              <Tooltip
-                title={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
-              >
-                <IconButton
-                  onClick={handleToggleWishlist}
+                {/* Buy Now - For variants, opens modal if no variant selected */}
+                <Button
+                  variant="contained"
                   size="large"
+                  onClick={handleBuyNow}
+                  disabled={!canAddToCart || isBuyingNow}
                   sx={{
-                    border: "2px solid",
-                    borderColor: inWishlist ? "error.main" : "divider",
-                    color: inWishlist ? "error.main" : "text.secondary",
-                    "&:hover": {
-                      borderColor: "error.main",
-                      color: "error.main",
-                    },
+                    py: 1.5,
+                    fontSize: { xs: "0.875rem", sm: "1rem" },
+                    fontWeight: 600,
+                    textTransform: "none",
+                    flex: 1,
                   }}
                 >
-                  {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-                </IconButton>
-              </Tooltip>
-            </Box>
+                  {isBuyingNow ? (
+                    <>
+                      <CircularProgress size={20} sx={{ mr: 1 }} />
+                      Processing...
+                    </>
+                  ) : !canAddToCart ? (
+                    "Unavailable"
+                  ) : hasVariants && !selectedVariant ? (
+                    "Buy Now"
+                  ) : (
+                    "Buy Now"
+                  )}
+                </Button>
+
+                {/* Add to Cart - For variants, opens modal for selection */}
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={handleAddToCartClick}
+                  disabled={!canAddToCart}
+                  sx={{
+                    py: 1.5,
+                    fontSize: { xs: "0.875rem", sm: "1rem" },
+                    fontWeight: 600,
+                    textTransform: "none",
+                    flex: 1,
+                  }}
+                >
+                  Add to Cart
+                </Button>
+
+                {/* Wishlist - Icon Only */}
+                <Tooltip
+                  title={
+                    inWishlist ? "Remove from wishlist" : "Add to wishlist"
+                  }
+                >
+                  <IconButton
+                    onClick={handleToggleWishlist}
+                    size="large"
+                    sx={{
+                      border: "2px solid",
+                      borderColor: inWishlist ? "error.main" : "divider",
+                      color: inWishlist ? "error.main" : "text.secondary",
+                      "&:hover": {
+                        borderColor: "error.main",
+                        color: "error.main",
+                      },
+                    }}
+                  >
+                    {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                  </IconButton>
+                </Tooltip>
+              </Box>
+
+              {/* Quote Request Button - For services with quote settings */}
+              {hasQuoteSettings && (
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  size="large"
+                  onClick={handleRequestQuote}
+                  startIcon={<QuoteIcon />}
+                  sx={{
+                    py: 1.5,
+                    mt: 2,
+                    fontSize: { xs: "0.875rem", sm: "1rem" },
+                    fontWeight: 600,
+                    textTransform: "none",
+                    width: "100%",
+                  }}
+                >
+                  Request a Quote
+                </Button>
+              )}
+            </>
           ) : (
             <Alert
               severity="info"
@@ -393,14 +556,14 @@ const ListingDetailPage = () => {
             variant="h6"
             fontWeight="600"
             gutterBottom
-            sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+            sx={{ mb: 2, fontSize: { xs: "1rem", md: "1.25rem" } }}
           >
             Seller Information
           </Typography>
           <Box
             display="flex"
-            flexDirection={{ xs: "column", sm: "row" }}
-            alignItems={{ xs: "center", sm: "flex-start" }}
+            flexDirection="row"
+            alignItems="flex-start"
             gap={2}
           >
             <Avatar
@@ -437,7 +600,7 @@ const ListingDetailPage = () => {
               variant="outlined"
               onClick={handleViewShop}
               sx={{
-                minWidth: { xs: "100%", sm: 150 },
+                minWidth: 150,
                 textTransform: "none",
                 fontSize: { xs: "0.875rem", md: "1rem" },
               }}
@@ -453,7 +616,50 @@ const ListingDetailPage = () => {
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         listing={currentListing}
+        selectedVariant={hasVariants ? selectedVariant : null}
       />
+
+      {/* Buy Now Dialog - for variant selection before checkout */}
+      {hasVariants && (
+        <BuyNowDialog
+          open={buyNowDialogOpen}
+          onClose={() => setBuyNowDialogOpen(false)}
+          listing={currentListing}
+          selectedVariant={selectedVariant}
+          onBuyNow={async (variant) => {
+            setBuyNowDialogOpen(false);
+            setSelectedVariant(variant);
+            setIsBuyingNow(true);
+            try {
+              const sessionData = {
+                listingId,
+                quantity: 1,
+                variantId: variant._id,
+              };
+              await dispatch(createSessionFromListing(sessionData)).unwrap();
+              navigate(ROUTES.CHECKOUT.INDEX);
+              success("Redirecting to checkout...");
+            } catch (error) {
+              showError(
+                error.message || "Failed to start checkout. Please try again."
+              );
+            } finally {
+              setIsBuyingNow(false);
+            }
+          }}
+        />
+      )}
+
+      {/* Quote Request Dialog */}
+      {hasQuoteSettings && (
+        <QuoteRequestForm
+          open={quoteDialogOpen}
+          onClose={() => setQuoteDialogOpen(false)}
+          listing={currentListing}
+          onSubmit={handleQuoteSubmit}
+          isLoading={quoteLoading}
+        />
+      )}
     </Container>
   );
 };

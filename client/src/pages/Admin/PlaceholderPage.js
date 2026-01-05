@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import { Construction, ArrowBack } from "@mui/icons-material";
 import { useTheme } from "../../hooks/useTheme";
+import { ROUTES } from "../../constants/routes";
 
 /**
  * PlaceholderPage Component
@@ -130,7 +131,7 @@ const PlaceholderPage = () => {
             </Button>
             <Button
               variant="outlined"
-              onClick={() => navigate("/admin/dashboard")}
+              onClick={() => navigate(ROUTES.ADMIN.DASHBOARD)}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
               Back to Dashboard

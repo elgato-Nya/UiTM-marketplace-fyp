@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import uploadService from "../../services/uploadService";
+import { extractThunkError } from "../utils/thunkErrorHandler";
 
 const initialState = {
   uploadedImages: [],
@@ -22,29 +23,22 @@ export const uploadSingleImage = createAsyncThunk(
       );
       return response.data; // { success, data: { url, key, size, originalSize, savings }, message }
     } catch (error) {
-      // Enhanced error handling for specific status codes
+      // Special handling for file size errors
       const statusCode = error.response?.status || 500;
-      let errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to upload image";
-
-      // Handle specific error cases
       if (statusCode === 413) {
-        errorMessage =
-          "File is too large. Maximum file size is 5MB per image. Please compress your image and try again.";
-      } else if (statusCode === 400) {
-        // Bad request - might be file type or validation error
-        errorMessage =
-          error.response?.data?.message ||
-          "Invalid file. Please check the file type and size.";
+        return rejectWithValue(
+          extractThunkError(
+            error,
+            "File is too large. Maximum file size is 5MB per image. Please compress your image and try again."
+          )
+        );
       }
-
-      return rejectWithValue({
-        message: errorMessage,
-        statusCode: statusCode,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Failed to upload image. Please check file type and size."
+        )
+      );
     }
   }
 );
@@ -61,29 +55,22 @@ export const uploadMultipleImages = createAsyncThunk(
       );
       return response.data;
     } catch (error) {
-      // Enhanced error handling for specific status codes
+      // Special handling for file size errors
       const statusCode = error.response?.status || 500;
-      let errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to upload images";
-
-      // Handle specific error cases
       if (statusCode === 413) {
-        errorMessage =
-          "One or more files are too large. Maximum file size is 5MB per image. Please compress your images and try again.";
-      } else if (statusCode === 400) {
-        // Bad request - might be file type or validation error
-        errorMessage =
-          error.response?.data?.message ||
-          "Invalid files. Please check file types and sizes.";
+        return rejectWithValue(
+          extractThunkError(
+            error,
+            "One or more files are too large. Maximum file size is 5MB per image."
+          )
+        );
       }
-
-      return rejectWithValue({
-        message: errorMessage,
-        statusCode: statusCode,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Failed to upload images. Please check file types and sizes."
+        )
+      );
     }
   }
 );
@@ -99,29 +86,22 @@ export const uploadListingImages = createAsyncThunk(
       );
       return response.data; // { success, data: { images: [{main, thumbnail}], count }, message }
     } catch (error) {
-      // Enhanced error handling for specific status codes
+      // Special handling for file size and count errors
       const statusCode = error.response?.status || 500;
-      let errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to upload listing images";
-
-      // Handle specific error cases
       if (statusCode === 413) {
-        errorMessage =
-          "Files are too large. Maximum total upload size exceeded or individual files exceed 5MB. Please compress your images and try again.";
-      } else if (statusCode === 400) {
-        // Bad request - might be file count, type, or validation error
-        errorMessage =
-          error.response?.data?.message ||
-          "Invalid files. You can upload maximum 10 images (JPG, PNG, WEBP) with 5MB max per file.";
+        return rejectWithValue(
+          extractThunkError(
+            error,
+            "Files are too large. Maximum 5MB per image. Please compress your images."
+          )
+        );
       }
-
-      return rejectWithValue({
-        message: errorMessage,
-        statusCode: statusCode,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Failed to upload listing images. You can upload maximum 10 images (JPG, PNG, WEBP)."
+        )
+      );
     }
   }
 );
@@ -133,14 +113,9 @@ export const deleteImage = createAsyncThunk(
       const response = await uploadService.deleteImage(key);
       return { key, ...response.data }; // include key for removal from state
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to delete image",
-        statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to delete image.")
+      );
     }
   }
 );
@@ -152,14 +127,9 @@ export const deleteMultipleImages = createAsyncThunk(
       const response = await uploadService.deleteMultipleImages(keys);
       return { keys, ...response.data }; // include keys for removal from state
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to delete images",
-        statusCode: error.response?.status || 500,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to delete images.")
+      );
     }
   }
 );

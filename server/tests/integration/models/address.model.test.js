@@ -173,7 +173,7 @@ describe("Address Management", () => {
       expect(newAddress.type).toBe("campus");
       expect(newAddress.recipientName).toBe("John Doe");
       expect(newAddress.recipientPhone).toBe("01234567890");
-      expect(newAddress.campusAddress.campus).toBe("UiTM Shah Alam"); // ✅ Converted to display value
+      expect(newAddress.campusAddress.campus).toBe("SHAH_ALAM"); // Returns enum key - client converts to display
       expect(newAddress.campusAddress.building).toBe("Block A");
       expect(newAddress.campusAddress.floor).toBe("Level 3");
       expect(newAddress.campusAddress.room).toBe("Room 301");
@@ -208,7 +208,7 @@ describe("Address Management", () => {
       expect(newAddress.personalAddress.addressLine1).toBe("123 Main Street"); // ✅ Matches test data
       expect(newAddress.personalAddress.addressLine2).toBe("Apartment 2B");
       expect(newAddress.personalAddress.city).toBe("Shah Alam");
-      expect(newAddress.personalAddress.state).toBe("Selangor"); // ✅ Converted to display value
+      expect(newAddress.personalAddress.state).toBe("SELANGOR"); // Returns enum key - client converts to display
       expect(newAddress.personalAddress.postcode).toBe("40000");
 
       // Verify it was saved to the user document
@@ -296,7 +296,7 @@ describe("Address Management", () => {
 
       // Verify unchanged fields remain
       expect(updatedAddress.personalAddress.city).toBe("Shah Alam");
-      expect(updatedAddress.personalAddress.state).toBe("Selangor"); // ✅ Converted to display value
+      expect(updatedAddress.personalAddress.state).toBe("SELANGOR"); // Returns enum key - client converts to display
 
       // Verify it was saved to user document
       const updatedUser = await User.findById(testUser._id);

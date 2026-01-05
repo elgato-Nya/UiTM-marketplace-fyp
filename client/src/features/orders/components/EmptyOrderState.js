@@ -7,6 +7,7 @@ import {
   FilterListOff,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import { ROUTES } from "../../../constants/routes";
 
 function EmptyOrderState({
   role = "buyer",
@@ -22,9 +23,9 @@ function EmptyOrderState({
 
   const handleAction = () => {
     if (isBuyer) {
-      navigate("/listings");
+      navigate(ROUTES.LISTINGS.ALL);
     } else {
-      navigate("/merchant/listings/create");
+      navigate(ROUTES.MERCHANT.LISTINGS.CREATE);
     }
   };
 

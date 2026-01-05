@@ -14,6 +14,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useStripe, useElements, CardElement } from "@stripe/react-stripe-js";
 
 import { useTheme } from "../../hooks/useTheme";
+import { ROUTES } from "../../constants/routes";
 import {
   createSessionFromCart,
   createSessionFromListing,
@@ -66,6 +67,7 @@ const CheckoutPage = () => {
   const [cardReady, setCardReady] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Get checkout source from location state
   const { source, listingId, quantity } = location.state || {};
@@ -84,7 +86,7 @@ const CheckoutPage = () => {
         );
       } else {
         // No valid source, redirect to cart
-        navigate("/cart", { replace: true });
+        navigate(ROUTES.CART, { replace: true });
       }
     }
   }, [
@@ -97,17 +99,51 @@ const CheckoutPage = () => {
     navigate,
   ]);
 
-  // Set initial address from session
+  // Set initial values from session and mark as initialized
   useEffect(() => {
     if (session?.shippingAddress?._id) {
       setSelectedAddressId(session.shippingAddress._id);
     }
-  }, [session?.shippingAddress]);
+    // Initialize delivery method from session if available
+    if (session?.deliveryMethod && !isInitialized) {
+      setDeliveryMethod(session.deliveryMethod);
+      setIsInitialized(true);
+    } else if (session?._id && !isInitialized) {
+      // Mark as initialized once session is loaded
+      setIsInitialized(true);
+    }
+  }, [
+    session?.shippingAddress,
+    session?.deliveryMethod,
+    session?._id,
+    isInitialized,
+  ]);
+
+  // Update session when delivery method changes to recalculate pricing (only after initialization)
+  useEffect(() => {
+    // Skip if not initialized or if session doesn't exist
+    if (!isInitialized || !session?._id || !hasActiveSession) {
+      return;
+    }
+
+    // Only update if delivery method is different from session's current value
+    if (deliveryMethod && deliveryMethod !== session?.deliveryMethod) {
+      dispatch(
+        updateSession({
+          sessionId: session._id,
+          data: {
+            deliveryMethod,
+          },
+        })
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deliveryMethod, isInitialized]);
 
   // Handle session expiration
   useEffect(() => {
     if (sessionExpired) {
-      navigate("/cart", {
+      navigate(ROUTES.CART, {
         replace: true,
         state: {
           message: "Your checkout session has expired. Please try again.",
@@ -214,7 +250,7 @@ const CheckoutPage = () => {
       const result = await dispatch(confirmCheckout(session._id)).unwrap();
 
       // Navigate to success page
-      navigate("/checkout/success", {
+      navigate(ROUTES.CHECKOUT.SUCCESS, {
         replace: true,
         state: { orders: result.orders },
       });
@@ -229,7 +265,7 @@ const CheckoutPage = () => {
   };
 
   const handleSessionExpired = () => {
-    navigate("/cart", {
+    navigate(ROUTES.CART, {
       replace: true,
       state: {
         message: "Your checkout session has expired. Please try again.",
@@ -262,7 +298,7 @@ const CheckoutPage = () => {
         </Alert>
         <Button
           variant="contained"
-          onClick={() => navigate("/cart")}
+          onClick={() => navigate(ROUTES.CART)}
           sx={{ mt: 2 }}
         >
           Return to Cart
@@ -296,7 +332,9 @@ const CheckoutPage = () => {
 
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
+            {typeof error === "string"
+              ? error
+              : error?.message || "An error occurred"}
           </Alert>
         )}
 

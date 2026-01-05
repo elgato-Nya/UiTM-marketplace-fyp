@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 import wishlistService from "../service/wishlistService";
+import { extractThunkError } from "../../../store/utils/thunkErrorHandler";
 const { fetchCart } = await import("../../cart/store/cartSlice");
 
 const initialState = {
@@ -18,14 +19,9 @@ export const fetchWishlist = createAsyncThunk(
       const response = await wishlistService.getWishlist();
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch wishlist",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to load your wishlist.")
+      );
     }
   }
 );
@@ -42,14 +38,9 @@ export const addToWishlist = createAsyncThunk(
 
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to add to wishlist",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to add item to wishlist.")
+      );
     }
   }
 );
@@ -66,14 +57,9 @@ export const removeFromWishlist = createAsyncThunk(
 
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to remove from wishlist",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to remove item from wishlist.")
+      );
     }
   }
 );
@@ -85,14 +71,9 @@ export const clearWishlist = createAsyncThunk(
       const response = await wishlistService.clearWishlist();
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to clear wishlist",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to clear wishlist.")
+      );
     }
   }
 );
@@ -108,14 +89,9 @@ export const moveToCart = createAsyncThunk(
 
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to move to cart",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to move item to cart.")
+      );
     }
   }
 );

@@ -588,6 +588,47 @@ const takeReportAction = async (contactId, actionTaken, adminId) => {
   }
 };
 
+/**
+ * Get public testimonials (positive feedback for homepage display)
+ * @param {number} limit - Maximum number of testimonials to return
+ * @returns {Promise<Array>} Array of public testimonials
+ */
+const getPublicTestimonials = async (limit = 3) => {
+  try {
+    const testimonials = await Contact.find({
+      type: { $in: ["feedback", "enquiry"] },
+      status: "resolved",
+      // Only show feedback with rating >= 4 or enquiries that are resolved
+      $or: [{ "feedbackDetails.rating": { $gte: 4 } }, { type: "enquiry" }],
+    })
+      .select(
+        "submittedBy.name submittedBy.userId feedbackDetails.rating feedbackDetails.category subject message type createdAt"
+      )
+      .populate({
+        path: "submittedBy.userId",
+        select: "profile.avatar profile.username",
+      })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    // Clean testimonials for public display (remove sensitive data)
+    return testimonials.map((t) => ({
+      id: t._id,
+      name: t.submittedBy?.name || "Anonymous User",
+      avatar: t.submittedBy?.userId?.profile?.avatar || null,
+      username: t.submittedBy?.userId?.profile?.username || null,
+      rating: t.feedbackDetails?.rating || null,
+      category: t.feedbackDetails?.category || t.type,
+      title: t.subject,
+      message: t.message,
+      date: t.createdAt,
+    }));
+  } catch (error) {
+    handleServiceError(error, "getPublicTestimonials");
+  }
+};
+
 module.exports = {
   createContactSubmission,
   getContactById,
@@ -600,4 +641,5 @@ module.exports = {
   cleanContactForClient,
   getReportsByEntity,
   takeReportAction,
+  getPublicTestimonials,
 };

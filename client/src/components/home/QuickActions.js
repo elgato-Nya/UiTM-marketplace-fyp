@@ -13,6 +13,7 @@ import {
 import { Link } from "react-router-dom";
 import { useTheme } from "../../hooks/useTheme";
 import { useAuth } from "../../features/auth/hooks/useAuth";
+import { ROUTES } from "../../constants/routes";
 
 function QuickActions() {
   const { theme } = useTheme();
@@ -25,17 +26,17 @@ function QuickActions() {
       {
         icon: ShoppingCart,
         label: "My Cart",
-        path: "/cart",
+        path: ROUTES.CART,
       },
       {
         icon: Favorite,
         label: "Wishlist",
-        path: "/wishlist",
+        path: ROUTES.WISHLIST,
       },
       {
         icon: Receipt,
         label: "My Orders",
-        path: "/orders/purchases",
+        path: ROUTES.ORDERS.PURCHASES,
       },
     ];
 
@@ -43,17 +44,17 @@ function QuickActions() {
       {
         icon: Store,
         label: "My Store",
-        path: "/merchant/store",
+        path: ROUTES.MERCHANT.STORE,
       },
       {
         icon: TrendingUp,
         label: "Analytics",
-        path: "/merchant/analytics",
+        path: ROUTES.MERCHANT.ANALYTICS,
       },
       {
         icon: Receipt,
         label: "Manage Orders",
-        path: "/merchant/orders",
+        path: ROUTES.MERCHANT.ORDERS,
       },
     ];
 
@@ -61,17 +62,17 @@ function QuickActions() {
       {
         icon: Dashboard,
         label: "Admin Panel",
-        path: "/admin/dashboard",
+        path: ROUTES.ADMIN.DASHBOARD,
       },
       {
         icon: People,
         label: "User Management",
-        path: "/admin/users",
+        path: ROUTES.ADMIN.USERS,
       },
       {
         icon: Settings,
         label: "Platform Settings",
-        path: "/admin/settings",
+        path: ROUTES.SETTINGS,
       },
     ];
 

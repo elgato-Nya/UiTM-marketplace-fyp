@@ -15,6 +15,7 @@ import {
   selectWishlistError,
   selectWishlistItemCount,
 } from "../store/wishlistSlice";
+import { ROUTES } from "../../../constants/routes";
 
 const useWishlist = (options = {}) => {
   const dispatch = useDispatch();
@@ -55,7 +56,7 @@ const useWishlist = (options = {}) => {
   };
 
   const goToWishlist = () => {
-    navigate("/wishlist");
+    navigate(ROUTES.WISHLIST);
   };
 
   const clearWishlistErrorMessage = () => {

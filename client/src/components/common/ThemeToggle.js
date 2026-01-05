@@ -3,27 +3,18 @@ import {
   IconButton,
   Tooltip,
   Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  Divider,
   Typography,
   Box,
-  MenuList,
-  Button,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  ToggleButtonGroup,
+  ToggleButton,
+  Switch,
+  Divider,
 } from "@mui/material";
 import {
   Brightness4,
   Brightness7,
   Contrast,
-  TextFields,
-  Refresh,
-  Palette,
   AccessibilityNew,
-  ExpandMore,
 } from "@mui/icons-material";
 import { useTheme } from "../../hooks/useTheme";
 
@@ -34,10 +25,8 @@ function ThemeToggle() {
     highContrast,
     isDark,
     isAccessible,
-    toggleTheme,
     setTheme,
     setFontSize,
-    resetFontSize,
     toggleHighContrast,
     THEMES,
     FONT_SIZES,
@@ -54,14 +43,16 @@ function ThemeToggle() {
     setAnchorEl(null);
   };
 
-  const handleThemeChange = (newTheme) => {
-    setTheme(newTheme);
-    handleClose();
+  const handleThemeChange = (event, newTheme) => {
+    if (newTheme !== null) {
+      setTheme(newTheme);
+    }
   };
 
-  const handleFontSizeChange = (newSize) => {
-    setFontSize(newSize);
-    handleClose();
+  const handleFontSizeChange = (event, newSize) => {
+    if (newSize !== null) {
+      setFontSize(newSize);
+    }
   };
 
   const getThemeIcon = () => {
@@ -70,28 +61,12 @@ function ThemeToggle() {
     return <Brightness7 />;
   };
 
-  const getThemeLabel = () => {
-    if (isAccessible) return "High Contrast Mode";
-    if (isDark) return "Dark Mode";
-    return "Light Mode";
-  };
-
-  const getFontSizeLabel = () => {
-    const labels = {
-      [FONT_SIZES.SMALL]: "Small Text",
-      [FONT_SIZES.MEDIUM]: "Medium Text",
-      [FONT_SIZES.LARGE]: "Large Text",
-      [FONT_SIZES.XL]: "Extra Large Text",
-    };
-    return labels[fontSize] || "Medium Text";
-  };
-
   return (
     <>
-      <Tooltip title="Theme & Accessibility Settings">
+      <Tooltip title="Appearance">
         <IconButton
           onClick={handleClick}
-          aria-label="Theme and accessibility settings"
+          aria-label="Appearance settings"
           aria-controls={open ? "theme-menu" : undefined}
           aria-haspopup="true"
           aria-expanded={open ? "true" : undefined}
@@ -111,230 +86,170 @@ function ThemeToggle() {
         open={open}
         onClose={handleClose}
         slotProps={{
-          list: {
-            "aria-labelledby": "theme-button",
-          },
           paper: {
-            sx: { minWidth: 280 },
+            sx: {
+              width: 240,
+              p: 2,
+              borderRadius: 2,
+            },
           },
         }}
+        transformOrigin={{ horizontal: "right", vertical: "top" }}
+        anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
       >
-        {/* Current Settings Display */}
-        <Box sx={{ px: 2, py: 1 }}>
-          <Typography variant="overline" color="text.secondary">
-            Current Settings
-          </Typography>
-          <Typography variant="body2">
-            {getThemeLabel()} • {getFontSizeLabel()}
-            {highContrast && " • High Contrast"}
-          </Typography>
-        </Box>
-
-        <Divider />
-
-        {/* Theme Options */}
-        <MenuList>
+        {/* Theme Section */}
+        <Box sx={{ mb: 2.5 }}>
           <Typography
-            variant="subtitle2"
-            sx={{ px: 2, py: 1, color: "text.secondary" }}
-          >
-            Theme
-          </Typography>
-          <MenuItem
-            onClick={() => handleThemeChange(THEMES.LIGHT)}
-            selected={mode === THEMES.LIGHT && !highContrast}
-          >
-            <ListItemIcon>
-              <Brightness7 />
-            </ListItemIcon>
-            <ListItemText>Light</ListItemText>
-          </MenuItem>
-
-          <MenuItem
-            onClick={() => handleThemeChange(THEMES.DARK)}
-            selected={mode === THEMES.DARK && !highContrast}
-          >
-            <ListItemIcon>
-              <Brightness4 />
-            </ListItemIcon>
-            <ListItemText>Dark</ListItemText>
-          </MenuItem>
-
-          <MenuItem
-            onClick={() => handleThemeChange(THEMES.ACCESSIBLE)}
-            selected={mode === THEMES.ACCESSIBLE}
-          >
-            <ListItemIcon>
-              <AccessibilityNew />
-            </ListItemIcon>
-            <ListItemText>
-              Accessible
-              <Typography
-                variant="caption"
-                display="block"
-                color="text.secondary"
-              >
-                High contrast, simplified design
-              </Typography>
-            </ListItemText>
-          </MenuItem>
-        </MenuList>
-
-        <Divider />
-
-        {/* Font Size Options */}
-        <MenuList>
-          <Typography
-            variant="subtitle2"
-            sx={{ px: 2, py: 1, color: "text.secondary" }}
-          >
-            Font Size
-          </Typography>
-          {/* Quick Select Row */}
-          <Box
+            variant="caption"
             sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              px: 2,
+              color: "text.secondary",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+              display: "block",
               mb: 1,
             }}
           >
-            {[
-              { label: "S", value: FONT_SIZES.SMALL },
-              { label: "M", value: FONT_SIZES.MEDIUM },
-              { label: "L", value: FONT_SIZES.LARGE },
-              { label: "XL", value: FONT_SIZES.XL },
-            ].map((option) => (
-              <Button
-                key={option.value}
-                size="small"
-                variant={fontSize === option.value ? "contained" : "outlined"}
-                onClick={() => handleFontSizeChange(option.value)}
-                sx={{ minWidth: 36, mx: 0.5, fontWeight: 600 }}
-              >
-                {option.label}
-              </Button>
-            ))}{" "}
-          </Box>{" "}
-          <MenuItem
-            onClick={() => {
-              resetFontSize();
-              handleClose();
+            Theme
+          </Typography>
+          <ToggleButtonGroup
+            value={mode}
+            exclusive
+            onChange={handleThemeChange}
+            aria-label="theme selection"
+            fullWidth
+            size="small"
+            sx={{
+              "& .MuiToggleButton-root": {
+                py: 1,
+                textTransform: "none",
+                fontWeight: 500,
+                fontSize: "0.813rem",
+                borderRadius: 1,
+                "&.Mui-selected": {
+                  bgcolor: "primary.main",
+                  color: "primary.contrastText",
+                  "&:hover": {
+                    bgcolor: "primary.dark",
+                  },
+                },
+              },
             }}
-            disabled={fontSize === FONT_SIZES.MEDIUM}
           >
-            <ListItemIcon>
-              <Refresh />
-            </ListItemIcon>
-            <ListItemText>
-              <Typography variant="body2">Reset to Default (M)</Typography>
-            </ListItemText>
-          </MenuItem>
-          {/* More Options Dropdown
-          <Accordion sx={{ boxShadow: "none" }}>
-            <AccordionSummary
-              expandIcon={<ExpandMore />}
-              aria-controls="font-size-details"
-              id="font-size-details-header"
-              sx={{ px: 2, py: 0, minHeight: 32 }}
+            <ToggleButton value={THEMES.LIGHT} aria-label="light theme">
+              <Brightness7 sx={{ fontSize: 16, mr: 0.5 }} />
+              Light
+            </ToggleButton>
+            <ToggleButton value={THEMES.DARK} aria-label="dark theme">
+              <Brightness4 sx={{ fontSize: 16, mr: 0.5 }} />
+              Dark
+            </ToggleButton>
+            <ToggleButton
+              value={THEMES.ACCESSIBLE}
+              aria-label="accessible theme"
             >
-              <Typography variant="body2" color="primary">
-                More Options
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails sx={{ px: 0, py: 0 }}>
-              {[
-                {
-                  value: FONT_SIZES.SMALL,
-                  iconSize: 16,
-                  label: "XS - Extra Small",
-                  desc: "Smallest text size",
-                },
-                {
-                  value: FONT_SIZES.MEDIUM,
-                  iconSize: 20,
-                  label: "S - Small (Default)",
-                  desc: "Standard text size",
-                },
-                {
-                  value: FONT_SIZES.LARGE,
-                  iconSize: 24,
-                  label: "M - Medium",
-                  desc: "Larger text for better readability",
-                },
-                {
-                  value: FONT_SIZES.XL,
-                  iconSize: 28,
-                  label: "XL - Extra Large",
-                  desc: "Largest text size",
-                },
-              ].map((option) => (
-                <MenuItem
-                  key={option.value}
-                  onClick={() => handleFontSizeChange(option.value)}
-                  selected={fontSize === option.value}
-                >
-                  <ListItemIcon>
-                    <TextFields sx={{ fontSize: option.iconSize }} />
-                  </ListItemIcon>
-                  <ListItemText>
-                    {option.label}
-                    <Typography
-                      variant="caption"
-                      display="block"
-                      color="text.secondary"
-                    >
-                      {option.desc}
-                    </Typography>
-                  </ListItemText>
-                </MenuItem>
-              ))}
+              <AccessibilityNew sx={{ fontSize: 16, mr: 0.5 }} />
+              Contrast
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
 
- 
-            </AccordionDetails>
-          </Accordion> */}
-        </MenuList>
+        <Divider sx={{ my: 2 }} />
 
-        <Divider />
+        {/* Font Size Section */}
+        <Box sx={{ mb: 2.5 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+              display: "block",
+              mb: 1,
+            }}
+          >
+            Text Size
+          </Typography>
+          <ToggleButtonGroup
+            value={fontSize}
+            exclusive
+            onChange={handleFontSizeChange}
+            aria-label="font size selection"
+            fullWidth
+            size="small"
+            sx={{
+              "& .MuiToggleButton-root": {
+                py: 0.75,
+                textTransform: "none",
+                fontWeight: 600,
+                borderRadius: 1,
+                "&.Mui-selected": {
+                  bgcolor: "primary.main",
+                  color: "primary.contrastText",
+                  "&:hover": {
+                    bgcolor: "primary.dark",
+                  },
+                },
+              },
+            }}
+          >
+            <ToggleButton
+              value={FONT_SIZES.SMALL}
+              aria-label="small text"
+              sx={{ fontSize: "0.75rem" }}
+            >
+              S
+            </ToggleButton>
+            <ToggleButton
+              value={FONT_SIZES.MEDIUM}
+              aria-label="medium text"
+              sx={{ fontSize: "0.875rem" }}
+            >
+              M
+            </ToggleButton>
+            <ToggleButton
+              value={FONT_SIZES.LARGE}
+              aria-label="large text"
+              sx={{ fontSize: "1rem" }}
+            >
+              L
+            </ToggleButton>
+            <ToggleButton
+              value={FONT_SIZES.XL}
+              aria-label="extra large text"
+              sx={{ fontSize: "1.125rem" }}
+            >
+              XL
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
 
-        {/* Accessibility Options */}
-        <MenuItem
-          onClick={() => {
-            toggleHighContrast();
-            handleClose();
+        <Divider sx={{ my: 2 }} />
+
+        {/* High Contrast Toggle */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          <ListItemIcon>
-            <Contrast />
-          </ListItemIcon>
-          <ListItemText>
-            {highContrast ? "Disable" : "Enable"} High Contrast
-          </ListItemText>
-        </MenuItem>
-
-        <Divider />
-
-        {/* Quick Toggle */}
-        <MenuItem
-          onClick={() => {
-            toggleTheme();
-            handleClose();
-          }}
-        >
-          <ListItemIcon>
-            <Palette />
-          </ListItemIcon>
-          <ListItemText>
-            Quick Toggle
-            <Typography
-              variant="caption"
-              display="block"
-              color="text.secondary"
-            >
-              Cycle through all themes
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              High Contrast
             </Typography>
-          </ListItemText>
-        </MenuItem>
+            <Typography variant="caption" color="text.secondary">
+              Improve visibility
+            </Typography>
+          </Box>
+          <Switch
+            checked={highContrast}
+            onChange={toggleHighContrast}
+            size="small"
+            inputProps={{ "aria-label": "toggle high contrast" }}
+          />
+        </Box>
       </Menu>
     </>
   );

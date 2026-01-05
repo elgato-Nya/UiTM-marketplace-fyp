@@ -7,8 +7,15 @@
 export const ROUTES = {
   // Home & Landing
   HOME: "/",
-  ABOUT: "/about",
   CONTACT: "/contact",
+
+  // About Section
+  ABOUT: {
+    INDEX: "/about",
+    ABOUT_US: "/about#about",
+    HISTORY: "/about#history",
+    NEKODEZ: "/about/nekodez",
+  },
 
   // Auth Routes
   AUTH: {
@@ -74,6 +81,7 @@ export const ROUTES = {
   ORDERS: {
     INDEX: "/orders",
     PURCHASES: "/orders/purchases",
+    SALES: "/orders/sales",
     DETAIL: (id) => `/orders/${id}`,
   },
 
@@ -84,12 +92,22 @@ export const ROUTES = {
     USERS: "/admin/users",
     MERCHANT: "/admin/merchants/verification",
     CONTACTS: "/admin/contacts",
+    REPORTS: "/admin/reports",
+    LISTINGS: "/admin/listings",
+    TRANSACTIONS: "/admin/transactions",
+    ORDERS: "/admin/orders",
+    SUPPORT: "/admin/support",
   },
 
   // Utility Routes
   SEARCH: "/search",
+  BROWSE: "/browse",
   NOTIFICATIONS: "/notifications",
   SETTINGS: "/settings",
+
+  // Legal Routes
+  TERMS: "/terms",
+  PRIVACY: "/privacy",
 
   // Error Routes
   UNAUTHORIZED: "/unauthorized",
@@ -247,7 +265,7 @@ export const ADMIN_SIDEBAR = [
       {
         icon: "VerifiedUser",
         label: "Merchant Verification",
-        path: "/admin/merchants/verification",
+        path: ROUTES.ADMIN.MERCHANT,
       },
     ],
   },
@@ -259,7 +277,7 @@ export const ADMIN_SIDEBAR = [
       {
         icon: "ContactMail",
         label: "Contact Messages",
-        path: "/admin/contacts",
+        path: ROUTES.ADMIN.CONTACTS,
       },
     ],
   },

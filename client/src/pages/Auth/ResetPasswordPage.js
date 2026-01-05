@@ -22,6 +22,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import api from "../../services/api";
+import { ROUTES } from "../../constants/routes";
 
 const resetPasswordSchema = yup.object().shape({
   newPassword: yup
@@ -100,7 +101,7 @@ const ResetPasswordPage = () => {
         setCountdown(count);
         if (count === 0) {
           clearInterval(interval);
-          navigate("/auth/login");
+          navigate(ROUTES.AUTH.LOGIN);
         }
       }, 1000);
 
@@ -184,7 +185,7 @@ const ResetPasswordPage = () => {
             <Button
               variant="contained"
               color="primary"
-              onClick={() => navigate("/auth/login")}
+              onClick={() => navigate(ROUTES.AUTH.LOGIN)}
             >
               Go to Login Now
             </Button>
@@ -223,13 +224,13 @@ const ResetPasswordPage = () => {
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <Button
                 variant="contained"
-                onClick={() => navigate("/auth/forgot-password")}
+                onClick={() => navigate(ROUTES.AUTH.FORGOT_PASSWORD)}
               >
                 Request New Reset Link
               </Button>
               <Button
                 variant="outlined"
-                onClick={() => navigate("/auth/login")}
+                onClick={() => navigate(ROUTES.AUTH.LOGIN)}
               >
                 Back to Login
               </Button>
@@ -332,10 +333,14 @@ const ResetPasswordPage = () => {
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
                 <strong>Password requirements:</strong>
-                <br />• At least 8 characters
-                <br />• One uppercase letter
-                <br />• One lowercase letter
-                <br />• One number
+                <br />
+                �?At least 8 characters
+                <br />
+                �?One uppercase letter
+                <br />
+                �?One lowercase letter
+                <br />
+                �?One number
               </Typography>
             </Alert>
 
@@ -353,7 +358,7 @@ const ResetPasswordPage = () => {
             <Box sx={{ textAlign: "center" }}>
               <Button
                 component={Link}
-                to="/auth/login"
+                to={ROUTES.AUTH.LOGIN}
                 sx={{ textTransform: "none" }}
               >
                 Back to Login

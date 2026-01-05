@@ -17,7 +17,7 @@ import {
 } from "@mui/icons-material";
 import { useTheme } from "../../../hooks/useTheme";
 import DynamicForm from "../../../components/common/Form/DynamicForm";
-import { EmailVerificationModal } from "../../../components/common/Modal";
+import EmailVerificationModal from "../../../components/common/Modal/EmailVerificationModal";
 import { merchantVerificationFormConfig } from "../../../config/forms/merchantForms";
 import { merchantVerificationSchema } from "../../../validation/merchantValidator";
 import { useMerchantVerification } from "../hooks/useMerchantVerification";

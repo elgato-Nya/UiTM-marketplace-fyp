@@ -65,6 +65,15 @@ router.post(
   contactController.uploadContactImages
 );
 
+/**
+ * @route   GET /api/contact/public/testimonials
+ * @desc    Get public testimonials for homepage display
+ * @access  Public
+ * @query   limit - Maximum number of testimonials (default: 3, max: 10)
+ * @returns Array of public testimonials
+ */
+router.get("/public/testimonials", contactController.getTestimonials);
+
 // ==================== ADMIN ROUTES ====================
 
 // Apply authentication and authorization middleware to all routes below

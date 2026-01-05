@@ -77,12 +77,14 @@ if (process.env.NODE_ENV === "production") {
 // ================== SECURITY MIDDLEWARE ========================
 app.use(helmetConfig);
 
+// CORS must come BEFORE rate limiters so that 429 responses include CORS headers
+// Otherwise, browser blocks the response and client sees "Network Error" instead of rate limit message
+app.use(cors(corsOptions));
+
 // Apply rate limiters BEFORE body parsing to prevent DoS attacks
 // that send large payloads just to consume resources
 app.use("/api/", generalLimiter);
 app.use("/api/auth/", authLimiter);
-
-app.use(cors(corsOptions));
 
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb", strict: true })); // Increase body size limit for large requests

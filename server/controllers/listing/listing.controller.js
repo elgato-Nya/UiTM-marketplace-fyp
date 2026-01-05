@@ -7,6 +7,12 @@ const {
   updateListing,
   deleteListing,
   toggleAvailability,
+  // Variant methods
+  addVariant,
+  updateVariant,
+  deleteVariant,
+  getVariant,
+  getListingVariants,
 } = require("../../services/listing/listing.service");
 const { sanitizeObject, sanitizeQuery } = require("../../utils/sanitizer");
 const asyncHandler = require("../../utils/asyncHandler");
@@ -107,6 +113,11 @@ const handleUpdateListing = asyncHandler(async (req, res) => {
     "images",
     "type",
     "isFree",
+    "hasVariants",
+    "variants",
+    "isQuoteBased",
+    "quoteSettings",
+    "isAvailable",
   ];
 
   allowedFields.forEach((field) => {
@@ -317,6 +328,140 @@ const handleGetAllListings = asyncHandler(async (req, res) => {
   );
 }, "get_all_listings");
 
+// ======================   VARIANT CONTROLLER METHODS   ========================
+
+/**
+ * PURPOSE: Add a variant to an existing listing
+ * @function handleAddVariant
+ * @returns {Promise<void>} Sends response with the added variant
+ * @note Requires ownership via isListingOwner middleware
+ */
+const handleAddVariant = asyncHandler(async (req, res) => {
+  const { id: listingId } = req.params;
+  const userId = req.user._id;
+  const variantData = sanitizeObject(req.body);
+
+  const variant = await addVariant(listingId, userId, variantData);
+
+  baseController.logAction("add_variant", req, {
+    listingId: listingId.toString(),
+    variantId: variant._id.toString(),
+    variantName: variant.name,
+    userId: userId.toString(),
+  });
+
+  return baseController.sendSuccess(
+    res,
+    { variant },
+    "Variant added successfully",
+    201
+  );
+}, "add_variant");
+
+/**
+ * PURPOSE: Update an existing variant
+ * @function handleUpdateVariant
+ * @returns {Promise<void>} Sends response with the updated variant
+ * @note Requires ownership via isListingOwner middleware
+ */
+const handleUpdateVariant = asyncHandler(async (req, res) => {
+  const { id: listingId, variantId } = req.params;
+  const userId = req.user._id;
+  const updateData = sanitizeObject(req.body);
+
+  const variant = await updateVariant(listingId, variantId, userId, updateData);
+
+  baseController.logAction("update_variant", req, {
+    listingId: listingId.toString(),
+    variantId: variantId.toString(),
+    updatedFields: Object.keys(updateData),
+    userId: userId.toString(),
+  });
+
+  return baseController.sendSuccess(
+    res,
+    { variant },
+    "Variant updated successfully"
+  );
+}, "update_variant");
+
+/**
+ * PURPOSE: Delete a variant (soft or permanent)
+ * @function handleDeleteVariant
+ * @returns {Promise<void>} Sends response confirming deletion
+ * @note Requires ownership via isListingOwner middleware
+ */
+const handleDeleteVariant = asyncHandler(async (req, res) => {
+  const { id: listingId, variantId } = req.params;
+  const userId = req.user._id;
+  const { permanent } = sanitizeQuery(req.query);
+  const isPermanent = permanent === "true";
+
+  const result = await deleteVariant(listingId, variantId, userId, isPermanent);
+
+  baseController.logAction(
+    isPermanent ? "permanent_delete_variant" : "soft_delete_variant",
+    req,
+    {
+      listingId: listingId.toString(),
+      variantId: variantId.toString(),
+      userId: userId.toString(),
+      isPermanent,
+    }
+  );
+
+  return baseController.sendSuccess(
+    res,
+    { success: true, ...result },
+    isPermanent
+      ? "Variant permanently deleted"
+      : "Variant marked as unavailable"
+  );
+}, "delete_variant");
+
+/**
+ * PURPOSE: Get a specific variant by ID
+ * @function handleGetVariant
+ * @returns {Promise<void>} Sends response with the variant
+ * @note Public endpoint
+ */
+const handleGetVariant = asyncHandler(async (req, res) => {
+  const { id: listingId, variantId } = req.params;
+
+  const variant = await getVariant(listingId, variantId);
+
+  return baseController.sendSuccess(
+    res,
+    { variant },
+    "Variant retrieved successfully"
+  );
+}, "get_variant");
+
+/**
+ * PURPOSE: Get all variants for a listing
+ * @function handleGetListingVariants
+ * @returns {Promise<void>} Sends response with all variants
+ * @note Public endpoint, optionally includes unavailable variants for owner
+ */
+const handleGetListingVariants = asyncHandler(async (req, res) => {
+  const { id: listingId } = req.params;
+  const { includeUnavailable } = sanitizeQuery(req.query);
+
+  // Check if requester is owner to allow includeUnavailable
+  const isOwner = req.user && req.isListingOwner;
+  const options = {
+    includeUnavailable: isOwner && includeUnavailable === "true",
+  };
+
+  const variants = await getListingVariants(listingId, options);
+
+  return baseController.sendSuccess(
+    res,
+    { variants, count: variants.length },
+    "Variants retrieved successfully"
+  );
+}, "get_listing_variants");
+
 module.exports = {
   handleCreateListing,
   handleGetListing,
@@ -326,4 +471,10 @@ module.exports = {
   handleToggleAvailability,
   handleGetMyListings,
   handleGetSellerListings,
+  // Variant handlers
+  handleAddVariant,
+  handleUpdateVariant,
+  handleDeleteVariant,
+  handleGetVariant,
+  handleGetListingVariants,
 };

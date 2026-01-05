@@ -12,6 +12,7 @@ import {
   clearSuccess,
 } from "../store/listingSlice";
 import listingService from "../service/listingService";
+import { ROUTES } from "../../../constants/routes";
 
 const useListingActions = () => {
   const dispatch = useDispatch();
@@ -108,17 +109,17 @@ const useListingActions = () => {
   };
 
   const goToCreateListing = () => {
-    navigate("/merchant/listings/create");
+    navigate(ROUTES.MERCHANT.LISTINGS.CREATE);
   };
 
   // Navigate to edit page
   const goToEditListing = (id) => {
-    navigate(`/merchant/listings/${id}/edit`);
+    navigate(ROUTES.MERCHANT.LISTINGS.EDIT(id));
   };
 
   // Navigate to my listings
   const goToMyListings = () => {
-    navigate("/merchant/listings");
+    navigate(ROUTES.MERCHANT.LISTINGS.MY_LISTINGS);
   };
 
   // Clear messages

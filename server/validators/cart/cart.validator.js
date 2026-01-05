@@ -21,6 +21,18 @@ class CartValidator {
   }
 
   /**
+   * Validate variant ID format (optional field)
+   * @param {string|null} variantId
+   * @returns {boolean}
+   */
+  static isValidVariantId(variantId) {
+    // null/undefined is valid (no variant selected)
+    if (variantId == null) return true;
+    if (typeof variantId !== "string") return false;
+    return /^[0-9a-fA-F]{24}$/.test(variantId);
+  }
+
+  /**
    * Validate quantity doesn't exceed available stock
    * @param {number} quantity
    * @param {number} availableStock
@@ -49,12 +61,55 @@ class CartValidator {
   }
 
   /**
+   * Validate variant is available for purchase
+   * @param {Object} variant
+   * @returns {boolean}
+   */
+  static isVariantAvailable(variant) {
+    if (!variant || typeof variant !== "object") return false;
+    return variant.isAvailable === true;
+  }
+
+  /**
    * Validate cart has items
    * @param {Array} items
    * @returns {boolean}
    */
   static isCartNotEmpty(items) {
     return Array.isArray(items) && items.length > 0;
+  }
+
+  /**
+   * Validate that a listing with variants requires variantId
+   * @param {Object} listing - The listing object
+   * @param {string|null} variantId - The variant ID provided
+   * @returns {{ valid: boolean, message?: string }}
+   */
+  static validateVariantRequirement(listing, variantId) {
+    if (!listing || typeof listing !== "object") {
+      return { valid: false, message: "Invalid listing" };
+    }
+
+    const hasVariants =
+      Array.isArray(listing.variants) && listing.variants.length > 0;
+
+    // If listing has variants, variantId is required
+    if (hasVariants && !variantId) {
+      return {
+        valid: false,
+        message: "This listing has variants. Please select a variant.",
+      };
+    }
+
+    // If listing doesn't have variants, variantId should not be provided
+    if (!hasVariants && variantId) {
+      return {
+        valid: false,
+        message: "This listing does not have variants.",
+      };
+    }
+
+    return { valid: true };
   }
 }
 
@@ -70,6 +125,13 @@ const cartErrorMessages = {
   listingId: {
     required: "Listing ID is required",
     invalid: "Invalid listing ID format",
+  },
+  variantId: {
+    invalid: "Invalid variant ID format",
+    required: "This listing has variants. Please select a variant.",
+    notAllowed: "This listing does not have variants.",
+    notFound: "Variant not found in listing",
+    unavailable: "This variant is currently unavailable",
   },
   cart: {
     notFound: "Cart not found",

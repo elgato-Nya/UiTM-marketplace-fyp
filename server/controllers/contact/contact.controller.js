@@ -10,6 +10,7 @@ const {
   deleteContact: deleteContactService,
   getReportsByEntity,
   takeReportAction,
+  getPublicTestimonials,
 } = require("../../services/contact/contact.service");
 const asyncHandler = require("../../utils/asyncHandler");
 const { sanitizeObject, sanitizeQuery } = require("../../utils/sanitizer");
@@ -437,6 +438,23 @@ const takeAction = asyncHandler(async (req, res) => {
   );
 }, "take_report_action");
 
+/**
+ * Get public testimonials for homepage display
+ * @route GET /api/contact/public/testimonials
+ * @access Public
+ */
+const getTestimonials = asyncHandler(async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 3, 10);
+
+  const testimonials = await getPublicTestimonials(limit);
+
+  return baseController.sendSuccess(
+    res,
+    { testimonials, count: testimonials.length },
+    "Testimonials retrieved successfully"
+  );
+}, "get_public_testimonials");
+
 module.exports = {
   createSubmission,
   getContactById,
@@ -449,4 +467,5 @@ module.exports = {
   uploadContactImages,
   getEntityReports,
   takeAction,
+  getTestimonials,
 };

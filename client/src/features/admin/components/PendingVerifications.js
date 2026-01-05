@@ -19,6 +19,7 @@ import {
   Person,
 } from "@mui/icons-material";
 import { useTheme } from "../../../hooks/useTheme";
+import { ROUTES } from "../../../constants/routes";
 
 /**
  * PendingVerifications Component
@@ -56,7 +57,7 @@ const PendingVerifications = ({
   }
 
   const handleNavigate = () => {
-    navigate("/admin/merchants/verification");
+    navigate(ROUTES.ADMIN.MERCHANT);
   };
 
   const handleDismiss = () => {

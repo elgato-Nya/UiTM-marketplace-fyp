@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -64,7 +64,23 @@ const ListingCard = ({
     isFree,
     isAvailable,
     seller,
+    variants,
   } = listing;
+
+  // Get lowest price from variants or base price
+  const displayPrice = useMemo(() => {
+    if (isFree) return 0;
+    if (!variants || variants.length === 0) return price;
+
+    // Find lowest priced available variant
+    const availableVariants = variants.filter((v) => v.isAvailable !== false);
+    if (availableVariants.length === 0) return price;
+
+    const lowestPrice = Math.min(
+      ...availableVariants.map((v) => Number(v.price) || 0)
+    );
+    return lowestPrice > 0 ? lowestPrice : price;
+  }, [variants, price, isFree]);
 
   // Format price with spaces (e.g., 1 234 567.89)
   const formatPrice = (price) => {
@@ -424,7 +440,11 @@ const ListingCard = ({
                 minWidth: 0,
               }}
             >
-              {formatPrice(price)}
+              {variants && variants.length > 0
+                ? isMobile
+                  ? formatPrice(displayPrice)
+                  : `From ${formatPrice(displayPrice)}`
+                : formatPrice(price)}
             </Typography>
 
             {/* Stock Info - Only for products */}

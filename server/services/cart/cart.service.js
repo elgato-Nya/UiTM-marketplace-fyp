@@ -33,10 +33,17 @@ const getCartWithDetails = async (userId) => {
   }
 };
 
-const addToCart = async (userId, listingId, quantity) => {
+/**
+ * Add item to cart with optional variant support
+ * @param {ObjectId} userId
+ * @param {ObjectId} listingId
+ * @param {number} quantity
+ * @param {string|null} variantId - Optional variant ID
+ */
+const addToCart = async (userId, listingId, quantity, variantId = null) => {
   try {
     const listing = await Listing.findById(listingId).select(
-      "name price stock isAvailable seller type"
+      "name price stock isAvailable seller type variants"
     );
 
     if (!listing) {
@@ -53,11 +60,61 @@ const addToCart = async (userId, listingId, quantity) => {
       );
     }
 
+    // Validate variant requirement
+    const hasVariants = listing.variants && listing.variants.length > 0;
+
+    if (hasVariants && !variantId) {
+      throw createBadRequestError(
+        cartErrorMessages.variantId.required,
+        "VARIANT_REQUIRED"
+      );
+    }
+
+    if (!hasVariants && variantId) {
+      throw createBadRequestError(
+        cartErrorMessages.variantId.notAllowed,
+        "VARIANT_NOT_ALLOWED"
+      );
+    }
+
+    let availableStock;
+    let variantSnapshot = null;
+    let variant = null;
+
+    if (variantId) {
+      // Find the variant
+      variant = listing.variants.id(variantId);
+
+      if (!variant) {
+        throw createBadRequestError(
+          cartErrorMessages.variantId.notFound,
+          "VARIANT_NOT_FOUND"
+        );
+      }
+
+      if (!variant.isAvailable) {
+        throw createBadRequestError(
+          cartErrorMessages.variantId.unavailable,
+          "VARIANT_UNAVAILABLE"
+        );
+      }
+
+      availableStock = variant.stock;
+      variantSnapshot = {
+        name: variant.name,
+        sku: variant.sku,
+        price: variant.price,
+        attributes: variant.attributes,
+      };
+    } else {
+      availableStock = listing.stock;
+    }
+
     // Only check stock for products, not services
     if (listing.type === "product") {
-      if (listing.stock < quantity) {
+      if (availableStock < quantity) {
         throw createBadRequestError(
-          `Only ${listing.stock} items available in stock`,
+          `Only ${availableStock} items available in stock`,
           "INSUFFICIENT_STOCK"
         );
       }
@@ -65,22 +122,27 @@ const addToCart = async (userId, listingId, quantity) => {
 
     const cart = await Cart.findOrCreateCart(userId);
 
-    const existingItem = cart.findItem(listingId);
+    const existingItem = cart.findItem(listingId, variantId);
     const totalQuantity = existingItem
       ? existingItem.quantity + quantity
       : quantity;
 
     // Only check stock limits for products
-    if (listing.type === "product" && totalQuantity > listing.stock) {
+    if (listing.type === "product" && totalQuantity > availableStock) {
       throw createBadRequestError(
         `Cannot add ${quantity} more. Only ${
-          listing.stock - (existingItem?.quantity || 0)
+          availableStock - (existingItem?.quantity || 0)
         } items available`,
         "QUANTITY_EXCEEDS_STOCK"
       );
     }
 
-    cart.addOrUpdateItem(listingId, quantity);
+    // Prepare variant data for cart item
+    const variantData = variantId
+      ? { variantId, snapshot: variantSnapshot }
+      : null;
+
+    cart.addOrUpdateItem(listingId, quantity, variantData);
     await cart.save();
 
     // remove from wishlist if exists
@@ -106,11 +168,24 @@ const addToCart = async (userId, listingId, quantity) => {
     handleServiceError(error, "addToCart", {
       userId: userId.toString(),
       listingId: listingId.toString(),
+      variantId: variantId?.toString() || null,
     });
   }
 };
 
-const updateCartItemQuantity = async (userId, listingId, quantity) => {
+/**
+ * Update cart item quantity with optional variant support
+ * @param {ObjectId} userId
+ * @param {ObjectId} listingId
+ * @param {number} quantity
+ * @param {string|null} variantId - Optional variant ID
+ */
+const updateCartItemQuantity = async (
+  userId,
+  listingId,
+  quantity,
+  variantId = null
+) => {
   try {
     const cart = await Cart.findOne({ userId });
     if (!cart) {
@@ -120,7 +195,7 @@ const updateCartItemQuantity = async (userId, listingId, quantity) => {
     }
 
     const listing = await Listing.findById(listingId).select(
-      "stock isAvailable type"
+      "stock isAvailable type variants"
     );
     if (!listing) {
       handleNotFoundError(
@@ -133,15 +208,30 @@ const updateCartItemQuantity = async (userId, listingId, quantity) => {
       );
     }
 
+    let availableStock;
+
+    if (variantId) {
+      const variant = listing.variants?.id(variantId);
+      if (!variant) {
+        throw createBadRequestError(
+          cartErrorMessages.variantId.notFound,
+          "VARIANT_NOT_FOUND"
+        );
+      }
+      availableStock = variant.stock;
+    } else {
+      availableStock = listing.stock;
+    }
+
     // Only check stock for products
-    if (listing.type === "product" && quantity > listing.stock) {
+    if (listing.type === "product" && quantity > availableStock) {
       throw createBadRequestError(
-        `Only ${listing.stock} items available in stock`,
+        `Only ${availableStock} items available in stock`,
         "INSUFFICIENT_STOCK"
       );
     }
 
-    cart.updateItemQuantity(listingId, quantity);
+    cart.updateItemQuantity(listingId, quantity, variantId);
     await cart.save();
 
     return await getCartWithDetails(userId);
@@ -149,12 +239,19 @@ const updateCartItemQuantity = async (userId, listingId, quantity) => {
     handleServiceError(error, "updateCartItemQuantity", {
       userId: userId.toString(),
       listingId: listingId.toString(),
+      variantId: variantId?.toString() || null,
       quantity,
     });
   }
 };
 
-const removeFromCart = async (userId, listingId) => {
+/**
+ * Remove item from cart with optional variant support
+ * @param {ObjectId} userId
+ * @param {ObjectId|string} listingId
+ * @param {string|null} variantId - Optional variant ID
+ */
+const removeFromCart = async (userId, listingId, variantId = null) => {
   try {
     const cart = await Cart.findOne({ userId });
     if (!cart) {
@@ -169,8 +266,8 @@ const removeFromCart = async (userId, listingId) => {
       cart.removeItemById(listingId);
     } catch (error) {
       if (error.code === "CART_ITEM_NOT_FOUND") {
-        // Fallback: try removing by listing ID
-        cart.removeItem(listingId);
+        // Fallback: try removing by listing ID with optional variantId
+        cart.removeItem(listingId, variantId);
       } else {
         throw error;
       }
@@ -183,6 +280,7 @@ const removeFromCart = async (userId, listingId) => {
     handleServiceError(error, "removeFromCart", {
       userId: userId.toString(),
       listingId: listingId.toString(),
+      variantId: variantId?.toString() || null,
     });
   }
 };

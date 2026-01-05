@@ -5,15 +5,47 @@ const cartService = {
     return await api.get("/cart");
   },
 
-  async addToCart(listingId, quantity = 1) {
-    return await api.post("/cart", { listingId, quantity });
+  /**
+   * Add item to cart
+   * @param {string} listingId - Listing ID
+   * @param {number} quantity - Quantity to add (default 1)
+   * @param {string|null} variantId - Optional variant ID for variant items
+   * @returns {Promise} - Updated cart
+   */
+  async addToCart(listingId, quantity = 1, variantId = null) {
+    const payload = { listingId, quantity };
+    if (variantId) {
+      payload.variantId = variantId;
+    }
+    return await api.post("/cart", payload);
   },
 
-  async updateCartItem(listingId, quantity) {
+  /**
+   * Update cart item quantity
+   * @param {string} listingId - Listing ID
+   * @param {number} quantity - New quantity
+   * @param {string|null} variantId - Optional variant ID for variant items
+   * @returns {Promise} - Updated cart
+   */
+  async updateCartItem(listingId, quantity, variantId = null) {
+    if (variantId) {
+      return await api.patch(`/cart/item/${listingId}/variant/${variantId}`, {
+        quantity,
+      });
+    }
     return await api.patch(`/cart/item/${listingId}`, { quantity });
   },
 
-  async removeFromCart(listingId) {
+  /**
+   * Remove item from cart
+   * @param {string} listingId - Listing ID
+   * @param {string|null} variantId - Optional variant ID for variant items
+   * @returns {Promise} - Updated cart
+   */
+  async removeFromCart(listingId, variantId = null) {
+    if (variantId) {
+      return await api.delete(`/cart/item/${listingId}/variant/${variantId}`);
+    }
     return await api.delete(`/cart/item/${listingId}`);
   },
 

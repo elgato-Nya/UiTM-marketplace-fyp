@@ -18,8 +18,8 @@ import {
   useToggleAvailabilityMutation,
 } from "../../features/listing/api/listingApi";
 import ListingGrid from "../../features/listing/components/ListingGrid";
-import { ConfirmDeleteDialog } from "../../components/common/Dialog";
-import { ErrorAlert } from "../../components/common/Alert";
+import ConfirmDeleteDialog from "../../components/common/Dialog/ConfirmDeleteDialog";
+import ErrorAlert from "../../components/common/Alert/ErrorAlert";
 import { ROUTES } from "../../constants/routes";
 import { useSnackbarContext as useSnackbar } from "../../contexts/SnackbarContext";
 
@@ -106,7 +106,7 @@ const MyListingsPage = () => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container disableGutters maxWidth="xl">
       {/* Header */}
       <Box
         display="flex"

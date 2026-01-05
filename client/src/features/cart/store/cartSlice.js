@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 import cartService from "../service/cartService";
+import { extractThunkError } from "../../../store/utils/thunkErrorHandler";
 
 const initialState = {
   cart: null,
@@ -21,23 +22,25 @@ export const fetchCart = createAsyncThunk(
       const response = await cartService.getCart();
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch cart",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to load your cart.")
+      );
     }
   }
 );
 
 export const addToCart = createAsyncThunk(
   "cart/addToCart",
-  async ({ listingId, quantity }, { rejectWithValue, dispatch }) => {
+  async (
+    { listingId, quantity, variantId = null },
+    { rejectWithValue, dispatch }
+  ) => {
     try {
-      const response = await cartService.addToCart(listingId, quantity);
+      const response = await cartService.addToCart(
+        listingId,
+        quantity,
+        variantId
+      );
 
       // After adding to cart, refresh wishlist to update UI state (heart icons, etc.)
       const { fetchWishlist } = await import(
@@ -47,42 +50,39 @@ export const addToCart = createAsyncThunk(
 
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to add to cart",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(
+          error,
+          "Failed to add item to cart. Please try again."
+        )
+      );
     }
   }
 );
 
 export const updateCartItem = createAsyncThunk(
   "cart/updateCartItem",
-  async ({ listingId, quantity }, { rejectWithValue }) => {
+  async ({ listingId, quantity, variantId = null }, { rejectWithValue }) => {
     try {
-      const response = await cartService.updateCartItem(listingId, quantity);
+      const response = await cartService.updateCartItem(
+        listingId,
+        quantity,
+        variantId
+      );
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to update cart item",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to update cart. Please try again.")
+      );
     }
   }
 );
 
 export const removeFromCart = createAsyncThunk(
   "cart/removeFromCart",
-  async (listingId, { rejectWithValue, dispatch }) => {
+  async ({ listingId, variantId = null }, { rejectWithValue, dispatch }) => {
     try {
-      const response = await cartService.removeFromCart(listingId);
+      const response = await cartService.removeFromCart(listingId, variantId);
 
       // After removing from cart, refresh wishlist to update UI state
       const { fetchWishlist } = await import(
@@ -92,14 +92,9 @@ export const removeFromCart = createAsyncThunk(
 
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to remove from cart",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to remove item from cart.")
+      );
     }
   }
 );
@@ -111,14 +106,7 @@ export const clearCart = createAsyncThunk(
       const response = await cartService.clearCart();
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to clear cart",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(extractThunkError(error, "Failed to clear cart."));
     }
   }
 );
@@ -138,14 +126,9 @@ export const moveToWishlist = createAsyncThunk(
 
       return response.data;
     } catch (error) {
-      return rejectWithValue({
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to move to wishlist",
-        status: error.response?.status,
-        details: error.response?.data || null,
-      });
+      return rejectWithValue(
+        extractThunkError(error, "Failed to move item to wishlist.")
+      );
     }
   }
 );
@@ -166,13 +149,20 @@ const cartSlice = createSlice({
 
     // Optimistic local update for quantity changes (no loading state)
     updateQuantityOptimistic: (state, action) => {
-      const { listingId, quantity } = action.payload;
+      const { listingId, quantity, variantId = null } = action.payload;
 
       if (!state.cart?.items) return;
 
       const itemIndex = state.cart.items.findIndex((item) => {
         const itemListingId = item.listing?._id;
-        return itemListingId?.toString() === listingId?.toString();
+        const itemVariantId = item.variantId;
+        const listingMatch =
+          itemListingId?.toString() === listingId?.toString();
+        // If variantId is specified, must match; otherwise, match items without variant
+        const variantMatch = variantId
+          ? itemVariantId?.toString() === variantId?.toString()
+          : !itemVariantId;
+        return listingMatch && variantMatch;
       });
 
       if (itemIndex !== -1) {

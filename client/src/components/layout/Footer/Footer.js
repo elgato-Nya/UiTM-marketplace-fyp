@@ -5,12 +5,13 @@ import {
   Container,
   Typography,
   Grid,
-  Link,
+  Link as MuiLink,
   Divider,
   IconButton,
   Stack,
   alpha,
 } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
 import {
   Facebook,
   Twitter,
@@ -22,26 +23,27 @@ import {
 } from "@mui/icons-material";
 import { useTheme } from "../../../hooks/useTheme";
 import { Logo } from "../../common/Logo";
+import { ROUTES } from "../../../constants/routes";
 
 function Footer() {
   const { theme } = useTheme();
 
   const footerLinks = {
     marketplace: [
-      { text: "Browse Products", href: "/browse?type=product" },
-      { text: "Browse Services", href: "/browse?type=service" },
-      { text: "Become a Merchant", href: "/merchant/become" },
+      { text: "Browse Products", href: `${ROUTES.BROWSE}?type=product` },
+      { text: "Browse Services", href: `${ROUTES.BROWSE}?type=service` },
+      { text: "Become a Merchant", href: ROUTES.MERCHANT.BECOME },
       { text: "How It Works", href: "/how-it-works" },
     ],
     support: [
       { text: "Help Center", href: "/help" },
-      { text: "Contact Us", href: "/contact" },
+      { text: "Contact Us", href: ROUTES.CONTACT },
       { text: "FAQs", href: "/faq" },
       { text: "Shipping Info", href: "/shipping" },
     ],
     legal: [
-      { text: "Terms of Service", href: "/terms" },
-      { text: "Privacy Policy", href: "/privacy" },
+      { text: "Terms of Service", href: ROUTES.TERMS },
+      { text: "Privacy Policy", href: ROUTES.PRIVACY },
       { text: "Cookie Policy", href: "/cookies" },
       { text: "Community Guidelines", href: "/guidelines" },
     ],
@@ -148,9 +150,10 @@ function Footer() {
             </Typography>
             <Stack spacing={1}>
               {footerLinks.marketplace.map((link, index) => (
-                <Link
+                <MuiLink
                   key={index}
-                  href={link.href}
+                  component={RouterLink}
+                  to={link.href}
                   color="text.secondary"
                   underline="hover"
                   sx={{
@@ -161,7 +164,7 @@ function Footer() {
                   }}
                 >
                   {link.text}
-                </Link>
+                </MuiLink>
               ))}
             </Stack>
           </Grid>
@@ -173,9 +176,10 @@ function Footer() {
             </Typography>
             <Stack spacing={1}>
               {footerLinks.support.map((link, index) => (
-                <Link
+                <MuiLink
                   key={index}
-                  href={link.href}
+                  component={RouterLink}
+                  to={link.href}
                   color="text.secondary"
                   underline="hover"
                   sx={{
@@ -186,7 +190,7 @@ function Footer() {
                   }}
                 >
                   {link.text}
-                </Link>
+                </MuiLink>
               ))}
             </Stack>
           </Grid>
@@ -198,9 +202,10 @@ function Footer() {
             </Typography>
             <Stack spacing={1}>
               {footerLinks.legal.map((link, index) => (
-                <Link
+                <MuiLink
                   key={index}
-                  href={link.href}
+                  component={RouterLink}
+                  to={link.href}
                   color="text.secondary"
                   underline="hover"
                   sx={{
@@ -211,7 +216,7 @@ function Footer() {
                   }}
                 >
                   {link.text}
-                </Link>
+                </MuiLink>
               ))}
             </Stack>
           </Grid>

@@ -108,14 +108,30 @@ const CartItem = ({
   const isService = listingType === "service";
   const isOutOfStock = !isService && maxStock === 0;
 
+  // Variant support
+  const hasVariant = !!item.variantId || !!item.variantSnapshot;
+  const variantSnapshot = item.variantSnapshot;
+  const effectivePrice =
+    hasVariant && variantSnapshot?.price ? variantSnapshot.price : currentPrice;
+  const effectiveStock =
+    hasVariant && variantSnapshot?.stock !== undefined
+      ? variantSnapshot.stock
+      : maxStock;
+  const variantOutOfStock = hasVariant && effectiveStock === 0;
+
   const handleQuantityChange = async (action) => {
     setLoadingAction(action);
     try {
       if (action === "increase") {
-        await onQuantityIncrease(listing._id, quantity, maxStock);
+        await onQuantityIncrease(
+          listing._id,
+          quantity,
+          hasVariant ? effectiveStock : maxStock,
+          item.variantId
+        );
       }
       if (action === "decrease") {
-        await onQuantityDecrease(listing._id, quantity);
+        await onQuantityDecrease(listing._id, quantity, item.variantId);
       }
     } catch (error) {
       console.error("Error updating quantity:", error);
@@ -228,7 +244,7 @@ const CartItem = ({
               display: "-webkit-box",
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
-              mb: 1,
+              mb: 0.5,
               fontWeight: 600,
               lineHeight: 1.3,
               wordBreak: "break-word",
@@ -238,16 +254,34 @@ const CartItem = ({
             {listing.name}
           </Typography>
 
+          {/* Variant Info */}
+          {hasVariant && variantSnapshot && (
+            <Box sx={{ mb: 1 }}>
+              <Chip
+                label={
+                  variantSnapshot.attributes &&
+                  Object.keys(variantSnapshot.attributes).length > 0
+                    ? Object.values(variantSnapshot.attributes).join(" - ")
+                    : variantSnapshot.name
+                }
+                size="small"
+                color="primary"
+                variant="outlined"
+                sx={{ fontSize: "0.75rem" }}
+              />
+            </Box>
+          )}
+
           <Box sx={{ mt: 1, mb: 1 }}>
             <Typography variant="h6" color="primary" sx={{ fontWeight: 600 }}>
-              RM{currentPrice.toFixed(2)}
+              RM{effectivePrice.toFixed(2)}
             </Typography>
 
-            {priceWhenAdded !== currentPrice && (
+            {priceWhenAdded !== effectivePrice && (
               <Box sx={{ mt: 0.5 }}>
                 <PriceChangeIndicator
                   originalPrice={priceWhenAdded}
-                  currentPrice={currentPrice}
+                  currentPrice={effectivePrice}
                   showLabel={true}
                 />
               </Box>
@@ -255,28 +289,32 @@ const CartItem = ({
           </Box>
 
           {/* Stock warning - Products only */}
-          {!isService && isAvailable && maxStock > 0 && maxStock < 5 && (
-            <Typography variant="caption" color="error" fontWeight={600}>
-              Only {maxStock} left in stock
-            </Typography>
-          )}
+          {!isService &&
+            isAvailable &&
+            !hasVariant &&
+            maxStock > 0 &&
+            maxStock < 5 && (
+              <Typography variant="caption" color="error" fontWeight={600}>
+                Only {maxStock} left in stock
+              </Typography>
+            )}
+
+          {/* Variant stock warning */}
+          {!isService &&
+            isAvailable &&
+            hasVariant &&
+            effectiveStock > 0 &&
+            effectiveStock < 5 && (
+              <Typography variant="caption" color="error" fontWeight={600}>
+                Only {effectiveStock} left in stock
+              </Typography>
+            )}
 
           {/* Out of stock warning - Products only */}
           {!isService && isAvailable && maxStock === 0 && (
             <Typography variant="caption" color="error" fontWeight={600}>
               Out of stock
             </Typography>
-          )}
-
-          {/* Service label in content area */}
-          {isService && (
-            <Chip
-              label="Service - No quantity limit"
-              size="small"
-              color="success"
-              variant="outlined"
-              sx={{ mt: 0.5 }}
-            />
           )}
         </CardContent>
 
@@ -306,19 +344,15 @@ const CartItem = ({
               </Button>
               <Button
                 onClick={() => handleQuantityChange("increase")}
-                disabled={quantity >= maxStock || loadingAction === "increase"}
+                disabled={
+                  quantity >= (hasVariant ? effectiveStock : maxStock) ||
+                  loadingAction === "increase"
+                }
                 sx={{ minWidth: 36 }}
               >
                 <AddIcon fontSize="small" />
               </Button>
             </ButtonGroup>
-          )}
-
-          {/* Service - no quantity controls needed */}
-          {isService && (
-            <Typography variant="body2" color="text.secondary">
-              1 service
-            </Typography>
           )}
 
           <Box sx={{ display: "flex", alignItems: "flex-end", gap: 1 }}>
@@ -330,7 +364,7 @@ const CartItem = ({
                 fontSize: 16,
               }}
             >
-              RM{(currentPrice * (isService ? 1 : quantity)).toFixed(2)}
+              RM{(effectivePrice * (isService ? 1 : quantity)).toFixed(2)}
             </Typography>
 
             <Tooltip title="Move to wishlist">

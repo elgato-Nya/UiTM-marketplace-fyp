@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import analyticsService from "../service/analyticsService";
+import { extractThunkError } from "../../../store/utils/thunkErrorHandler";
 
 /**
  * Analytics Redux Slice
@@ -49,7 +50,7 @@ export const fetchMerchantAnalytics = createAsyncThunk(
       return { period, data: response.data };
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch merchant analytics"
+        extractThunkError(error, "Failed to load your analytics data.")
       );
     }
   }
@@ -66,7 +67,7 @@ export const fetchMerchantOverview = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch merchant overview"
+        extractThunkError(error, "Failed to load analytics overview.")
       );
     }
   }
@@ -83,7 +84,7 @@ export const fetchQuickStats = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch quick stats"
+        extractThunkError(error, "Failed to load quick statistics.")
       );
     }
   }
@@ -100,7 +101,7 @@ export const refreshMerchantAnalytics = createAsyncThunk(
       return { period, data: response.data };
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to refresh analytics"
+        extractThunkError(error, "Failed to refresh analytics data.")
       );
     }
   }

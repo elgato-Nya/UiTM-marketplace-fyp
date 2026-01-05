@@ -12,7 +12,7 @@ import { useTheme } from "../../hooks/useTheme";
 import useListings from "../../features/listing/hooks/useListings";
 import ListingGrid from "../../features/listing/components/ListingGrid";
 import ListingFilters from "../../features/listing/components/ListingFilters";
-import { ErrorAlert } from "../../components/common/Alert";
+import ErrorAlert from "../../components/common/Alert/ErrorAlert";
 
 const ProductsPage = () => {
   const { theme } = useTheme();

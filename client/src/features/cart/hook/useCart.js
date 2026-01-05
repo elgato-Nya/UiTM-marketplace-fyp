@@ -17,6 +17,7 @@ import {
   selectCartError,
   selectCartItemCount,
 } from "../store/cartSlice";
+import { ROUTES } from "../../../constants/routes";
 
 const useCart = (options = {}) => {
   const dispatch = useDispatch();
@@ -40,17 +41,24 @@ const useCart = (options = {}) => {
     return dispatch(fetchCart());
   };
 
-  const addToCart = async (listingId, quantity = 1) => {
-    return await dispatch(addToCartAction({ listingId, quantity })).unwrap();
-  };
-
-  const updateQuantity = async (listingId, quantity) => {
+  const addToCart = async (listingId, quantity = 1, variantId = null) => {
     return await dispatch(
-      updateCartItemAction({ listingId, quantity })
+      addToCartAction({ listingId, quantity, variantId })
     ).unwrap();
   };
 
-  const increaseQuantity = async (listingId, currentQuantity, maxStock) => {
+  const updateQuantity = async (listingId, quantity, variantId = null) => {
+    return await dispatch(
+      updateCartItemAction({ listingId, quantity, variantId })
+    ).unwrap();
+  };
+
+  const increaseQuantity = async (
+    listingId,
+    currentQuantity,
+    maxStock,
+    variantId = null
+  ) => {
     if (currentQuantity >= maxStock) {
       throw new Error(`Only ${maxStock} items available in stock`);
     }
@@ -58,11 +66,13 @@ const useCart = (options = {}) => {
     const newQuantity = currentQuantity + 1;
 
     // Optimistic update (instant UI feedback, no loading state)
-    dispatch(updateQuantityOptimistic({ listingId, quantity: newQuantity }));
+    dispatch(
+      updateQuantityOptimistic({ listingId, quantity: newQuantity, variantId })
+    );
 
     // Background sync with server
     try {
-      await updateQuantity(listingId, newQuantity);
+      await updateQuantity(listingId, newQuantity, variantId);
     } catch (error) {
       // Revert on error by refetching
       dispatch(fetchCart());
@@ -70,7 +80,11 @@ const useCart = (options = {}) => {
     }
   };
 
-  const decreaseQuantity = async (listingId, currentQuantity) => {
+  const decreaseQuantity = async (
+    listingId,
+    currentQuantity,
+    variantId = null
+  ) => {
     if (currentQuantity <= 1) {
       throw new Error("Quantity cannot be less than 1");
     }
@@ -78,11 +92,13 @@ const useCart = (options = {}) => {
     const newQuantity = currentQuantity - 1;
 
     // Optimistic update (instant UI feedback, no loading state)
-    dispatch(updateQuantityOptimistic({ listingId, quantity: newQuantity }));
+    dispatch(
+      updateQuantityOptimistic({ listingId, quantity: newQuantity, variantId })
+    );
 
     // Background sync with server
     try {
-      await updateQuantity(listingId, newQuantity);
+      await updateQuantity(listingId, newQuantity, variantId);
     } catch (error) {
       // Revert on error by refetching
       dispatch(fetchCart());
@@ -90,8 +106,10 @@ const useCart = (options = {}) => {
     }
   };
 
-  const removeFromCart = async (listingId) => {
-    return await dispatch(removeFromCartAction(listingId)).unwrap();
+  const removeFromCart = async (listingId, variantId = null) => {
+    return await dispatch(
+      removeFromCartAction({ listingId, variantId })
+    ).unwrap();
   };
 
   const clearCart = async () => {
@@ -103,7 +121,7 @@ const useCart = (options = {}) => {
   };
 
   const goToCart = () => {
-    navigate("/cart");
+    navigate(ROUTES.CART);
   };
 
   const clearCartErrorMessage = () => {
@@ -114,17 +132,34 @@ const useCart = (options = {}) => {
     dispatch(clearSuccess());
   };
 
-  const getCartItem = (listingId) => {
+  /**
+   * Get a cart item by listingId and optionally variantId
+   * @param {string} listingId - The listing ID
+   * @param {string|null} variantId - Optional variant ID
+   * @returns {object|null} - Cart item or null
+   */
+  const getCartItem = (listingId, variantId = null) => {
     if (!cart || !cart.items) return null;
     return cart.items.find((item) => {
       // Handle nested listing object (from populate)
       const itemListingId = item.listing?._id;
-      return itemListingId?.toString() === listingId?.toString();
+      const listingMatch = itemListingId?.toString() === listingId?.toString();
+      // If variantId specified, must match; otherwise match items without variant
+      const variantMatch = variantId
+        ? item.variantId?.toString() === variantId?.toString()
+        : !item.variantId;
+      return listingMatch && variantMatch;
     });
   };
 
-  const isInCart = (listingId) => {
-    return !!getCartItem(listingId);
+  /**
+   * Check if a listing (with optional variant) is in cart
+   * @param {string} listingId - The listing ID
+   * @param {string|null} variantId - Optional variant ID
+   * @returns {boolean}
+   */
+  const isInCart = (listingId, variantId = null) => {
+    return !!getCartItem(listingId, variantId);
   };
 
   return {

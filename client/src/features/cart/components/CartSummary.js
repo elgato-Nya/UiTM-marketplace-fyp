@@ -57,7 +57,9 @@ const CartSummary = ({
             <Typography variant="body2" color="text.secondary">
               Items ({totalItems})
             </Typography>
-            <Typography variant="body2">{totalItemsQuantity} units</Typography>
+            <Typography variant="body2">
+              {totalItemsQuantity} {totalItemsQuantity === 1 ? "item" : "items"}
+            </Typography>
           </Box>
 
           <Box

@@ -271,7 +271,7 @@ function NotFoundPage() {
             >
               Need help?{" "}
               <Link
-                to="/contact"
+                to={ROUTES.CONTACT}
                 style={{
                   color: theme.palette.primary.main,
                   textDecoration: "none",

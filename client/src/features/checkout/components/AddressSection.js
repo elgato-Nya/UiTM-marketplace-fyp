@@ -37,6 +37,7 @@ import { createAddress } from "../../profile/store/addressSlice";
 import DynamicSkeleton from "../../../components/ui/Skeleton/DynamicSkeleton";
 import TabsComponent from "../../../components/common/Tabs/TabsComponent";
 import { getAddressTabsConfig } from "../../../config/forms/addressFormConfig";
+import { getCampusLabel, getStateLabel } from "../../../utils/formatUtils";
 
 const AddressSection = ({ selectedAddressId, onAddressSelect, error }) => {
   const { theme } = useTheme();
@@ -155,13 +156,15 @@ const AddressSection = ({ selectedAddressId, onAddressSelect, error }) => {
     // Fallback: Handle different address types
     if (address.type === "campus" && address.campusAddress) {
       const { building, floor, room, campus } = address.campusAddress;
-      return `${floor}${room}, ${building}, ${campus}`;
+      // Convert campus key to display label
+      return `${floor}${room}, ${building}, ${getCampusLabel(campus)}`;
     }
 
     if (address.type === "personal" && address.personalAddress) {
       const { addressLine1, addressLine2, city, state, postcode } =
         address.personalAddress;
-      return `${addressLine1}${addressLine2 ? `, ${addressLine2}` : ""}, ${postcode}, ${city}, ${state}`;
+      // Convert state key to display label
+      return `${addressLine1}${addressLine2 ? `, ${addressLine2}` : ""}, ${postcode}, ${city}, ${getStateLabel(state)}`;
     }
 
     // Legacy fallback (if old data structure exists)

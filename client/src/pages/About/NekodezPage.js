@@ -1,6 +1,13 @@
 import React from "react";
 import { Box, Container, Typography, Chip, IconButton } from "@mui/material";
-import { Code, Security, Speed, Lightbulb, GitHub, Email } from "@mui/icons-material";
+import {
+  Code,
+  Security,
+  Speed,
+  Lightbulb,
+  GitHub,
+  Email,
+} from "@mui/icons-material";
 import { useTheme } from "../../hooks/useTheme";
 import { Logo } from "../../components/common/Logo";
 
@@ -47,7 +54,14 @@ function NekodezPage() {
           >
             Developer · Creator · Innovator
           </Typography>
-          <Box sx={{ display: "flex", gap: 1, justifyContent: "center", flexWrap: "wrap" }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              justifyContent: "center",
+              flexWrap: "wrap",
+            }}
+          >
             {["MERN Stack", "Cloud", "Security"].map((tag, i) => (
               <Chip
                 key={i}
@@ -124,7 +138,12 @@ function NekodezPage() {
       </Container>
 
       {/* Expertise */}
-      <Box sx={{ bgcolor: theme.palette.background.default, py: { xs: 6, md: 10 } }}>
+      <Box
+        sx={{
+          bgcolor: theme.palette.background.default,
+          py: { xs: 6, md: 10 },
+        }}
+      >
         <Container maxWidth="md">
           <Typography
             variant="overline"
@@ -155,7 +174,10 @@ function NekodezPage() {
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: { xs: "repeat(2, 1fr)", md: "repeat(4, 1fr)" },
+              gridTemplateColumns: {
+                xs: "repeat(2, 1fr)",
+                md: "repeat(4, 1fr)",
+              },
               gap: { xs: 2, md: 3 },
             }}
           >
@@ -188,11 +210,16 @@ function NekodezPage() {
                     mb: 1.5,
                   }}
                 >
-                  <item.icon sx={{ color: theme.palette.primary.main, fontSize: 24 }} />
+                  <item.icon
+                    sx={{ color: theme.palette.primary.main, fontSize: 24 }}
+                  />
                 </Box>
                 <Typography
                   variant="body2"
-                  sx={{ fontWeight: 600, fontSize: { xs: "0.75rem", md: "0.875rem" } }}
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: { xs: "0.75rem", md: "0.875rem" },
+                  }}
                 >
                   {item.label}
                 </Typography>
@@ -203,7 +230,10 @@ function NekodezPage() {
       </Box>
 
       {/* Tech Stack */}
-      <Container maxWidth="md" sx={{ py: { xs: 6, md: 10 }, textAlign: "center" }}>
+      <Container
+        maxWidth="md"
+        sx={{ py: { xs: 6, md: 10 }, textAlign: "center" }}
+      >
         <Typography
           variant="overline"
           sx={{
@@ -278,19 +308,27 @@ function NekodezPage() {
             "To build meaningful, reliable, and future-proof digital products
             while growing as a developer and as a person."
           </Typography>
-          <Box sx={{ mt: 4, display: "flex", justifyContent: "center", gap: 1 }}>
+          <Box
+            sx={{ mt: 4, display: "flex", justifyContent: "center", gap: 1 }}
+          >
             <IconButton
               href="https://github.com/elgato-nya"
               target="_blank"
               rel="noopener noreferrer"
-              sx={{ color: "white", "&:hover": { bgcolor: "rgba(255,255,255,0.1)" } }}
+              sx={{
+                color: "white",
+                "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+              }}
               aria-label="GitHub"
             >
               <GitHub />
             </IconButton>
             <IconButton
               href="mailto:nekodez@example.com"
-              sx={{ color: "white", "&:hover": { bgcolor: "rgba(255,255,255,0.1)" } }}
+              sx={{
+                color: "white",
+                "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+              }}
               aria-label="Email"
             >
               <Email />

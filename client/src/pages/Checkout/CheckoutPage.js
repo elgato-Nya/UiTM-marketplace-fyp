@@ -202,10 +202,7 @@ const CheckoutPage = () => {
 
         // Create payment intent
         const intentResult = await dispatch(
-          createPaymentIntent({
-            sessionId: session._id,
-            paymentMethod: PAYMENT_METHOD.CREDIT_CARD,
-          })
+          createPaymentIntent(session._id)
         ).unwrap();
 
         // Confirm card payment with Stripe
@@ -233,10 +230,7 @@ const CheckoutPage = () => {
       } else if (paymentMethod === PAYMENT_METHOD.E_WALLET) {
         // Create payment intent for E-Wallet
         const intentResult = await dispatch(
-          createPaymentIntent({
-            sessionId: session._id,
-            paymentMethod: PAYMENT_METHOD.E_WALLET,
-          })
+          createPaymentIntent(session._id)
         ).unwrap();
 
         // Redirect to E-Wallet payment page

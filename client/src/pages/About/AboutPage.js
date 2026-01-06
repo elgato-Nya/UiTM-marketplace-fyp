@@ -142,7 +142,12 @@ function AboutPage() {
       </Container>
 
       {/* Values */}
-      <Box sx={{ bgcolor: theme.palette.background.default, py: { xs: 6, md: 10 } }}>
+      <Box
+        sx={{
+          bgcolor: theme.palette.background.default,
+          py: { xs: 6, md: 10 },
+        }}
+      >
         <Container maxWidth="lg">
           <Typography
             variant="overline"
@@ -201,7 +206,9 @@ function AboutPage() {
                     mb: 2,
                   }}
                 >
-                  <v.icon sx={{ color: theme.palette.primary.main, fontSize: 28 }} />
+                  <v.icon
+                    sx={{ color: theme.palette.primary.main, fontSize: 28 }}
+                  />
                 </Box>
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
                   {v.title}
@@ -220,7 +227,10 @@ function AboutPage() {
       </Box>
 
       {/* Tech Stack */}
-      <Container maxWidth="md" sx={{ py: { xs: 6, md: 10 }, textAlign: "center" }}>
+      <Container
+        maxWidth="md"
+        sx={{ py: { xs: 6, md: 10 }, textAlign: "center" }}
+      >
         <Typography
           variant="overline"
           sx={{
@@ -282,14 +292,25 @@ function AboutPage() {
         <Container maxWidth="sm">
           <Typography
             variant="h5"
-            sx={{ fontWeight: 600, mb: 2, fontSize: { xs: "1.25rem", md: "1.5rem" } }}
+            sx={{
+              fontWeight: 600,
+              mb: 2,
+              fontSize: { xs: "1.25rem", md: "1.5rem" },
+            }}
           >
             Ready to Get Started?
           </Typography>
           <Typography variant="body1" sx={{ opacity: 0.9, mb: 4 }}>
             Join our growing community of students and merchants.
           </Typography>
-          <Box sx={{ display: "flex", gap: 2, justifyContent: "center", flexWrap: "wrap" }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              justifyContent: "center",
+              flexWrap: "wrap",
+            }}
+          >
             <Button
               component={Link}
               to={ROUTES.AUTH.REGISTER}
@@ -314,7 +335,10 @@ function AboutPage() {
               sx={{
                 borderColor: "white",
                 color: "white",
-                "&:hover": { bgcolor: "rgba(255,255,255,0.1)", borderColor: "white" },
+                "&:hover": {
+                  bgcolor: "rgba(255,255,255,0.1)",
+                  borderColor: "white",
+                },
                 fontWeight: 600,
                 px: 4,
               }}

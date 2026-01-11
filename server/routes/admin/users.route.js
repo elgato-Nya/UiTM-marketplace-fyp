@@ -22,31 +22,21 @@ const {
   validateBulkUpdate,
 } = require("../../middleware/validations/admin/users.validation");
 const {
-  createRateLimiter,
-} = require("../../middleware/rateLimiter.middleware");
-
-// Rate limiters
-const standardLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per window
-  message: "Too many requests, please try again later",
-});
-
-const strictLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // 20 requests per window (for sensitive operations)
-  message: "Too many requests, please try again later",
-});
+  adminStandardLimiter,
+  adminStrictLimiter,
+} = require("../../middleware/limiters.middleware");
 
 /**
  * Apply middleware to all routes
  * - Authentication required
  * - Admin role required
- * - Rate limiting
+ * - Rate limiting (centralized)
+ *
+ * @see docs/RATE-LIMITING-ENHANCEMENT-PLAN.md
  */
 router.use(protect);
 router.use(authorize("admin"));
-router.use(standardLimiter);
+router.use(adminStandardLimiter);
 
 /**
  * @route   GET /api/admin/users/stats
@@ -67,7 +57,12 @@ router.get("/search", validateSearch, handleSearchUsers);
  * @desc    Bulk update users (suspend/activate/verify)
  * @access  Admin only
  */
-router.post("/bulk", strictLimiter, validateBulkUpdate, handleBulkUpdateUsers);
+router.post(
+  "/bulk",
+  adminStrictLimiter,
+  validateBulkUpdate,
+  handleBulkUpdateUsers
+);
 
 /**
  * @route   GET /api/admin/users
@@ -97,7 +92,7 @@ router.get("/:id/activity", validateUserId, handleGetUserActivity);
  */
 router.patch(
   "/:id/status",
-  strictLimiter,
+  adminStrictLimiter,
   validateUpdateStatus,
   handleUpdateUserStatus
 );
@@ -109,7 +104,7 @@ router.patch(
  */
 router.patch(
   "/:id/roles",
-  strictLimiter,
+  adminStrictLimiter,
   validateUpdateRoles,
   handleUpdateUserRoles
 );
@@ -121,7 +116,7 @@ router.patch(
  */
 router.post(
   "/:id/verify",
-  strictLimiter,
+  adminStrictLimiter,
   validateUserId,
   handleVerifyUserEmail
 );
@@ -133,7 +128,7 @@ router.post(
  */
 router.post(
   "/:id/reset-password",
-  strictLimiter,
+  adminStrictLimiter,
   validateUserId,
   handleResetUserPassword
 );

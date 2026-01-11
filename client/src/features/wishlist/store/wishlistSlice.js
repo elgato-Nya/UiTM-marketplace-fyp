@@ -2,7 +2,6 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 import wishlistService from "../service/wishlistService";
 import { extractThunkError } from "../../../store/utils/thunkErrorHandler";
-const { fetchCart } = await import("../../cart/store/cartSlice");
 
 const initialState = {
   wishlist: null,
@@ -28,13 +27,11 @@ export const fetchWishlist = createAsyncThunk(
 
 export const addToWishlist = createAsyncThunk(
   "wishlist/addToWishlist",
-  async (listingId, { rejectWithValue, dispatch }) => {
+  async (listingId, { rejectWithValue }) => {
     try {
       const response = await wishlistService.addToWishlist(listingId);
 
-      // After adding to wishlist, refresh cart to update UI state
-      const { fetchCart } = await import("../../cart/store/cartSlice");
-      dispatch(fetchCart());
+      // Note: No need to refresh cart - adding to wishlist doesn't affect cart state
 
       return response.data;
     } catch (error) {
@@ -47,13 +44,11 @@ export const addToWishlist = createAsyncThunk(
 
 export const removeFromWishlist = createAsyncThunk(
   "wishlist/removeFromWishlist",
-  async (listingId, { rejectWithValue, dispatch }) => {
+  async (listingId, { rejectWithValue }) => {
     try {
       const response = await wishlistService.removeFromWishlist(listingId);
 
-      // After removing from wishlist, refresh cart to update UI state
-      const { fetchCart } = await import("../../cart/store/cartSlice");
-      dispatch(fetchCart());
+      // Note: No need to refresh cart - removing from wishlist doesn't affect cart state
 
       return response.data;
     } catch (error) {
@@ -84,7 +79,9 @@ export const moveToCart = createAsyncThunk(
     try {
       const response = await wishlistService.moveToCart(listingId, quantity);
 
-      // After moving to cart, we need to refresh the cart state
+      // After moving to cart, refresh cart state to show the new item
+      // Use dynamic import to avoid circular dependency
+      const { fetchCart } = await import("../../cart/store/cartSlice");
       dispatch(fetchCart());
 
       return response.data;

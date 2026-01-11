@@ -17,9 +17,9 @@ const {
 } = require("../../middleware/validations/user/auth.validation");
 const { protect } = require("../../middleware/auth/auth.middleware");
 const {
-  emailVerificationLimit,
-  passwordResetLimit,
-} = require("../../middleware/auth/rateLimiter.middleware");
+  emailLimiter,
+  passwordResetLimiter,
+} = require("../../middleware/limiters.middleware");
 
 /**
  * Authentication Routes
@@ -75,11 +75,7 @@ router.post("/refresh-token", handleTokenRefresh);
  * @body    email
  * @ratelimit 3 requests per 15 minutes
  */
-router.post(
-  "/resend-verification",
-  emailVerificationLimit,
-  resendVerificationEmail
-);
+router.post("/resend-verification", emailLimiter, resendVerificationEmail);
 
 /**
  * @route   POST /api/auth/verify-email
@@ -96,7 +92,7 @@ router.post("/verify-email", verifyEmail);
  * @body    email
  * @ratelimit 5 requests per 15 minutes
  */
-router.post("/forgot-password", passwordResetLimit, handleForgotPassword);
+router.post("/forgot-password", passwordResetLimiter, handleForgotPassword);
 
 /**
  * @route   POST /api/auth/validate-reset-token
@@ -113,7 +109,7 @@ router.post("/validate-reset-token", handleValidateResetToken);
  * @body    email, token, newPassword
  * @ratelimit 5 requests per 15 minutes
  */
-router.post("/reset-password", passwordResetLimit, handleResetPassword);
+router.post("/reset-password", passwordResetLimiter, handleResetPassword);
 
 // ==================== AUTHENTICATED ROUTES ====================
 

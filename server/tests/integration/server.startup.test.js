@@ -114,7 +114,8 @@ describe("Server Startup Tests", () => {
       expect(() => {
         require("../../config/cors.config");
         require("../../config/helmet.config");
-        require("../../config/limiter.config");
+        require("../../config/rateLimits.config");
+        require("../../middleware/limiters.middleware");
         require("../../config/database.config");
         require("../../utils/logger");
       }).not.toThrow();
@@ -122,12 +123,14 @@ describe("Server Startup Tests", () => {
 
     test("should have valid rate limiter configuration", () => {
       const {
-        generalLimiter,
+        globalLimiter,
         authLimiter,
-      } = require("../../config/limiter.config");
-      expect(generalLimiter).toBeDefined();
+        standardLimiter,
+      } = require("../../middleware/limiters.middleware");
+      expect(globalLimiter).toBeDefined();
       expect(authLimiter).toBeDefined();
-      expect(typeof generalLimiter).toBe("function");
+      expect(standardLimiter).toBeDefined();
+      expect(typeof globalLimiter).toBe("function");
       expect(typeof authLimiter).toBe("function");
     });
   });

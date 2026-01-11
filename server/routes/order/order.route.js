@@ -25,6 +25,10 @@ const {
   validateOrderStatusParam,
   validatePagination,
 } = require("../../middleware/validations/order/order.validation");
+const {
+  standardLimiter,
+  orderCreateLimiter,
+} = require("../../middleware/limiters.middleware");
 
 /**
  * Order Routes
@@ -33,6 +37,7 @@ const {
  * SCOPE: Order CRUD, buyer/seller management, order workflow, analytics
  * AUTHENTICATION: All routes require authentication (no public order access)
  * AUTHORIZATION: Role-based (buyer, seller, admin) with ownership verification
+ * RATE LIMITING: standardLimiter for reads, orderCreateLimiter for creation
  *
  * ROUTE STRUCTURE:
  * - /api/orders (order creation and user order retrieval)
@@ -48,24 +53,28 @@ const {
  * - Both buyers and sellers can cancel orders under certain conditions
  * - Admins have full access to all orders and analytics
  * - Order modifications require participant verification
+ *
+ * @see docs/RATE-LIMITING-ENHANCEMENT-PLAN.md
  */
 
 const router = express.Router();
 
 // ==================== AUTHENTICATED ROUTES ====================
 
-// Apply authentication middleware to all routes (no public order access)
+// Apply authentication and standard rate limiting to all routes
 router.use(protect);
+router.use(standardLimiter);
 
 /**
  * @route   POST /api/orders
  * @desc    Create a new order
  * @access  Private (All authenticated users can create orders)
+ * @ratelimit 10 requests per 15 minutes (stricter for order creation)
  * @body    items[], deliveryAddress, deliveryMethod, paymentMethod
  * @returns Created order data with order number
  * @note    Validates stock availability and single seller rule
  */
-router.post("/", validateCreateOrder, handleCreateOrder);
+router.post("/", orderCreateLimiter, validateCreateOrder, handleCreateOrder);
 
 /**
  * @route   GET /api/orders/my-orders

@@ -13,6 +13,7 @@ const {
   validateRemoveFromWishlist,
   validateMoveToCart,
 } = require("../../middleware/validations/wishlist/wishlist.validation");
+const { standardLimiter } = require("../../middleware/limiters.middleware");
 
 /**
  * Wishlist Routes
@@ -21,6 +22,7 @@ const {
  * SCOPE: Wishlist management, item tracking, price monitoring, cart integration
  * AUTHENTICATION: All routes require authentication (no guest wishlist)
  * AUTHORIZATION: Users can only access their own wishlist
+ * RATE LIMITING: standardLimiter (100 requests per 15 minutes)
  *
  * ROUTE STRUCTURE:
  * - /api/wishlist (wishlist retrieval and clearing)
@@ -34,14 +36,17 @@ const {
  * - Tracks original price for price drop notifications
  * - Unavailable items flagged but not removed
  * - Moving to cart removes from wishlist automatically
+ *
+ * @see docs/RATE-LIMITING-ENHANCEMENT-PLAN.md
  */
 
 const router = express.Router();
 
 // ==================== AUTHENTICATED ROUTES ====================
 
-// Apply authentication middleware to all routes
+// Apply authentication and rate limiting middleware to all routes
 router.use(protect);
+router.use(standardLimiter);
 
 /**
  * @route   GET /api/wishlist

@@ -12,7 +12,10 @@ const config = require("./config/env.config");
 
 const corsOptions = require("./config/cors.config");
 const helmetConfig = require("./config/helmet.config");
-const { generalLimiter, authLimiter } = require("./config/limiter.config");
+const {
+  globalLimiter,
+  authLimiter,
+} = require("./middleware/limiters.middleware");
 const database = require("./config/database.config");
 const logger = require("./utils/logger");
 const { toMalaysianISO } = require("./utils/datetime");
@@ -83,7 +86,8 @@ app.use(cors(corsOptions));
 
 // Apply rate limiters BEFORE body parsing to prevent DoS attacks
 // that send large payloads just to consume resources
-app.use("/api/", generalLimiter);
+// See: docs/RATE-LIMITING-ENHANCEMENT-PLAN.md for full rate limiting strategy
+app.use("/api/", globalLimiter);
 app.use("/api/auth/", authLimiter);
 
 app.use(cookieParser());

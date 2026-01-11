@@ -29,6 +29,11 @@ const {
   validateUpdateStatus,
   validateUpdateDeliverySettings,
 } = require("../../middleware/validations/user/merchant.validation");
+const {
+  publicReadLimiter,
+  standardLimiter,
+  searchLimiter,
+} = require("../../middleware/limiters.middleware");
 
 /**
  * Merchant Routes
@@ -37,6 +42,7 @@ const {
  * SCOPE: Shop management, search, metrics, admin functions
  * AUTHENTICATION: Most routes require authentication, some are public
  * VALIDATION: All input data is validated before processing
+ * RATE LIMITING: publicReadLimiter for public routes, standardLimiter for authenticated
  *
  * ROUTE STRUCTURE:
  * - /api/merchants/profile (merchant management)
@@ -45,6 +51,8 @@ const {
  * - /api/merchants/stats (merchant analytics)
  * - /api/merchants/:userId/* (admin functions)
  * - /api/merchants/admin/* (admin-only endpoints)
+ *
+ * @see docs/RATE-LIMITING-ENHANCEMENT-PLAN.md
  */
 
 const router = express.Router();
@@ -55,30 +63,44 @@ const router = express.Router();
  * @route   GET /api/merchants/search
  * @desc    Search merchants/shops (public)
  * @access  Public
+ * @ratelimit 60 requests per 15 minutes
  * @query   q, category, minRating, page, limit
  */
-router.get("/search", validateSearchMerchants, searchMerchants);
+router.get("/search", searchLimiter, validateSearchMerchants, searchMerchants);
 
 /**
  * @route   GET /api/merchants/shop/:shopSlug
  * @desc    Get merchant details by shop slug (public)
  * @access  Public
+ * @ratelimit 150 requests per 15 minutes
  * @param   shopSlug - URL-safe shop identifier
  */
-router.get("/shop/:shopSlug", validateShopSlug, getMerchantBySlug);
+router.get(
+  "/shop/:shopSlug",
+  publicReadLimiter,
+  validateShopSlug,
+  getMerchantBySlug
+);
 
 /**
  * @route   POST /api/merchants/shop/:shopSlug/view
  * @desc    Track shop view (increment view counter)
  * @access  Public
+ * @ratelimit 150 requests per 15 minutes
  * @param   shopSlug - URL-safe shop identifier
  */
-router.post("/shop/:shopSlug/view", validateShopSlug, trackShopView);
+router.post(
+  "/shop/:shopSlug/view",
+  publicReadLimiter,
+  validateShopSlug,
+  trackShopView
+);
 
 // ==================== AUTHENTICATED ROUTES ====================
 
-// Apply authentication middleware to all routes below
+// Apply authentication and rate limiting middleware to all routes below
 router.use(authenticateUser);
+router.use(standardLimiter);
 
 /**
  * @route   GET /api/merchants/profile

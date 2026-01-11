@@ -92,6 +92,10 @@ temp/
 *.bak
 *.tmp
 
+# Text files (requirements, blueprints, personal notes)
+*.txt
+!client/public/robots.txt
+
 # Security audit files
 npm-debug.log*
 .npm-audit.json

@@ -14,6 +14,7 @@ const {
   validateDeleteAddress,
 } = require("../../middleware/validations/user/address.validation");
 const { protect } = require("../../middleware/auth/auth.middleware");
+const { standardLimiter } = require("../../middleware/limiters.middleware");
 
 /**
  * Address Management Routes
@@ -22,6 +23,7 @@ const { protect } = require("../../middleware/auth/auth.middleware");
  * SCOPE: Campus and personal address management, default address handling
  * AUTHENTICATION: All routes require authentication
  * VALIDATION: Address data validated for type-specific requirements
+ * RATE LIMITING: standardLimiter (100 requests per 15 minutes)
  *
  * ROUTE STRUCTURE:
  * - /api/addresses/ (address collection operations)
@@ -36,14 +38,17 @@ const { protect } = require("../../middleware/auth/auth.middleware");
  * - Max 5 addresses per type per user
  * - One default address per user
  * - Campus addresses validated against UiTM campus enum
+ *
+ * @see docs/RATE-LIMITING-ENHANCEMENT-PLAN.md
  */
 
 const router = express.Router();
 
 // ==================== AUTHENTICATED ROUTES ====================
 
-// Apply authentication middleware to all routes
+// Apply authentication and rate limiting middleware to all routes
 router.use(protect);
+router.use(standardLimiter);
 
 /**
  * @route   GET /api/addresses?type=campus|personal

@@ -1,6 +1,8 @@
 /**
  * Analytics Routes
  * Endpoints for merchant and admin analytics dashboards
+ *
+ * @see docs/RATE-LIMITING-ENHANCEMENT-PLAN.md
  */
 
 const express = require("express");
@@ -9,7 +11,10 @@ const {
   protect: authenticate,
   authorize,
 } = require("../../middleware/auth/auth.middleware");
-const { rateLimit } = require("express-rate-limit");
+const {
+  refreshLimiter,
+  adminRefreshLimiter,
+} = require("../../middleware/limiters.middleware");
 
 // Controllers
 const {
@@ -27,37 +32,6 @@ const {
   handleGetHealthSummary,
   handleGetPublicStats,
 } = require("../../controllers/analytic/admin.analytics.controller");
-
-// ==================== RATE LIMITERS ====================
-
-// Merchant refresh: Max once per 5 minutes
-const merchantRefreshLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 1, // 1 request per window
-  message: {
-    success: false,
-    message: "Analytics can only be refreshed once every 5 minutes",
-    code: "RATE_LIMIT_EXCEEDED",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  // Use user ID as key for per-user limiting
-  keyGenerator: (req) => req.user.userId.toString(),
-});
-
-// Admin refresh: Max 3 times per 10 minutes
-const adminRefreshLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 3,
-  message: {
-    success: false,
-    message: "Platform analytics can only be refreshed 3 times per 10 minutes",
-    code: "RATE_LIMIT_EXCEEDED",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => req.user.userId.toString(),
-});
 
 // ==================== PUBLIC ROUTES ====================
 
@@ -118,7 +92,7 @@ router.post(
   "/merchant/refresh",
   authenticate,
   authorize(["merchant"]),
-  merchantRefreshLimiter,
+  refreshLimiter,
   refreshMerchantAnalytics
 );
 

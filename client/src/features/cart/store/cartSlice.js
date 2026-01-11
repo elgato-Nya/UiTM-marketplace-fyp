@@ -31,10 +31,7 @@ export const fetchCart = createAsyncThunk(
 
 export const addToCart = createAsyncThunk(
   "cart/addToCart",
-  async (
-    { listingId, quantity, variantId = null },
-    { rejectWithValue, dispatch }
-  ) => {
+  async ({ listingId, quantity, variantId = null }, { rejectWithValue }) => {
     try {
       const response = await cartService.addToCart(
         listingId,
@@ -42,11 +39,8 @@ export const addToCart = createAsyncThunk(
         variantId
       );
 
-      // After adding to cart, refresh wishlist to update UI state (heart icons, etc.)
-      const { fetchWishlist } = await import(
-        "../../wishlist/store/wishlistSlice"
-      );
-      dispatch(fetchWishlist());
+      // Note: No need to refresh wishlist - the backend returns updated cart state
+      // and UI components should use their own state (isInCart, isInWishlist)
 
       return response.data;
     } catch (error) {
@@ -80,15 +74,11 @@ export const updateCartItem = createAsyncThunk(
 
 export const removeFromCart = createAsyncThunk(
   "cart/removeFromCart",
-  async ({ listingId, variantId = null }, { rejectWithValue, dispatch }) => {
+  async ({ listingId, variantId = null }, { rejectWithValue }) => {
     try {
       const response = await cartService.removeFromCart(listingId, variantId);
 
-      // After removing from cart, refresh wishlist to update UI state
-      const { fetchWishlist } = await import(
-        "../../wishlist/store/wishlistSlice"
-      );
-      dispatch(fetchWishlist());
+      // Note: No need to refresh wishlist - item removal doesn't affect wishlist state
 
       return response.data;
     } catch (error) {
@@ -113,16 +103,13 @@ export const clearCart = createAsyncThunk(
 
 export const moveToWishlist = createAsyncThunk(
   "cart/moveToWishlist",
-  async (listingId, { rejectWithValue, dispatch }) => {
+  async (listingId, { rejectWithValue }) => {
     try {
       const response = await cartService.moveToWishlist(listingId);
 
-      // After moving to wishlist, we need to refresh the wishlist state
-      // Import fetchWishlist from wishlist slice dynamically to avoid circular dependency
-      const { fetchWishlist } = await import(
-        "../../wishlist/store/wishlistSlice"
-      );
-      dispatch(fetchWishlist());
+      // Note: The backend handles moving the item to wishlist
+      // The response includes updated cart state
+      // Wishlist will be fetched when user navigates to wishlist page
 
       return response.data;
     } catch (error) {

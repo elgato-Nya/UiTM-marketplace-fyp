@@ -11,6 +11,7 @@ const {
   validateDeleteImage,
   validateDeleteMultipleImages,
 } = require("../../middleware/validations/upload/upload.validation");
+const { uploadLimiter } = require("../../middleware/limiters.middleware");
 
 /**
  * Upload Routes
@@ -26,17 +27,22 @@ const {
  * - All routes require authentication (protect middleware)
  * - Listing uploads require merchant role (authorize middleware)
  * - Validates upload parameters and file keys
+ * - Rate limited to prevent S3 abuse
+ *
+ * @see docs/RATE-LIMITING-ENHANCEMENT-PLAN.md
  */
 
 /**
  * @route   POST /api/upload/single
  * @desc    Upload single image (profile, avatar, etc.)
  * @access  Private
+ * @ratelimit 30 requests per 15 minutes
  * @body    { image: File, folder: string, subfolder: string }
  */
 router.post(
   "/single",
   protect,
+  uploadLimiter,
   uploadSingle,
   validateUploadParams,
   uploadController.uploadSingleImage
@@ -46,11 +52,13 @@ router.post(
  * @route   POST /api/upload/multiple
  * @desc    Upload multiple images (up to 10)
  * @access  Private
+ * @ratelimit 30 requests per 15 minutes
  * @body    { images: File[], folder: string, subfolder: string }
  */
 router.post(
   "/multiple",
   protect,
+  uploadLimiter,
   uploadMultiple,
   validateUploadParams,
   uploadController.uploadMultipleImages
@@ -60,12 +68,14 @@ router.post(
  * @route   POST /api/upload/listing
  * @desc    Upload listing images with thumbnails
  * @access  Private (Merchant only)
+ * @ratelimit 30 requests per 15 minutes
  * @body    { images: File[], subfolder: listingId }
  */
 router.post(
   "/listing",
   protect,
   authorize("merchant"),
+  uploadLimiter,
   uploadMultiple,
   uploadController.uploadListingImages
 );
@@ -76,12 +86,7 @@ router.post(
  * @access  Private
  * @body    { key: string }
  */
-router.delete(
-  "/",
-  protect,
-  validateDeleteImage,
-  uploadController.deleteImage
-);
+router.delete("/", protect, validateDeleteImage, uploadController.deleteImage);
 
 /**
  * @route   DELETE /api/upload/multiple

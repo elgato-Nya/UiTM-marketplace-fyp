@@ -2,14 +2,36 @@ describe("Configuration Modules Tests", () => {
   describe("Rate Limiter Configuration", () => {
     test("should export valid rate limiters", () => {
       const {
-        generalLimiter,
+        globalLimiter,
         authLimiter,
-      } = require("../../../config/limiter.config");
+        standardLimiter,
+        strictLimiter,
+      } = require("../../../middleware/limiters.middleware");
 
-      expect(generalLimiter).toBeDefined();
+      expect(globalLimiter).toBeDefined();
       expect(authLimiter).toBeDefined();
-      expect(typeof generalLimiter).toBe("function");
+      expect(standardLimiter).toBeDefined();
+      expect(strictLimiter).toBeDefined();
+      expect(typeof globalLimiter).toBe("function");
       expect(typeof authLimiter).toBe("function");
+    });
+
+    test("should have centralized rate limit configurations", () => {
+      const {
+        getRateLimitNames,
+        getRateLimit,
+      } = require("../../../config/rateLimits.config");
+
+      const names = getRateLimitNames();
+      expect(names).toContain("global");
+      expect(names).toContain("auth");
+      expect(names).toContain("standard");
+      expect(names).toContain("strict");
+
+      const globalConfig = getRateLimit("global");
+      expect(globalConfig).toHaveProperty("windowMs");
+      expect(globalConfig).toHaveProperty("max");
+      expect(globalConfig).toHaveProperty("message");
     });
 
     test("should not use deprecated onLimitReached option", () => {
@@ -18,7 +40,7 @@ describe("Configuration Modules Tests", () => {
       const path = require("path");
       const configPath = path.join(
         __dirname,
-        "../../../config/limiter.config.js"
+        "../../../middleware/limiters.middleware.js"
       );
       const configContent = fs.readFileSync(configPath, "utf8");
 
@@ -68,7 +90,8 @@ describe("Configuration Modules Tests", () => {
       expect(() => {
         require("../../../config/cors.config");
         require("../../../config/helmet.config");
-        require("../../../config/limiter.config");
+        require("../../../config/rateLimits.config");
+        require("../../../middleware/limiters.middleware");
         require("../../../config/database.config");
         require("../../../utils/logger");
       }).not.toThrow();

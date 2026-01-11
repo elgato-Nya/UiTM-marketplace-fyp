@@ -5,6 +5,7 @@ const {
   validateUpdateMe,
 } = require("../../middleware/validations/user/user.validation");
 const { protect } = require("../../middleware/auth/auth.middleware");
+const { standardLimiter } = require("../../middleware/limiters.middleware");
 
 /**
  * User Profile Routes
@@ -13,19 +14,23 @@ const { protect } = require("../../middleware/auth/auth.middleware");
  * SCOPE: User profile retrieval, profile updates, personal settings
  * AUTHENTICATION: All routes require authentication
  * VALIDATION: Profile update data is validated before processing
+ * RATE LIMITING: standardLimiter (100 requests per 15 minutes)
  *
  * ROUTE STRUCTURE:
  * - /api/users/me (current user profile operations)
  *
  * SECURITY: Users can only access and modify their own profile data
+ *
+ * @see docs/RATE-LIMITING-ENHANCEMENT-PLAN.md
  */
 
 const router = express.Router();
 
 // ==================== AUTHENTICATED ROUTES ====================
 
-// Apply authentication middleware to all routes
+// Apply authentication and rate limiting middleware to all routes
 router.use(protect);
+router.use(standardLimiter);
 
 /**
  * @route   GET /api/users/me

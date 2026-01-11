@@ -16,6 +16,7 @@ const {
   validateCreatePaymentIntent,
   validateSessionIdParam,
 } = require("../../middleware/validations/checkout/checkout.validation");
+const { checkoutLimiter } = require("../../middleware/limiters.middleware");
 
 /**
  * Checkout Routes
@@ -23,6 +24,7 @@ const {
  * PURPOSE: Handle checkout session and payment operations
  * SCOPE: Session management, payment processing, order creation
  * AUTHENTICATION: All routes require authentication (no public access)
+ * RATE LIMITING: checkoutLimiter (20 requests per 15 minutes)
  *
  * ROUTE STRUCTURE:
  * - POST /api/checkout/session/cart (create session from cart)
@@ -41,14 +43,17 @@ const {
  * - Stock is virtually reserved during session
  * - Multi-vendor orders supported (one order per seller)
  * - COD and Stripe payments supported
+ *
+ * @see docs/RATE-LIMITING-ENHANCEMENT-PLAN.md
  */
 
 const router = express.Router();
 
 // ==================== AUTHENTICATED ROUTES ====================
 
-// Apply authentication middleware to all routes
+// Apply authentication and rate limiting middleware to all routes
 router.use(protect);
+router.use(checkoutLimiter);
 
 /**
  * @route   POST /api/checkout/session/cart

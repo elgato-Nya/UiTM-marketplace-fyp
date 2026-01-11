@@ -35,6 +35,11 @@ const {
   validateUpdateVariant,
   validateVariantIdParam,
 } = require("../../middleware/validations/listing/listing.validation");
+const {
+  publicReadLimiter,
+  standardLimiter,
+  writeLimiter,
+} = require("../../middleware/limiters.middleware");
 
 /**
  * Listing Routes
@@ -43,12 +48,15 @@ const {
  * SCOPE: Listing CRUD, seller management, public browsing, availability control
  * AUTHENTICATION: Mixed - public browsing, protected creation/modification
  * AUTHORIZATION: Role-based (merchant/admin for creation), ownership-based for modifications
+ * RATE LIMITING: publicReadLimiter for browsing, writeLimiter for create/update
  *
  * ROUTE STRUCTURE:
  * - /api/listings (public listing browsing and merchant listing creation)
  * - /api/listings/:id (individual listing operations)
  * - /api/listings/my-listings (current user's listings)
  * - /api/listings/seller/:sellerId (public seller listings)
+ *
+ * @see docs/RATE-LIMITING-ENHANCEMENT-PLAN.md
  */
 
 const router = express.Router();
@@ -59,16 +67,24 @@ const router = express.Router();
  * @route   GET /api/listings
  * @desc    Get all public listings with pagination and filtering
  * @access  Public
+ * @ratelimit 150 requests per 15 minutes
  * @query   page, limit, sort, type, category, fields
  * @returns Paginated public listings (available only)
  * @note    Only shows available listings for public access
  */
-router.get("/", validateGetListings, validatePagination, handleGetAllListings);
+router.get(
+  "/",
+  publicReadLimiter,
+  validateGetListings,
+  validatePagination,
+  handleGetAllListings
+);
 
 /**
  * @route   GET /api/listings/seller/:sellerId
  * @desc    Get public seller listings with pagination and filtering
  * @access  Public
+ * @ratelimit 150 requests per 15 minutes
  * @params  sellerId - Seller user ID
  * @query   page, limit, sort, type, category, fields
  * @returns Paginated seller listings (available only)
@@ -76,6 +92,7 @@ router.get("/", validateGetListings, validatePagination, handleGetAllListings);
  */
 router.get(
   "/seller/:sellerId",
+  publicReadLimiter,
   validateSellerIdParam,
   validateGetListings,
   validatePagination,
@@ -86,12 +103,14 @@ router.get(
  * @route   GET /api/listings/:id/delivery-fees
  * @desc    Get delivery fee information for a specific listing
  * @access  Public
+ * @ratelimit 150 requests per 15 minutes
  * @params  id - Listing ID
  * @returns Delivery fee settings from merchant or platform defaults
  * @note    Public endpoint to show delivery costs before purchase
  */
 router.get(
   "/:id/delivery-fees",
+  publicReadLimiter,
   validateListingIdParam,
   getListingDeliveryFees
 );
@@ -120,23 +139,26 @@ router.get(
  * @route   GET /api/listings/:id
  * @desc    Get listing by ID with optional seller details
  * @access  Public (Available for guest users to browse)
+ * @ratelimit 150 requests per 15 minutes
  * @params  id - Listing ID
  * @query   includeSeller (boolean), fields (comma-separated)
  * @returns Listing data with optional seller information
  * @note    Must come AFTER /seller/:sellerId and /my-listings to avoid route conflict
  * @note    Public access allows guest browsing, but owners see enhanced details
  */
-router.get("/:id", validateGetListing, handleGetListing);
+router.get("/:id", publicReadLimiter, validateGetListing, handleGetListing);
 
 // ==================== AUTHENTICATED ROUTES ====================
 
-// Apply authentication middleware to all routes below
+// Apply authentication and standard rate limiting middleware to all routes below
 router.use(protect);
+router.use(standardLimiter);
 
 /**
  * @route   POST /api/listings
  * @desc    Create a new listing
  * @access  Private (Merchant only)
+ * @ratelimit 50 requests per 15 minutes (write operations)
  * @body    name, description, price, category, type, images, etc.
  * @returns Created listing data
  * @note    Requires merchant role or admin permissions
@@ -144,6 +166,7 @@ router.use(protect);
 router.post(
   "/",
   authorize("merchant"),
+  writeLimiter,
   validateCreateListing,
   handleCreateListing
 );
@@ -154,6 +177,7 @@ router.post(
  * @route   PATCH /api/listings/:id
  * @desc    Update existing listing
  * @access  Private (Owner/Admin only)
+ * @ratelimit 50 requests per 15 minutes (write operations)
  * @params  id - Listing ID
  * @body    Fields to update (name, description, price, etc.)
  * @returns Updated listing data
@@ -162,6 +186,7 @@ router.post(
 router.patch(
   "/:id",
   isListingOwner("id"),
+  writeLimiter,
   validateUpdateListing,
   handleUpdateListing
 );
@@ -170,6 +195,7 @@ router.patch(
  * @route   DELETE /api/listings/:id
  * @desc    Soft delete listing by marking as unavailable
  * @access  Private (Owner/Admin only)
+ * @ratelimit 50 requests per 15 minutes (write operations)
  * @params  id - Listing ID
  * @returns Success confirmation
  * @note    Performs soft delete, ownership verified by middleware
@@ -177,6 +203,7 @@ router.patch(
 router.delete(
   "/:id",
   isListingOwner("id"),
+  writeLimiter,
   validateListingIdParam,
   handleDeleteListing
 );
@@ -185,6 +212,7 @@ router.delete(
  * @route   PATCH /api/listings/:id/toggle
  * @desc    Toggle listing availability between active and inactive
  * @access  Private (Owner/Admin only)
+ * @ratelimit 50 requests per 15 minutes (write operations)
  * @params  id - Listing ID
  * @returns Updated availability status
  * @note    Ownership verified by isListingOwner middleware
@@ -192,6 +220,7 @@ router.delete(
 router.patch(
   "/toggle-availability/:id",
   isListingOwner("id"),
+  writeLimiter,
   validateListingIdParam,
   handleToggleAvailability
 );

@@ -16,6 +16,10 @@ const {
   validateReportAction,
   validateContactFilters,
 } = require("../../middleware/validations/contact/contact.validation");
+const {
+  contactLimiter,
+  adminStandardLimiter,
+} = require("../../middleware/limiters.middleware");
 
 /**
  * Contact Routes
@@ -24,6 +28,7 @@ const {
  * SCOPE: Bug reports, enquiries, feedback, collaboration requests, content moderation
  * AUTHENTICATION: Mixed - public submissions, protected admin operations
  * AUTHORIZATION: Admin-only for management operations
+ * RATE LIMITING: contactLimiter for submissions (5 per 15 min), adminStandardLimiter for admin ops
  *
  * ROUTE STRUCTURE:
  * - /api/contact/submit (public submission endpoint)
@@ -31,6 +36,8 @@ const {
  * - /api/contact (admin list view)
  * - /api/contact/:id (admin detail view and operations)
  * - /api/contact/stats (admin statistics)
+ *
+ * @see docs/RATE-LIMITING-ENHANCEMENT-PLAN.md
  */
 
 // ==================== PUBLIC ROUTES ====================
@@ -39,13 +46,15 @@ const {
  * @route   POST /api/contact/submit
  * @desc    Create new contact submission (bug report, enquiry, feedback, collaboration)
  * @access  Public (guest users) / Private (authenticated users get auto-filled info)
+ * @ratelimit 5 requests per 15 minutes
  * @body    type, name, email, phoneNumber, subject, message, bugDetails, collaborationDetails
  * @returns Created contact submission
  * @note    Uses optionalAuth - guest users can submit, authenticated users get userId tracked
  */
 router.post(
   "/submit",
-  optionalAuth, // NEW: Attach user if authenticated, but allow guests
+  optionalAuth,
+  contactLimiter,
   validateCreateSubmission,
   contactController.createSubmission
 );
@@ -54,13 +63,15 @@ router.post(
  * @route   POST /api/contact/upload-images
  * @desc    Upload images for bug reports or feedback (max 5 images)
  * @access  Public (guest users) / Private (authenticated users)
+ * @ratelimit 5 requests per 15 minutes
  * @body    images (multipart), type (bug/feedback)
  * @returns Uploaded image URLs and keys
  * @note    Only allowed for bug and feedback submission types
  */
 router.post(
   "/upload-images",
-  optionalAuth, // NEW: Attach user if authenticated
+  optionalAuth,
+  contactLimiter,
   uploadMultiple,
   contactController.uploadContactImages
 );
@@ -76,9 +87,10 @@ router.get("/public/testimonials", contactController.getTestimonials);
 
 // ==================== ADMIN ROUTES ====================
 
-// Apply authentication and authorization middleware to all routes below
+// Apply authentication, authorization, and rate limiting middleware to all routes below
 router.use(protect);
 router.use(authorize("admin"));
+router.use(adminStandardLimiter);
 
 /**
  * @route   GET /api/contact/stats

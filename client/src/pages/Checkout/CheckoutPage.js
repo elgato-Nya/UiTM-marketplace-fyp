@@ -201,13 +201,15 @@ const CheckoutPage = () => {
         }
 
         // Create payment intent
-        const intentResult = await dispatch(
+        const result = await dispatch(
           createPaymentIntent(session._id)
         ).unwrap();
 
+        const intentData = result.paymentIntent;
+
         // Confirm card payment with Stripe
         const { error: stripeError, paymentIntent: confirmedIntent } =
-          await stripe.confirmCardPayment(intentResult.clientSecret, {
+          await stripe.confirmCardPayment(intentData.clientSecret, {
             payment_method: {
               card: elements.getElement(CardElement),
               billing_details: {
@@ -228,16 +230,32 @@ const CheckoutPage = () => {
           throw new Error("Payment confirmation failed");
         }
       } else if (paymentMethod === PAYMENT_METHOD.E_WALLET) {
-        // Create payment intent for E-Wallet
-        const intentResult = await dispatch(
+        if (!stripe) {
+          throw new Error("Stripe is not loaded");
+        }
+
+        // Create payment intent for GrabPay
+        const result = await dispatch(
           createPaymentIntent(session._id)
         ).unwrap();
 
-        // Redirect to E-Wallet payment page
-        if (intentResult.redirectUrl) {
-          window.location.href = intentResult.redirectUrl;
-          return;
+        const intentData = result.paymentIntent;
+
+        // Confirm payment with GrabPay - will redirect to GrabPay app
+        const { error: stripeError } = await stripe.confirmGrabPayPayment(
+          intentData.clientSecret,
+          {
+            return_url: `${window.location.origin}/checkout/success?session_id=${session._id}`,
+          }
+        );
+
+        // If error, throw it (otherwise user was redirected)
+        if (stripeError) {
+          throw new Error(stripeError.message);
         }
+
+        // User will be redirected to GrabPay, then back to return_url
+        return;
       }
 
       // Confirm checkout (only sessionId is needed - other details already in session)

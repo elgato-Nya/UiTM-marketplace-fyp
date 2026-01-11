@@ -91,6 +91,10 @@ const createPaymentIntent = async (sessionId, userId) => {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
       currency: "myr",
+      automatic_payment_methods: {
+        enabled: true,
+        allow_redirects: "always",
+      },
       metadata: {
         checkoutSessionId: sessionId.toString(),
         userId: userId.toString(),

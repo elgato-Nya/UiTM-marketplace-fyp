@@ -44,7 +44,7 @@ import OrderDetailPage from "./pages/Orders/OrderDetailPage";
 import CartPage from "./pages/Cart/CartPage";
 import WishlistPage from "./pages/Wishlist/WishlistPage";
 import CheckoutPageWrapper from "./pages/Checkout/CheckoutPageWrapper";
-import CheckoutSuccessPage from "./pages/Checkout/CheckoutSuccessPage";
+import CheckoutSuccessPageWrapper from "./pages/Checkout/CheckoutSuccessPageWrapper";
 import MerchantAnalyticsPage from "./pages/Merchant/MerchantAnalyticsPage";
 import AdminDashboardPage from "./pages/Admin/AdminDashboardPage";
 import MerchantVerificationPage from "./pages/Admin/MerchantVerificationPage";
@@ -128,7 +128,7 @@ function AppContent() {
                   path={ROUTES.CHECKOUT.SUCCESS}
                   element={
                     <ProtectedRoute>
-                      <CheckoutSuccessPage />
+                      <CheckoutSuccessPageWrapper />
                     </ProtectedRoute>
                   }
                 />

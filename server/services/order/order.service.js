@@ -266,7 +266,11 @@ const createOrder = async (userId, orderData) => {
       }
     }
 
-    const shippingFee = calcDeliveryFee(deliveryMethod, deliveryAddress);
+    const shippingFee = await calcDeliveryFee(
+      deliveryMethod,
+      sellerId,
+      subtotal
+    );
     const totalAmount = subtotal + shippingFee;
 
     const orderObject = {
@@ -288,7 +292,7 @@ const createOrder = async (userId, orderData) => {
       totalDiscount: 0,
       totalAmount: totalAmount,
       paymentMethod: paymentMethod,
-      paymentStatus: paymentMethod === "cod" ? "pending" : "unpaid",
+      paymentStatus: "pending",
       paymentDetails: {
         paidAt: null,
         transactionId: null,

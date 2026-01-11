@@ -1,5 +1,4 @@
 require("dotenv").config();
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const logger = require("../utils/logger");
 
 /**
@@ -17,10 +16,31 @@ async function verifyStripe() {
     if (!process.env.STRIPE_SECRET_KEY) {
       console.error("❌ STRIPE_SECRET_KEY not found in environment variables");
       console.log(
-        "\n💡 Add to your .env file: STRIPE_SECRET_KEY=sk_test_your_key_here\n"
+        "\n📝 To set up Stripe payments, add these to your .env file:\n"
+      );
+      console.log(
+        "STRIPE_SECRET_KEY=sk_test_xxx           # Get from https://dashboard.stripe.com/apikeys"
+      );
+      console.log(
+        "STRIPE_PUBLISHABLE_KEY=pk_test_xxx     # Get from https://dashboard.stripe.com/apikeys"
+      );
+      console.log(
+        "STRIPE_WEBHOOK_SECRET=whsec_xxx        # Optional: Get from https://dashboard.stripe.com/webhooks"
+      );
+      console.log(
+        "STRIPE_MINIMUM_AMOUNT=10               # Minimum payment amount in MYR"
+      );
+      console.log(
+        "\n⚠️  For Malaysia: Use sk_live_xxx and pk_live_xxx keys (test keys may not work for MYR)"
+      );
+      console.log(
+        "\nℹ️  Visit https://dashboard.stripe.com/register to create a Stripe account if you don't have one.\n"
       );
       process.exit(1);
     }
+
+    // Initialize Stripe only after checking key exists
+    const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
     // 2. Check key format
     const key = process.env.STRIPE_SECRET_KEY;

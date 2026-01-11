@@ -13,8 +13,7 @@ import {
   AccountBalance as BankIcon,
   MonetizationOn as CashIcon,
 } from "@mui/icons-material";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements, CardElement } from "@stripe/react-stripe-js";
+import { CardElement } from "@stripe/react-stripe-js";
 
 import { useTheme } from "../../../hooks/useTheme";
 import {
@@ -22,14 +21,10 @@ import {
   PAYMENT_METHOD_LABELS,
 } from "../../../constants/orderConstant";
 
-// Initialize Stripe (move to env variable in production)
-const stripePromise = loadStripe(
-  process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "your_stripe_publishable_key"
-);
-
 /**
  * Payment Method Section Component
  * Uses payment methods directly from orderConstant.js that matches server enum
+ * Note: Stripe Elements context provided by CheckoutPageWrapper
  */
 
 const CardElementWrapper = ({ onReady, error }) => {
@@ -49,6 +44,7 @@ const CardElementWrapper = ({ onReady, error }) => {
         color: theme.palette.error.main,
       },
     },
+    hidePostalCode: true, // Hide postal code for Malaysia (not required)
   };
 
   return (
@@ -87,16 +83,16 @@ const PaymentMethodSectionContent = ({
     {
       id: PAYMENT_METHOD.CREDIT_CARD,
       label: PAYMENT_METHOD_LABELS[PAYMENT_METHOD.CREDIT_CARD],
-      description: "Currently unavailable",
+      description: "Secure payment via Stripe",
       icon: CardIcon,
-      disabled: true, // Disabled due to Stripe Connect limitation
+      disabled: false, // Stripe single-flow payments enabled
     },
     {
       id: PAYMENT_METHOD.E_WALLET,
       label: PAYMENT_METHOD_LABELS[PAYMENT_METHOD.E_WALLET],
-      description: "Currently unavailable",
+      description: "GrabPay via Stripe",
       icon: BankIcon,
-      disabled: true, // Disabled due to Stripe Connect limitation
+      disabled: false, // GrabPay enabled
     },
     {
       id: PAYMENT_METHOD.COD,
@@ -258,7 +254,17 @@ const PaymentMethodSectionContent = ({
                     />
                   </Box>
 
-                  {/* Card input removed - payment methods disabled */}
+                  {/* Show CardElement for credit card payment */}
+                  {method.id === PAYMENT_METHOD.CREDIT_CARD &&
+                    selectedMethod === PAYMENT_METHOD.CREDIT_CARD &&
+                    !isDisabled && (
+                      <Box sx={{ mt: 2, px: 1 }}>
+                        <CardElementWrapper
+                          onReady={onCardReady}
+                          error={error}
+                        />
+                      </Box>
+                    )}
                 </Box>
               );
             })}
@@ -277,11 +283,7 @@ const PaymentMethodSectionContent = ({
 };
 
 const PaymentMethodSection = (props) => {
-  return (
-    <Elements stripe={stripePromise}>
-      <PaymentMethodSectionContent {...props} />
-    </Elements>
-  );
+  return <PaymentMethodSectionContent {...props} />;
 };
 
 export default PaymentMethodSection;

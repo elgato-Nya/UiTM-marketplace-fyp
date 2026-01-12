@@ -110,7 +110,7 @@ jobs:
           CI: false
           REACT_APP_ENVIRONMENT: production
           REACT_APP_API_URL: https://nekodez.com/api
-          REACT_APP_STRIPE_PUBLISHABLE_KEY: pk_test_51S8W3mJg56CMs4rbFNQy9iOSCDP91SLVMvJwWKIsHULGvp9r6ebVbjQ7vpa5Wn1ru0ZNlwEIkws92kk5Fhdn7fWH0086zCsjgI
+          REACT_APP_STRIPE_PUBLISHABLE_KEY: pk_live_51S8W3bJ7ZnGFQqSh0pvOVQM2j6x3wqLicBqaeJj4dTgeJNtUXjRtnUYF9dvlz52mj8y8xtcPOHwxHS2CLlXUfcOp00nTXu6BDF
 
       - name: Upload build artifacts
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'

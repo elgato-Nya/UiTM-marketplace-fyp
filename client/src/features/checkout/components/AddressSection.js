@@ -39,7 +39,12 @@ import TabsComponent from "../../../components/common/Tabs/TabsComponent";
 import { getAddressTabsConfig } from "../../../config/forms/addressFormConfig";
 import { getCampusLabel, getStateLabel } from "../../../utils/formatUtils";
 
-const AddressSection = ({ selectedAddressId, onAddressSelect, error }) => {
+const AddressSection = ({
+  selectedAddressId,
+  onAddressSelect,
+  onAddressTypeChange,
+  error,
+}) => {
   const { theme } = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const dispatch = useDispatch();
@@ -85,6 +90,11 @@ const AddressSection = ({ selectedAddressId, onAddressSelect, error }) => {
       onAddressSelect?.(defaultAddress._id);
     }
   }, [defaultAddress, localSelectedId, onAddressSelect]);
+
+  // Notify parent of initial address type
+  useEffect(() => {
+    onAddressTypeChange?.(addressType);
+  }, [addressType, onAddressTypeChange]);
 
   const selectedAddress =
     allAddresses.find((addr) => addr._id === localSelectedId) || defaultAddress;

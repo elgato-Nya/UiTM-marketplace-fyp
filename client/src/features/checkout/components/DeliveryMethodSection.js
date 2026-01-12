@@ -19,16 +19,29 @@ import { useTheme } from "../../../hooks/useTheme";
 import {
   DELIVERY_METHOD,
   DELIVERY_METHOD_LABELS,
+  ADDRESS_TYPE,
 } from "../../../constants/orderConstant";
 
 /**
  * Delivery Method Section Component
  * Uses delivery methods directly from orderConstant.js that matches server enum
+ * Filters available methods based on selected address type
  */
+
+// Mapping of address types to allowed delivery methods
+const ADDRESS_TYPE_DELIVERY_METHODS = {
+  [ADDRESS_TYPE.CAMPUS]: [
+    DELIVERY_METHOD.CAMPUS_DELIVERY,
+    DELIVERY_METHOD.ROOM_DELIVERY,
+  ],
+  [ADDRESS_TYPE.PERSONAL]: [DELIVERY_METHOD.DELIVERY],
+  [ADDRESS_TYPE.PICKUP]: [DELIVERY_METHOD.SELF_PICKUP, DELIVERY_METHOD.MEETUP],
+};
 
 const DeliveryMethodSection = ({
   selectedMethod,
   onMethodSelect,
+  addressType,
   totalAmount,
   error,
 }) => {
@@ -40,6 +53,9 @@ const DeliveryMethodSection = ({
     onMethodSelect?.(event.target.value);
   };
 
+  // Get allowed delivery methods for the current address type
+  const allowedMethods = ADDRESS_TYPE_DELIVERY_METHODS[addressType] || [];
+
   // Map delivery methods from constants with UI presentation data
   const deliveryMethodOptions = [
     {
@@ -47,18 +63,21 @@ const DeliveryMethodSection = ({
       label: DELIVERY_METHOD_LABELS[DELIVERY_METHOD.DELIVERY],
       description: "3-5 business days",
       icon: ShippingIcon,
+      addressTypes: [ADDRESS_TYPE.PERSONAL],
     },
     {
       id: DELIVERY_METHOD.CAMPUS_DELIVERY,
       label: DELIVERY_METHOD_LABELS[DELIVERY_METHOD.CAMPUS_DELIVERY],
       description: "Delivery within campus",
       icon: ShippingIcon,
+      addressTypes: [ADDRESS_TYPE.CAMPUS],
     },
     {
       id: DELIVERY_METHOD.SELF_PICKUP,
       label: DELIVERY_METHOD_LABELS[DELIVERY_METHOD.SELF_PICKUP],
       description: "Pick up from seller",
       icon: ShippingIcon,
+      addressTypes: [ADDRESS_TYPE.PICKUP],
     },
   ];
 
@@ -81,6 +100,19 @@ const DeliveryMethodSection = ({
             </Alert>
           )}
 
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{
+              mb: 2,
+              display: "block",
+              fontSize: "0.75rem",
+            }}
+          >
+            Delivery methods available depend on your selected address type.
+            Change your address type to use different delivery options.
+          </Typography>
+
           <RadioGroup
             aria-labelledby="delivery-method-heading"
             name="delivery-method"
@@ -89,6 +121,7 @@ const DeliveryMethodSection = ({
           >
             {deliveryMethodOptions.map((method) => {
               const Icon = method.icon;
+              const isAllowed = allowedMethods.includes(method.id);
 
               return (
                 <Box
@@ -98,23 +131,35 @@ const DeliveryMethodSection = ({
                     p: 1.5,
                     border: 1,
                     borderColor:
-                      selectedMethod === method.id ? "primary.main" : "divider",
+                      selectedMethod === method.id
+                        ? "primary.main"
+                        : isAllowed
+                          ? "divider"
+                          : "action.disabledBackground",
                     borderRadius: 1,
                     backgroundColor:
                       selectedMethod === method.id
                         ? "action.selected"
-                        : "transparent",
+                        : !isAllowed
+                          ? "action.disabledBackground"
+                          : "transparent",
+                    opacity: isAllowed ? 1 : 0.5,
                     transition: "all 0.2s",
-                    "&:hover": {
-                      borderColor: "primary.main",
-                      backgroundColor: "action.hover",
-                    },
+                    "&:hover": isAllowed
+                      ? {
+                          borderColor: "primary.main",
+                          backgroundColor: "action.hover",
+                        }
+                      : {},
+                    cursor: isAllowed ? "pointer" : "not-allowed",
                   }}
                 >
                   <FormControlLabel
                     value={method.id}
+                    disabled={!isAllowed}
                     control={
                       <Radio
+                        disabled={!isAllowed}
                         slotProps={{
                           input: {
                             "aria-describedby": `${method.id}-description`,
@@ -133,7 +178,7 @@ const DeliveryMethodSection = ({
                       >
                         <Icon
                           sx={{
-                            color: "primary.main",
+                            color: isAllowed ? "primary.main" : "text.disabled",
                           }}
                           aria-hidden="true"
                         />
@@ -143,7 +188,9 @@ const DeliveryMethodSection = ({
                             sx={{
                               fontWeight:
                                 selectedMethod === method.id ? 600 : 400,
-                              color: "text.primary",
+                              color: isAllowed
+                                ? "text.primary"
+                                : "text.disabled",
                             }}
                           >
                             {method.label}
@@ -151,9 +198,13 @@ const DeliveryMethodSection = ({
                           <Typography
                             id={`${method.id}-description`}
                             variant="body2"
-                            color="text.secondary"
+                            color={
+                              isAllowed ? "text.secondary" : "text.disabled"
+                            }
                           >
-                            {method.description}
+                            {isAllowed
+                              ? method.description
+                              : "Not available for selected address type"}
                           </Typography>
                         </Box>
                         {method.tooltip && (

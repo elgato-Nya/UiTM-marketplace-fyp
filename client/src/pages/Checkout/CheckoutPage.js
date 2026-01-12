@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Box,
   Container,
@@ -58,8 +58,9 @@ const CheckoutPage = () => {
 
   // Local state
   const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [selectedAddressType, setSelectedAddressType] = useState("campus");
   const [deliveryMethod, setDeliveryMethod] = useState(
-    DELIVERY_METHOD.DELIVERY
+    DELIVERY_METHOD.CAMPUS_DELIVERY
   );
   const [paymentMethod, setPaymentMethod] = useState(
     PAYMENT_METHOD.CREDIT_CARD
@@ -151,6 +152,26 @@ const CheckoutPage = () => {
       });
     }
   }, [sessionExpired, navigate]);
+
+  // Handle address type change - auto-select appropriate delivery method
+  const handleAddressTypeChange = useCallback(
+    (newAddressType) => {
+      setSelectedAddressType(newAddressType);
+
+      // Map address type to default delivery method
+      const addressTypeToDeliveryMethod = {
+        campus: DELIVERY_METHOD.CAMPUS_DELIVERY,
+        personal: DELIVERY_METHOD.DELIVERY,
+        pickup: DELIVERY_METHOD.SELF_PICKUP,
+      };
+
+      const newDeliveryMethod = addressTypeToDeliveryMethod[newAddressType];
+      if (newDeliveryMethod && newDeliveryMethod !== deliveryMethod) {
+        setDeliveryMethod(newDeliveryMethod);
+      }
+    },
+    [deliveryMethod]
+  );
 
   const handleConfirmOrder = async () => {
     // Validate form using centralized validation utility
@@ -365,6 +386,7 @@ const CheckoutPage = () => {
               <AddressSection
                 selectedAddressId={selectedAddressId}
                 onAddressSelect={setSelectedAddressId}
+                onAddressTypeChange={handleAddressTypeChange}
                 error={validationErrors.address}
               />
 
@@ -372,6 +394,7 @@ const CheckoutPage = () => {
               <DeliveryMethodSection
                 selectedMethod={deliveryMethod}
                 onMethodSelect={setDeliveryMethod}
+                addressType={selectedAddressType}
                 totalAmount={session.pricing?.totalAmount || 0}
                 error={validationErrors.delivery}
               />

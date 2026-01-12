@@ -241,6 +241,12 @@ const CheckoutPage = () => {
 
         const intentData = result.paymentIntent;
 
+        // Debug: Log payment intent info
+        console.log("🔄 GrabPay payment intent:", {
+          paymentIntentId: intentData.paymentIntentId,
+          clientSecretPrefix: intentData.clientSecret?.substring(0, 25) + "...",
+        });
+
         // Confirm payment with GrabPay - will redirect to GrabPay app
         const { error: stripeError } = await stripe.confirmGrabPayPayment(
           intentData.clientSecret,
@@ -251,6 +257,7 @@ const CheckoutPage = () => {
 
         // If error, throw it (otherwise user was redirected)
         if (stripeError) {
+          console.error("GrabPay error details:", stripeError);
           throw new Error(stripeError.message);
         }
 

@@ -211,7 +211,7 @@ const validateCampusDelivery = async (merchantId, campusKey) => {
 
 /**
  * Handle side effects when order status changes
- * 
+ *
  * Updates merchant metrics when orders complete:
  * - Increments totalRevenue
  * - Increments totalSales
@@ -244,12 +244,17 @@ const handleStatusSideEffects = async (order, newStatus) => {
           const seller = await User.findById(sellerId);
           if (seller && seller.merchantDetails?.shopMetrics) {
             const orderTotal = order.totalAmount || 0;
-            const itemsSold = order.items?.reduce((sum, item) => sum + (item.quantity || 1), 0) || 0;
+            const itemsSold =
+              order.items?.reduce(
+                (sum, item) => sum + (item.quantity || 1),
+                0
+              ) || 0;
 
             // Increment revenue and sales
-            seller.merchantDetails.shopMetrics.totalRevenue = 
-              (seller.merchantDetails.shopMetrics.totalRevenue || 0) + orderTotal;
-            seller.merchantDetails.shopMetrics.totalSales = 
+            seller.merchantDetails.shopMetrics.totalRevenue =
+              (seller.merchantDetails.shopMetrics.totalRevenue || 0) +
+              orderTotal;
+            seller.merchantDetails.shopMetrics.totalSales =
               (seller.merchantDetails.shopMetrics.totalSales || 0) + itemsSold;
 
             await seller.save();

@@ -148,7 +148,7 @@ const OrderTimeline = ({
 
                   {/** Timestamp */}
                   <Typography variant="caption" color="text.secondary">
-                    {formatOrderDate(item.updatedAt)}
+                    {formatOrderDate(item.updatedAt || item.changedAt)}
                   </Typography>
 
                   {/** Status Badge for active step */}

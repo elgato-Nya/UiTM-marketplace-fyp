@@ -103,16 +103,28 @@ class OrderValidator {
     );
   }
 
+  /**
+   * Validate status transition
+   * Enterprise marketplace pattern: Allow flexible status transitions
+   * - Sellers can skip intermediate steps for efficiency
+   * - Example: confirmed -> completed (for in-person pickup orders)
+   */
   static isValidStatusTransition(currentStatus, newStatus) {
     const transitions = {
-      pending: ["confirmed", "cancelled"],
-      confirmed: ["processing", "cancelled"],
-      processing: ["shipped", "cancelled"],
-      shipped: ["delivered"],
+      // Pending: Can confirm, process directly, or cancel
+      pending: ["confirmed", "processing", "cancelled"],
+      // Confirmed: Can process, ship directly, or even complete (for pickup), or cancel
+      confirmed: ["processing", "shipped", "completed", "cancelled"],
+      // Processing: Can ship, deliver directly, complete, or cancel
+      processing: ["shipped", "delivered", "completed", "cancelled"],
+      // Shipped: Can mark delivered or complete
+      shipped: ["delivered", "completed"],
+      // Delivered: Can complete
       delivered: ["completed"],
-      completed: [], // Final state
-      cancelled: [], // Final state
-      refunded: [], // Final state
+      // Terminal states
+      completed: [],
+      cancelled: [],
+      refunded: [],
     };
 
     return transitions[currentStatus]?.includes(newStatus) || false;

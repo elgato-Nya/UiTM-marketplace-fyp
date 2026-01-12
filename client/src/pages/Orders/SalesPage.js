@@ -282,7 +282,7 @@ function SalesPage() {
                   order={order}
                   orderRole="seller"
                   onViewDetails={handleViewDetails}
-                  onCancel={handleUpdateStatus}
+                  onUpdateStatus={handleUpdateStatus}
                 />
               ))}
             </List>

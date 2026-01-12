@@ -9,10 +9,12 @@ import {
   IconButton,
   Divider,
   useMediaQuery,
+  Tooltip,
+  Button,
 } from "@mui/material";
-import { ChevronRight, Cancel, ShoppingBag } from "@mui/icons-material";
+import { ChevronRight, Edit, ShoppingBag } from "@mui/icons-material";
 import { useTheme } from "../../../hooks/useTheme";
-import { canCancelOrder } from "../utils/orderHelper";
+import { canUpdateStatus } from "../utils/orderHelper";
 
 // Import sub-components
 import OrderHeaderSection from "./OrderListItem/OrderHeaderSection";
@@ -28,25 +30,25 @@ import OrderInfoGrid from "./OrderListItem/OrderInfoGrid";
  * - Accessible keyboard navigation
  * - Visual hierarchy with proper spacing
  * - Click to view details
- * - Optional cancel action
+ * - Quick update status action for sellers
  *
  * @param {Object} order - Order data object
  * @param {string} orderRole - 'buyer' or 'seller'
  * @param {function} onViewDetails - Callback when order is clicked
- * @param {function} onCancel - Optional callback for canceling order
+ * @param {function} onUpdateStatus - Optional callback for updating order status (seller)
  */
 function OrderListItem({
   order,
   orderRole = "buyer",
   onViewDetails,
-  onCancel,
+  onUpdateStatus,
 }) {
   const { theme } = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   if (!order) return null;
 
-  const canCancel = canCancelOrder(order, orderRole);
+  const canUpdate = orderRole === "seller" && canUpdateStatus(order, orderRole);
   const firstItem = order.items?.[0];
 
   const handleClick = () => {
@@ -55,10 +57,17 @@ function OrderListItem({
     }
   };
 
-  const handleCancelClick = (e) => {
+  const handleUpdateClick = (e) => {
     e.stopPropagation();
-    if (onCancel) {
-      onCancel(order);
+    if (onUpdateStatus) {
+      onUpdateStatus(order);
+    }
+  };
+
+  const handleViewClick = (e) => {
+    e.stopPropagation();
+    if (onViewDetails) {
+      onViewDetails(order);
     }
   };
 
@@ -76,32 +85,40 @@ function OrderListItem({
         secondaryAction={
           !isMobile && (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {canCancel && (
+              {canUpdate && (
+                <Tooltip title="Update Status" arrow>
+                  <IconButton
+                    edge="end"
+                    aria-label="Update order status"
+                    onClick={handleUpdateClick}
+                    sx={{
+                      color: "primary.main",
+                      bgcolor: "action.hover",
+                      "&:hover": {
+                        bgcolor: "primary.light",
+                        color: "primary.contrastText",
+                      },
+                    }}
+                  >
+                    <Edit fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+              <Tooltip title="View Details" arrow>
                 <IconButton
                   edge="end"
-                  aria-label="Cancel order"
-                  onClick={handleCancelClick}
+                  aria-label="View order details"
+                  onClick={handleViewClick}
                   sx={{
                     color: "text.secondary",
                     "&:hover": {
-                      color: "error.main",
-                      backgroundColor: "error.main",
-                      opacity: 0.1,
+                      color: "primary.main",
                     },
                   }}
                 >
-                  <Cancel />
+                  <ChevronRight />
                 </IconButton>
-              )}
-              <IconButton
-                edge="end"
-                aria-label="View order details"
-                sx={{
-                  color: "primary.main",
-                }}
-              >
-                <ChevronRight />
-              </IconButton>
+              </Tooltip>
             </Box>
           )
         }
@@ -182,26 +199,20 @@ function OrderListItem({
                 <OrderInfoGrid order={order} orderRole={orderRole} />
 
                 {/* Mobile Actions */}
-                {isMobile && canCancel && (
+                {isMobile && canUpdate && (
                   <Box
                     sx={{ mt: 1, pt: 1, borderTop: 1, borderColor: "divider" }}
                   >
-                    <IconButton
+                    <Button
                       size="small"
-                      onClick={handleCancelClick}
-                      sx={{
-                        color: "error.main",
-                        fontSize: "0.875rem",
-                        "&:hover": {
-                          backgroundColor: "error.main",
-                          opacity: 0.1,
-                        },
-                      }}
-                      aria-label="Cancel order"
+                      variant="outlined"
+                      color="primary"
+                      startIcon={<Edit fontSize="small" />}
+                      onClick={handleUpdateClick}
+                      sx={{ fontSize: "0.75rem" }}
                     >
-                      <Cancel sx={{ fontSize: 18, mr: 0.5 }} />
-                      Cancel Order
-                    </IconButton>
+                      Update Status
+                    </Button>
                   </Box>
                 )}
               </Box>

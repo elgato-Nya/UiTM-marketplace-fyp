@@ -210,23 +210,81 @@ const validateCampusDelivery = async (merchantId, campusKey) => {
 };
 
 /**
- * Handle side effects when status changes
+ * Handle side effects when order status changes
+ * 
+ * Updates merchant metrics when orders complete:
+ * - Increments totalRevenue
+ * - Increments totalSales
  */
-// TODO: Implement actual side effects like notifications
 const handleStatusSideEffects = async (order, newStatus) => {
-  switch (newStatus) {
-    case "shipped":
-      // Could trigger shipping notifications
-      break;
-    case "delivered":
-      // Could trigger delivery confirmations
-      break;
-    case "completed":
-      // Could trigger review requests
-      break;
-    case "cancelled":
-      // Stock restoration handled in cancelOrder
-      break;
+  try {
+    switch (newStatus) {
+      case "shipped":
+        // Could trigger shipping notifications
+        logger.info("Order shipped", {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          action: "status_side_effect",
+        });
+        break;
+
+      case "delivered":
+        // Could trigger delivery confirmations
+        logger.info("Order delivered", {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          action: "status_side_effect",
+        });
+        break;
+
+      case "completed":
+        // Update merchant revenue and sales metrics
+        const sellerId = order.seller?.userId;
+        if (sellerId) {
+          const seller = await User.findById(sellerId);
+          if (seller && seller.merchantDetails?.shopMetrics) {
+            const orderTotal = order.totalAmount || 0;
+            const itemsSold = order.items?.reduce((sum, item) => sum + (item.quantity || 1), 0) || 0;
+
+            // Increment revenue and sales
+            seller.merchantDetails.shopMetrics.totalRevenue = 
+              (seller.merchantDetails.shopMetrics.totalRevenue || 0) + orderTotal;
+            seller.merchantDetails.shopMetrics.totalSales = 
+              (seller.merchantDetails.shopMetrics.totalSales || 0) + itemsSold;
+
+            await seller.save();
+
+            logger.info("Merchant metrics updated on order completion", {
+              orderId: order._id,
+              orderNumber: order.orderNumber,
+              sellerId: sellerId.toString(),
+              revenueAdded: orderTotal,
+              itemsSold,
+              newTotalRevenue: seller.merchantDetails.shopMetrics.totalRevenue,
+              newTotalSales: seller.merchantDetails.shopMetrics.totalSales,
+              action: "status_side_effect",
+            });
+          }
+        }
+        break;
+
+      case "cancelled":
+        // Stock restoration handled in cancelOrder
+        logger.info("Order cancelled", {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          action: "status_side_effect",
+        });
+        break;
+    }
+  } catch (error) {
+    // Log error but don't fail the status update
+    logger.error("Error in status side effects", {
+      orderId: order._id,
+      newStatus,
+      error: error.message,
+      action: "status_side_effect",
+    });
   }
 };
 

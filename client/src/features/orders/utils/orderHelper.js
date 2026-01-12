@@ -92,13 +92,25 @@ export function canUpdateStatus(order, orderRole) {
   return !finalStatuses.includes(order.status);
 }
 
+/**
+ * Get valid next statuses for order status updates
+ * Enterprise marketplace pattern: Allow flexible status transitions
+ * - Sellers can skip intermediate steps for efficiency
+ * - Example: confirmed -> completed (for in-person pickup orders)
+ */
 export function getNextStatuses(currentStatus) {
   const transitions = {
-    pending: ["confirmed", "cancelled"],
-    confirmed: ["processing", "cancelled"],
-    processing: ["shipped", "cancelled"],
-    shipped: ["delivered"],
+    // Pending: Can confirm, process directly, or cancel
+    pending: ["confirmed", "processing", "cancelled"],
+    // Confirmed: Can process, ship directly, or even complete (for pickup), or cancel
+    confirmed: ["processing", "shipped", "completed", "cancelled"],
+    // Processing: Can ship, deliver directly, complete, or cancel
+    processing: ["shipped", "delivered", "completed", "cancelled"],
+    // Shipped: Can mark delivered or complete
+    shipped: ["delivered", "completed"],
+    // Delivered: Can complete
     delivered: ["completed"],
+    // Terminal states
     completed: [],
     cancelled: [],
     refunded: [],

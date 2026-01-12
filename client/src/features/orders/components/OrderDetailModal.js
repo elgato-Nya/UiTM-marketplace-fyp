@@ -694,7 +694,7 @@ const TimelineEntry = ({ entry, isLast, isCurrent, theme }) => (
         {entry.status}
       </Typography>
       <Typography variant="caption" color="text.secondary">
-        {formatOrderDate(entry.changedAt, "PPp")}
+        {formatOrderDate(entry.updatedAt || entry.changedAt, "PPp")}
       </Typography>
       {entry.note && (
         <Typography variant="caption" color="text.secondary" display="block">

@@ -27,7 +27,9 @@
     "generate:jwt:env": "node scripts/generate-jwt.js --env",
     "health:check": "node scripts/health-check.js",
     "health:watch": "node scripts/health-check.js --watch",
-    "health:details": "node scripts/health-check.js --details"
+    "health:details": "node scripts/health-check.js --details",
+    "verify:stripe": "node scripts/verify-stripe.js",
+    "verify:stripe:prod": "node scripts/verify-stripe-production.js"
   },
   "keywords": [],
   "author": "",

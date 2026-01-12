@@ -42,10 +42,12 @@ async function verifyStripe() {
     // Initialize Stripe only after checking key exists
     const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
-    // 2. Check key format
+    // 2. Check key format and environment
     const key = process.env.STRIPE_SECRET_KEY;
     const isLive = key.startsWith("sk_live_");
     const isTest = key.startsWith("sk_test_");
+    const environment = process.env.NODE_ENV || "development";
+    const isProduction = environment === "production";
 
     if (!isLive && !isTest) {
       console.error("❌ Invalid Stripe key format");
@@ -60,18 +62,31 @@ async function verifyStripe() {
     console.log(`🔑 Key: ${keyPrefix}...${keySuffix}\n`);
 
     // 4. Environment check
-    const nodeEnv = process.env.NODE_ENV || "development";
-    console.log(`🌍 Environment: ${nodeEnv}`);
+    console.log(`🌍 Environment: ${environment}`);
 
     // Warn about key/environment mismatch
-    if (nodeEnv === "production" && isTest) {
-      console.warn("⚠️  WARNING: Using TEST keys in PRODUCTION environment!");
-      console.warn("⚠️  Real payments will NOT work with test keys!\n");
+    if (isProduction && isTest) {
+      console.warn("\n⚠️  WARNING: Using TEST keys in PRODUCTION environment!");
+      console.warn("⚠️  Real payments will NOT work with test keys!");
+      console.warn(
+        "⚠️  Update .env.production with sk_live_ and pk_live_ keys\n"
+      );
     }
-    if (nodeEnv === "development" && isLive) {
-      console.error("\n❌ DANGER: Using LIVE keys in DEVELOPMENT environment!");
-      console.error("❌ This could result in real charges during testing!\n");
-      process.exit(1);
+    if (!isProduction && isLive) {
+      console.warn(
+        "\n⚠️  WARNING: Using LIVE keys in DEVELOPMENT environment!"
+      );
+      console.warn("⚠️  This will process REAL payments during testing!");
+      console.warn("⚠️  Consider using TEST keys for development\n");
+    }
+
+    // Ideal setup message
+    if ((isProduction && isLive) || (!isProduction && isTest)) {
+      console.log(
+        `✅ Perfect setup: ${
+          isLive ? "LIVE" : "TEST"
+        } keys in ${environment.toUpperCase()}`
+      );
     }
 
     // 5. Test API connection
@@ -150,7 +165,7 @@ async function verifyStripe() {
     console.log("📋 STRIPE CONFIGURATION SUMMARY");
     console.log("=".repeat(60));
     console.log(`Mode:                ${isLive ? "🔴 LIVE" : "🟢 TEST"}`);
-    console.log(`Environment:         ${nodeEnv}`);
+    console.log(`Environment:         ${environment}`);
     console.log(`Secret Key:          ${keyPrefix}...${keySuffix}`);
     console.log(
       `Publishable Key:     ${

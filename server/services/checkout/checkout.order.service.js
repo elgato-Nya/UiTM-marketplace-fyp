@@ -1,10 +1,11 @@
-const { User, Cart } = require("../../models");
+const { User, Cart, Order } = require("../../models");
 const Listing = require("../../models/listing/listing.model");
 const { CheckoutSession } = require("../../models/checkout");
 const { createOrder } = require("../order/order.service");
 const { handleServiceError, handleNotFoundError } = require("../base.service");
 const { createValidationError } = require("../../utils/errors");
 const logger = require("../../utils/logger");
+const { getStripe, isStripeReady } = require("../../config/stripe.config");
 
 /**
  * Checkout Order Service
@@ -60,8 +61,12 @@ const confirmCheckoutAndCreateOrders = async (sessionId, userId) => {
       );
     }
 
-    // For Stripe payments, verify payment intent exists
-    if (session.paymentMethod === "credit_card") {
+    // Determine payment status based on payment method
+    let paymentStatus = "pending";
+    let paymentDetails = { paidAt: null, transactionId: null };
+
+    // For online payments (credit_card, e_wallet), verify Stripe payment status
+    if (["credit_card", "e_wallet"].includes(session.paymentMethod)) {
       if (!session.stripePaymentIntentId) {
         createValidationError(
           "Payment intent not created",
@@ -69,14 +74,61 @@ const confirmCheckoutAndCreateOrders = async (sessionId, userId) => {
           "PAYMENT_INTENT_REQUIRED"
         );
       }
-      // Note: Actual payment confirmation happens via webhook
-      // This confirms the order creation is ready
-    }
 
-    // Create orders (one per seller)
+      // Verify payment with Stripe
+      if (isStripeReady()) {
+        try {
+          const stripe = getStripe();
+          const paymentIntent = await stripe.paymentIntents.retrieve(
+            session.stripePaymentIntentId
+          );
+
+          logger.info("Stripe payment intent status retrieved", {
+            sessionId,
+            paymentIntentId: paymentIntent.id,
+            status: paymentIntent.status,
+          });
+
+          // Check if payment succeeded
+          if (paymentIntent.status === "succeeded") {
+            paymentStatus = "paid";
+            paymentDetails = {
+              paidAt: new Date(),
+              transactionId: paymentIntent.id,
+            };
+          } else if (
+            paymentIntent.status === "requires_action" ||
+            paymentIntent.status === "processing"
+          ) {
+            // Payment still in progress (e.g., GrabPay redirect)
+            paymentStatus = "pending";
+          } else if (
+            paymentIntent.status === "canceled" ||
+            paymentIntent.status === "requires_payment_method"
+          ) {
+            createValidationError(
+              "Payment was not completed. Please try again.",
+              { sessionId, stripeStatus: paymentIntent.status },
+              "PAYMENT_FAILED"
+            );
+          }
+        } catch (stripeError) {
+          logger.error("Failed to verify Stripe payment", {
+            sessionId,
+            paymentIntentId: session.stripePaymentIntentId,
+            error: stripeError.message,
+          });
+          // Continue with pending status if Stripe verification fails
+        }
+      }
+    }
+    // COD remains pending until delivery
+
+    // Create orders (one per seller) with payment status
     const { createdOrders, failedOrders } = await createOrdersFromSession(
       session,
-      userId
+      userId,
+      { paymentStatus, paymentDetails }
     );
 
     if (createdOrders.length === 0) {
@@ -113,6 +165,7 @@ const confirmCheckoutAndCreateOrders = async (sessionId, userId) => {
       orderIds: createdOrders.map((o) => o._id),
       totalAmount: session.pricing.totalAmount,
       paymentMethod: session.paymentMethod,
+      paymentStatus,
       action: "confirm_checkout",
     });
 
@@ -133,11 +186,13 @@ const confirmCheckoutAndCreateOrders = async (sessionId, userId) => {
  * Create orders from checkout session (one per seller)
  * @param {CheckoutSession} session - Checkout session
  * @param {ObjectId} userId - User ID
+ * @param {Object} paymentInfo - Payment status info { paymentStatus, paymentDetails }
  * @returns {Array} Created orders
  */
-const createOrdersFromSession = async (session, userId) => {
+const createOrdersFromSession = async (session, userId, paymentInfo = {}) => {
   const createdOrders = [];
   const failedOrders = [];
+  const { paymentStatus = "pending", paymentDetails = {} } = paymentInfo;
 
   for (const sellerGroup of session.sellerGroups) {
     try {
@@ -172,6 +227,19 @@ const createOrdersFromSession = async (session, userId) => {
       }
 
       if (order && order._id) {
+        // Update payment status if payment was confirmed
+        if (paymentStatus === "paid" && order._id) {
+          await Order.findByIdAndUpdate(order._id, {
+            paymentStatus: "paid",
+            paymentDetails: {
+              paidAt: paymentDetails.paidAt || new Date(),
+              transactionId: paymentDetails.transactionId || null,
+            },
+          });
+          order.paymentStatus = "paid";
+          order.paymentDetails = paymentDetails;
+        }
+
         createdOrders.push(order);
 
         // Note: Stock deduction is already handled by createOrder service
@@ -179,6 +247,7 @@ const createOrdersFromSession = async (session, userId) => {
           orderId: order._id,
           sessionId: session._id,
           sellerId: sellerGroup.sellerId,
+          paymentStatus,
           itemCount: sellerGroup.items.length,
           totalAmount: sellerGroup.totalAmount,
         });

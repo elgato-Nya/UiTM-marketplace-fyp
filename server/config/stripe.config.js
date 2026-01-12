@@ -2,30 +2,56 @@
  * Stripe Configuration
  *
  * PURPOSE: Central configuration for Stripe payment processing
- * FEATURES: API setup, fee calculations, payment rules
+ * FEATURES: API setup, fee calculations, payment rules, environment detection
  * SECURITY: Secret keys from environment variables only
  */
 
 const Stripe = require("stripe");
 const logger = require("../utils/logger");
 
-// Initialize Stripe with secret key (will be set after account creation)
+// Detect environment and key mode
+const isProduction = process.env.NODE_ENV === "production";
+const secretKey = process.env.STRIPE_SECRET_KEY || "";
+const isLiveMode = secretKey.startsWith("sk_live_");
+const isTestMode = secretKey.startsWith("sk_test_");
+
+// Initialize Stripe with secret key
 let stripe = null;
 
 const initializeStripe = () => {
-  if (!process.env.STRIPE_SECRET_KEY) {
+  if (!secretKey) {
     logger.warn(
       "Stripe secret key not found. Payment processing will be disabled."
     );
     return null;
   }
 
+  // Validation: Warn if using test keys in production
+  if (isProduction && isTestMode) {
+    logger.warn(
+      "⚠️  WARNING: Using Stripe TEST keys in PRODUCTION environment! Switch to LIVE keys for real payments."
+    );
+  }
+
+  // Validation: Info if using live keys in development
+  if (!isProduction && isLiveMode) {
+    logger.warn(
+      "⚠️  WARNING: Using Stripe LIVE keys in DEVELOPMENT environment! This will process REAL payments."
+    );
+  }
+
   try {
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    stripe = new Stripe(secretKey, {
       apiVersion: "2024-10-28.acacia",
       typescript: false,
     });
-    logger.info("Stripe initialized successfully");
+
+    const mode = isLiveMode ? "🔴 LIVE MODE" : "🟢 TEST MODE";
+    logger.info(`Stripe initialized successfully - ${mode}`, {
+      environment: process.env.NODE_ENV,
+      keyType: isLiveMode ? "LIVE" : "TEST",
+    });
+
     return stripe;
   } catch (error) {
     logger.error("Failed to initialize Stripe:", { error: error.message });
@@ -40,9 +66,14 @@ stripe = initializeStripe();
  * Stripe Configuration Object
  */
 const stripeConfig = {
+  // Environment
+  isProduction,
+  isLiveMode,
+  isTestMode,
+
   // API Keys
   publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || "",
-  secretKey: process.env.STRIPE_SECRET_KEY || "",
+  secretKey: secretKey,
   webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "",
 
   // Currency
@@ -222,6 +253,19 @@ const getStripe = () => {
   return stripe;
 };
 
+/**
+ * Get Stripe mode information
+ * @returns {Object} { isLive: boolean, isTest: boolean, environment: string }
+ */
+const getStripeMode = () => {
+  return {
+    isLive: isLiveMode,
+    isTest: isTestMode,
+    environment: isProduction ? "production" : "development",
+    mode: isLiveMode ? "LIVE" : "TEST",
+  };
+};
+
 module.exports = {
   stripe: getStripe(),
   stripeConfig,
@@ -232,5 +276,6 @@ module.exports = {
   convertToMYR,
   isStripeReady,
   getStripe,
+  getStripeMode,
   initializeStripe,
 };

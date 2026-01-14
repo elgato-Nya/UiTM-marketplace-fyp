@@ -131,9 +131,11 @@ const MerchantAnalyticsPage = () => {
   // Handle manual refresh
   const handleRefresh = async () => {
     try {
-      await refresh(currentPeriod);
+      // Refresh all periods analytics data
+      await refresh("all");
       showSnackbar("Analytics refreshed successfully", "success");
-      loadAnalytics(currentPeriod);
+      // Reload shop to get updated all-time revenue
+      loadMyShop();
     } catch (err) {
       showSnackbar("Failed to refresh analytics", "error");
     }
@@ -296,7 +298,7 @@ const MerchantAnalyticsPage = () => {
               </Grid>
 
               {/* Total Views */}
-              <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+              <Grid size={{ xs: 6, sm: 4, md: 3 }}>
                 <StatCard
                   title="Shop Views"
                   value={formatNumber(shop?.shopMetrics?.totalViews || 0)}
@@ -308,7 +310,7 @@ const MerchantAnalyticsPage = () => {
               </Grid>
 
               {/* Total Listings */}
-              <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+              <Grid size={{ xs: 6, sm: 4, md: 3 }}>
                 <StatCard
                   title="Total Listings"
                   value={formatNumber(shop?.shopMetrics?.totalProducts || 0)}
@@ -319,25 +321,13 @@ const MerchantAnalyticsPage = () => {
                 />
               </Grid>
 
-              {/* Total Sales */}
-              <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
-                <StatCard
-                  title="Total Sales"
-                  value={formatNumber(shop?.shopMetrics?.totalSales || 0)}
-                  icon={ShoppingCart}
-                  color="success"
-                  subtitle="total items sold"
-                  isLoading={!shop}
-                />
-              </Grid>
-
               {/* Total Revenue */}
-              <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+              <Grid size={{ xs: 12, sm: 4, md: 3 }}>
                 <StatCard
                   title="All-Time Revenue"
                   value={formatCurrency(shop?.shopMetrics?.totalRevenue || 0)}
                   icon={AttachMoney}
-                  color="info"
+                  color="success"
                   subtitle="total earnings"
                   isLoading={!shop}
                 />

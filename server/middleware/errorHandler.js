@@ -36,7 +36,6 @@ const handleCastErrorDB = (err) => {
 const handleDuplicateFieldsDB = (err) => {
   // Check if it's a MongooseError with custom message from schema
   if (err.name === "MongooseError" && err.message) {
-    // Use the custom message from the schema unique constraint
     return new AppError(err.message, 409, "DUPLICATE_FIELD");
   }
 
@@ -162,10 +161,13 @@ const sendErrorProd = (err, req, res) => {
       requestContext: err.requestContext,
     });
 
-    throw createServerError(
-      "Something went wrong! Please try again later.",
-      "SERVER_ERROR"
-    );
+    // Send generic error response - never expose stack traces in production
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong! Please try again later.",
+      code: "SERVER_ERROR",
+      timestamp: toMalaysianISO(),
+    });
   }
 };
 

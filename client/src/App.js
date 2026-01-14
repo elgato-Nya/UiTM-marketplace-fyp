@@ -61,6 +61,9 @@ import ContactUsPage from "./pages/Contact/ContactUsPage";
 import NotFoundPage from "./pages/NotFound/NotFoundPage";
 import ScrollToTop from "./components/common/ScrollToTop";
 
+// Legal Pages
+import { TermsPage, PrivacyPage, CookiePolicyPage } from "./pages/Legal";
+
 import { ROUTES } from "./constants/routes";
 
 // App content with theme integration
@@ -222,6 +225,11 @@ function AppContent() {
                 <Route path={ROUTES.ABOUT.INDEX} element={<AboutPage />} />
                 <Route path="/about/nekodez" element={<NekodezPage />} />
                 <Route path="/contact" element={<ContactUsPage />} />
+
+                {/* Legal Pages */}
+                <Route path={ROUTES.TERMS} element={<TermsPage />} />
+                <Route path={ROUTES.PRIVACY} element={<PrivacyPage />} />
+                <Route path="/cookies" element={<CookiePolicyPage />} />
 
                 <Route path="*" element={<NotFoundPage />} />
               </Route>

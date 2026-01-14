@@ -70,6 +70,7 @@ const createCartCheckoutSession = async (userId) => {
     const items = cart.items.map((item) => ({
       listingId: item.listing._id,
       quantity: item.quantity,
+      variantId: item.variantId || null,
     }));
 
     // cancel any existing active sessions
@@ -107,18 +108,26 @@ const createCartCheckoutSession = async (userId) => {
     const session = new CheckoutSession({
       userId,
       sessionType: "cart",
-      items: validation.validatedItems.map((item) => ({
-        listingId: item.listingId,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        type: item.type,
-        stock: item.stock,
-        images: item.images,
-        sellerId: item.sellerId,
-        sellerName: item.sellerName,
-        itemTotal: item.itemTotal,
-      })),
+      items: validation.validatedItems.map((item) => {
+        const sessionItem = {
+          listingId: item.listingId,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          type: item.type,
+          stock: item.stock,
+          images: item.images,
+          sellerId: item.sellerId,
+          sellerName: item.sellerName,
+          itemTotal: item.itemTotal,
+        };
+        // Add variant data if present
+        if (item.variantId) {
+          sessionItem.variantId = item.variantId;
+          sessionItem.variantSnapshot = item.variantSnapshot;
+        }
+        return sessionItem;
+      }),
       sellerGroups,
       pricing,
       stockReservations,
@@ -157,20 +166,29 @@ const createCartCheckoutSession = async (userId) => {
  * @param {ObjectId} userId - User ID
  * @param {ObjectId} listingId - Listing ID
  * @param {Number} quantity - Quantity to purchase
+ * @param {ObjectId|null} variantId - Optional variant ID
  * @returns {CheckoutSession} Created session
  */
-const createDirectCheckoutSession = async (userId, listingId, quantity = 1) => {
+const createDirectCheckoutSession = async (
+  userId,
+  listingId,
+  quantity = 1,
+  variantId = null
+) => {
   try {
     // Cancel any existing active sessions
     await CheckoutSession.cancelActiveSessionsForUser(userId);
 
-    // Validate listing
-    const validation = await validateCheckoutItems([{ listingId, quantity }]);
+    // Validate listing with variant support
+    const validation = await validateCheckoutItems([
+      { listingId, quantity, variantId },
+    ]);
     if (!validation.valid) {
       logger.warn("Direct checkout validation failed", {
         userId,
         listingId,
         quantity,
+        variantId,
         errors: validation.errors,
         action: "create_checkout_session_from_listing",
       });
@@ -198,18 +216,26 @@ const createDirectCheckoutSession = async (userId, listingId, quantity = 1) => {
     const session = new CheckoutSession({
       userId,
       sessionType: "direct",
-      items: validation.validatedItems.map((item) => ({
-        listingId: item.listingId,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        type: item.type,
-        stock: item.stock,
-        images: item.images,
-        sellerId: item.sellerId,
-        sellerName: item.sellerName,
-        itemTotal: item.itemTotal,
-      })),
+      items: validation.validatedItems.map((item) => {
+        const sessionItem = {
+          listingId: item.listingId,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          type: item.type,
+          stock: item.stock,
+          images: item.images,
+          sellerId: item.sellerId,
+          sellerName: item.sellerName,
+          itemTotal: item.itemTotal,
+        };
+        // Add variant data if present
+        if (item.variantId) {
+          sessionItem.variantId = item.variantId;
+          sessionItem.variantSnapshot = item.variantSnapshot;
+        }
+        return sessionItem;
+      }),
       sellerGroups,
       pricing,
       stockReservations,
@@ -223,6 +249,7 @@ const createDirectCheckoutSession = async (userId, listingId, quantity = 1) => {
       userId,
       listingId,
       quantity,
+      variantId,
       totalAmount: pricing.totalAmount,
       action: "create_checkout_session_from_listing",
     });

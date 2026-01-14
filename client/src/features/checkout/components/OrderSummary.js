@@ -148,6 +148,33 @@ const OrderSummary = ({
                       >
                         {item.name}
                       </Typography>
+                      {/* Variant Info */}
+                      {item.variantSnapshot && (
+                        <Chip
+                          label={
+                            item.variantSnapshot.attributes &&
+                            Object.keys(item.variantSnapshot.attributes)
+                              .length > 0
+                              ? Object.values(
+                                  item.variantSnapshot.attributes
+                                ).join(" - ")
+                              : item.variantSnapshot.name
+                          }
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          sx={{
+                            fontSize: "0.7rem",
+                            height: 20,
+                            mb: 0.5,
+                            maxWidth: "100%",
+                            "& .MuiChip-label": {
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            },
+                          }}
+                        />
+                      )}
                       <Typography
                         variant="caption"
                         sx={{ color: "text.secondary" }}

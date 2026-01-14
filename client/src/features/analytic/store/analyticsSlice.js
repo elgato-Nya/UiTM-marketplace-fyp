@@ -217,15 +217,20 @@ const analyticsSlice = createSlice({
         const { period, data } = action.payload;
         const { success, message, timestamp, ...analyticsData } = data;
 
-        // Update relevant period(s)
-        if (period === "all" || period === "week") {
-          state.weekAnalytics = analyticsData.week || state.weekAnalytics;
-        }
-        if (period === "all" || period === "month") {
-          state.monthAnalytics = analyticsData.month || state.monthAnalytics;
-        }
-        if (period === "all" || period === "year") {
-          state.yearAnalytics = analyticsData.year || state.yearAnalytics;
+        // Handle "all" period - data contains { week, month, year }
+        if (period === "all") {
+          if (analyticsData.week) state.weekAnalytics = analyticsData.week;
+          if (analyticsData.month) state.monthAnalytics = analyticsData.month;
+          if (analyticsData.year) state.yearAnalytics = analyticsData.year;
+        } else {
+          // Single period refresh - data is the analytics object directly
+          if (period === "week") {
+            state.weekAnalytics = analyticsData;
+          } else if (period === "month") {
+            state.monthAnalytics = analyticsData;
+          } else if (period === "year") {
+            state.yearAnalytics = analyticsData;
+          }
         }
       })
       .addCase(refreshMerchantAnalytics.rejected, (state, action) => {

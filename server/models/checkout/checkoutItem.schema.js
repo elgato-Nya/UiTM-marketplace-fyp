@@ -51,6 +51,17 @@ const checkoutItemSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    // Variant support - captures variant details at checkout time
+    variantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
+    variantSnapshot: {
+      name: { type: String, default: null },
+      sku: { type: String, default: null },
+      price: { type: Number, default: null },
+      attributes: { type: mongoose.Schema.Types.Mixed, default: null },
+    },
   },
   { _id: false }
 );

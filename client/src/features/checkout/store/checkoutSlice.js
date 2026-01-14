@@ -45,11 +45,12 @@ export const createSessionFromCart = createAsyncThunk(
  */
 export const createSessionFromListing = createAsyncThunk(
   "checkout/createSessionFromListing",
-  async ({ listingId, quantity }, { rejectWithValue }) => {
+  async ({ listingId, quantity, variantId }, { rejectWithValue }) => {
     try {
       const response = await checkoutService.createSessionFromListing({
         listingId,
         quantity,
+        variantId: variantId || null,
       });
       return response.data;
     } catch (error) {

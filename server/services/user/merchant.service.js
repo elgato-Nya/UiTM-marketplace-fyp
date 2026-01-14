@@ -8,6 +8,9 @@ const {
   handleNotFoundError,
   sanitizeUserData,
 } = require("../base.service");
+const {
+  calculateMerchantRevenue,
+} = require("../analytic/aggregations/merchant.aggregations");
 
 // Simple utility functions for merchant service
 const generateSlugFromName = (name) => {
@@ -201,40 +204,39 @@ const getOrCreateShop = async (userId) => {
       return await autoCreateShopFromProfile(userId);
     }
 
-    // Calculate real-time listing counts
-    const listingStats = await Listing.aggregate([
-      {
-        $match: {
-          "seller.userId": new mongoose.Types.ObjectId(userId),
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          totalProducts: { $sum: 1 },
-          activeListings: {
-            $sum: { $cond: [{ $eq: ["$isAvailable", true] }, 1, 0] },
-          },
-          inactiveListings: {
-            $sum: { $cond: [{ $eq: ["$isAvailable", false] }, 1, 0] },
+    // Calculate real-time metrics in parallel
+    const [listingStats, revenueStats] = await Promise.all([
+      // Listing counts
+      Listing.aggregate([
+        {
+          $match: {
+            "seller.userId": new mongoose.Types.ObjectId(userId),
           },
         },
-      },
+        {
+          $group: {
+            _id: null,
+            totalProducts: { $sum: 1 },
+            activeListings: {
+              $sum: { $cond: [{ $eq: ["$isAvailable", true] }, 1, 0] },
+            },
+          },
+        },
+      ]),
+      // All-time revenue from completed orders
+      calculateMerchantRevenue(userId, new Date("2000-01-01"), new Date()),
     ]);
 
     const listingCounts = listingStats[0] || {
       totalProducts: 0,
       activeListings: 0,
-      inactiveListings: 0,
     };
 
-    // Use stored metrics for sales/revenue (updated by analytics job)
-    // Don't aggregate orders on every request - too expensive for t2.micro!
+    // Real-time computed metrics
     const realTimeMetrics = {
       totalProducts: listingCounts.totalProducts,
-      totalSales: user.merchantDetails.shopMetrics.totalSales || 0,
-      totalRevenue: user.merchantDetails.shopMetrics.totalRevenue || 0,
-      totalViews: user.merchantDetails.shopMetrics.totalViews || 0,
+      totalRevenue: revenueStats.total || 0,
+      totalViews: user.merchantDetails.shopMetrics?.totalViews || 0,
     };
 
     // Merge real-time metrics with existing shop data

@@ -13,7 +13,7 @@ const logger = require("../../utils/logger");
 
 /**
  * Validate items availability and stock
- * @param {Array} items - Array of {listingId, quantity}
+ * @param {Array} items - Array of {listingId, quantity, variantId?}
  * @returns {Object} { valid: boolean, validatedItems: [], errors: [] }
  */
 const validateCheckoutItems = async (items) => {
@@ -28,7 +28,7 @@ const validateCheckoutItems = async (items) => {
     };
   }
 
-  // Get all listings
+  // Get all listings with variants populated
   const listingIds = items.map((item) => item.listingId);
   const listings = await Listing.find({
     _id: { $in: listingIds },
@@ -44,6 +44,7 @@ const validateCheckoutItems = async (items) => {
   for (const item of items) {
     const listingId = item.listingId.toString();
     const listing = listingMap.get(listingId);
+    const variantId = item.variantId || null;
 
     if (!listing) {
       errors.push(`Listing ${listingId} not found`);
@@ -55,30 +56,73 @@ const validateCheckoutItems = async (items) => {
       continue;
     }
 
+    // Handle variant pricing and stock
+    let effectivePrice = listing.price;
+    let effectiveStock = listing.stock;
+    let variantSnapshot = null;
+
+    // If listing has variants and variantId is provided, use variant data
+    if (variantId && listing.variants && listing.variants.length > 0) {
+      const variant = listing.variants.id(variantId);
+      if (!variant) {
+        errors.push(`Variant not found for ${listing.name}`);
+        continue;
+      }
+      if (variant.isAvailable === false) {
+        errors.push(
+          `Selected variant for ${listing.name} is no longer available`
+        );
+        continue;
+      }
+      effectivePrice = variant.price;
+      effectiveStock = variant.stock;
+      variantSnapshot = {
+        name: variant.name,
+        sku: variant.sku || null,
+        price: variant.price,
+        attributes: variant.attributes || null,
+      };
+    } else if (listing.variants && listing.variants.length > 0 && !variantId) {
+      // Listing has variants but no variantId provided - this is an error
+      errors.push(`${listing.name} requires a variant selection`);
+      continue;
+    }
+
     // Check stock for products
     if (listing.type === "product") {
-      if (listing.stock < item.quantity) {
+      if (effectiveStock < item.quantity) {
+        const itemName = variantSnapshot
+          ? `${listing.name} (${variantSnapshot.name})`
+          : listing.name;
         errors.push(
-          `${listing.name} has insufficient stock. Available: ${listing.stock}, Requested: ${item.quantity}`
+          `${itemName} has insufficient stock. Available: ${effectiveStock}, Requested: ${item.quantity}`
         );
         continue;
       }
     }
 
     // Item is valid
-    validatedItems.push({
+    const validatedItem = {
       listingId: listing._id,
       name: listing.name,
-      price: listing.price,
+      price: effectivePrice,
       quantity: item.quantity,
       type: listing.type,
-      stock: listing.stock,
+      stock: effectiveStock,
       images: listing.images,
       sellerId: listing.seller.userId._id,
       sellerName: listing.seller.username,
-      itemTotal: listing.price * item.quantity,
+      itemTotal: effectivePrice * item.quantity,
       listing: listing, // Keep reference for further processing
-    });
+    };
+
+    // Add variant data if present
+    if (variantId) {
+      validatedItem.variantId = variantId;
+      validatedItem.variantSnapshot = variantSnapshot;
+    }
+
+    validatedItems.push(validatedItem);
   }
 
   return {
@@ -117,7 +161,7 @@ const groupItemsBySeller = async (
     }
 
     const group = sellerMap.get(sellerId);
-    group.items.push({
+    const groupItem = {
       listingId: item.listingId,
       name: item.name,
       price: item.price,
@@ -128,7 +172,15 @@ const groupItemsBySeller = async (
       sellerId: item.sellerId,
       sellerName: item.sellerName,
       itemTotal: item.itemTotal,
-    });
+    };
+
+    // Add variant data if present
+    if (item.variantId) {
+      groupItem.variantId = item.variantId;
+      groupItem.variantSnapshot = item.variantSnapshot;
+    }
+
+    group.items.push(groupItem);
     group.subtotal += item.itemTotal;
   });
 

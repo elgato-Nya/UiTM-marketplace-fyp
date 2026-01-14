@@ -19,7 +19,16 @@ function MainLayout({ showFilters = false, userRole = "guest" }) {
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        width: "100%",
+        maxWidth: "100vw",
+        overflowX: "hidden",
+      }}
+    >
       {/* Sticky Header */}
       <Header
         onMenuClick={handleDrawerToggle}
@@ -86,6 +95,8 @@ function MainLayout({ showFilters = false, userRole = "guest" }) {
             sx={{
               flexGrow: 1,
               width: "100%",
+              maxWidth: "100%",
+              overflowX: "hidden",
             }}
           >
             <Outlet />

@@ -46,6 +46,9 @@ const calculateMerchantAnalytics = async (merchantId, period = "week") => {
 
     const { start, end, previous } = getDateRange(period);
 
+    // Determine days for sales trend based on period
+    const trendDays = period === "week" ? 7 : period === "month" ? 30 : 365;
+
     // Calculate current period metrics
     const [
       revenue,
@@ -61,7 +64,7 @@ const calculateMerchantAnalytics = async (merchantId, period = "week") => {
       calculateMerchantRevenue(merchantId, start, end),
       calculateRevenueByCategory(merchantId, start, end),
       findBestWorstDays(merchantId, start, end),
-      calculateSalesTrend(merchantId, 30),
+      calculateSalesTrend(merchantId, trendDays),
       countOrdersByStatus(merchantId, start, end),
       calculateAverageOrderValue(merchantId, start, end),
       getTopSellingProducts(merchantId, 10),

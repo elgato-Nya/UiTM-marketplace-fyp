@@ -43,12 +43,13 @@ const handleCreateCartCheckoutSession = asyncHandler(async (req, res) => {
  */
 const handleCreateDirectCheckoutSession = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { listingId, quantity } = sanitizeObject(req.body);
+  const { listingId, quantity, variantId } = sanitizeObject(req.body);
 
   const session = await createDirectCheckoutSession(
     userId,
     listingId,
-    quantity
+    quantity,
+    variantId || null
   );
 
   baseController.logAction("create_direct_checkout_session", req, {
@@ -56,6 +57,7 @@ const handleCreateDirectCheckoutSession = asyncHandler(async (req, res) => {
     sessionId: session._id.toString(),
     listingId: listingId.toString(),
     quantity,
+    variantId: variantId || null,
     totalAmount: session.pricing.totalAmount,
   });
 

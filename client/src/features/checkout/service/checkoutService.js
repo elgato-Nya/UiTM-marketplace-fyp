@@ -19,7 +19,7 @@ export const checkoutService = {
 
   /**
    * Create checkout session from direct purchase (Buy Now)
-   * @param {Object} data - { listingId, quantity }
+   * @param {Object} data - { listingId, quantity, variantId? }
    * @returns {Promise} Session data
    */
   createSessionFromListing: (data) => {

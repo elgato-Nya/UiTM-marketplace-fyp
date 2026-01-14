@@ -74,7 +74,7 @@ const getTokenPair = async (user) => {
       user: {
         _id: user._id,
         email: user.email,
-        roles: user.roles, // Now using the correct roles field
+        roles: user.roles,
         profile: user.profile,
       },
     };
@@ -84,10 +84,12 @@ const getTokenPair = async (user) => {
 };
 
 const clearRefreshTokenCookie = (res) => {
+  const isProduction = process.env.NODE_ENV === "production";
+
   res.clearCookie("refreshToken", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "none",
+    secure: isProduction,
+    sameSite: isProduction ? "strict" : "lax",
   });
 };
 

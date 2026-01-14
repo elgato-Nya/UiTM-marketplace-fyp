@@ -1,4 +1,9 @@
-// todo: evaluate this file
+/**
+ * Footer Component
+ *
+ * Main footer for the MarKet platform.
+ * Note: This is an independent student project, not affiliated with UiTM.
+ */
 import React from "react";
 import {
   Box,
@@ -10,17 +15,10 @@ import {
   IconButton,
   Stack,
   alpha,
+  Chip,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
-import {
-  Facebook,
-  Twitter,
-  Instagram,
-  LinkedIn,
-  Email,
-  Phone,
-  LocationOn,
-} from "@mui/icons-material";
+import { LinkedIn, GitHub, Code } from "@mui/icons-material";
 import { useTheme } from "../../../hooks/useTheme";
 import { Logo } from "../../common/Logo";
 import { ROUTES } from "../../../constants/routes";
@@ -33,38 +31,30 @@ function Footer() {
       { text: "Browse Products", href: `${ROUTES.BROWSE}?type=product` },
       { text: "Browse Services", href: `${ROUTES.BROWSE}?type=service` },
       { text: "Become a Merchant", href: ROUTES.MERCHANT.BECOME },
-      { text: "How It Works", href: "/how-it-works" },
     ],
     support: [
-      { text: "Help Center", href: "/help" },
       { text: "Contact Us", href: ROUTES.CONTACT },
-      { text: "FAQs", href: "/faq" },
-      { text: "Shipping Info", href: "/shipping" },
+      { text: "About MarKet", href: ROUTES.ABOUT.INDEX },
+      { text: "About Developer", href: ROUTES.ABOUT.NEKODEZ },
     ],
     legal: [
       { text: "Terms of Service", href: ROUTES.TERMS },
       { text: "Privacy Policy", href: ROUTES.PRIVACY },
       { text: "Cookie Policy", href: "/cookies" },
-      { text: "Community Guidelines", href: "/guidelines" },
     ],
   };
 
-  const socialLinks = [
-    {
-      icon: <Facebook />,
-      href: "https://facebook.com/uitm",
-      label: "Facebook",
-    },
-    { icon: <Twitter />, href: "https://twitter.com/uitm", label: "Twitter" },
-    {
-      icon: <Instagram />,
-      href: "https://instagram.com/uitm",
-      label: "Instagram",
-    },
+  // Developer social links
+  const developerLinks = [
     {
       icon: <LinkedIn />,
-      href: "https://linkedin.com/school/uitm",
+      href: "https://www.linkedin.com/in/afiq-sharifuzan/",
       label: "LinkedIn",
+    },
+    {
+      icon: <GitHub />,
+      href: "https://github.com/elgato-Nya",
+      label: "GitHub",
     },
   ];
 
@@ -75,10 +65,15 @@ function Footer() {
         bgcolor: theme.palette.background.paper,
         borderTop: `1px solid ${theme.palette.divider}`,
         mt: "auto",
-        py: 6,
+        py: { xs: 4, md: 6 },
+        px: { xs: 2, sm: 0 },
+        width: "100%",
+        maxWidth: "100vw",
+        overflowX: "hidden",
+        boxSizing: "border-box",
       }}
     >
-      <Container maxWidth="lg">
+      <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
         <Grid container spacing={4}>
           {/* Brand Section */}
           <Grid size={{ xs: 12, md: 4 }}>
@@ -86,47 +81,42 @@ function Footer() {
               <Logo variant="horizontal" type="platform" height={32} />
             </Box>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Your trusted platform connecting members of UiTM community through
-              e-commerce. Discover amazing products and services from your
-              campus community.
+              An independent e-commerce platform built for the UiTM community.
+              This is a student-led project developed as a Final Year Project
+              (FYP).
             </Typography>
 
-            {/* Contact Info */}
-            <Stack spacing={1} sx={{ mt: 2 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Email sx={{ fontSize: 16, color: "text.secondary" }} />
-                <Typography variant="body2" color="text.secondary">
-                  support@nekodez.com
-                </Typography>
-              </Box>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Phone sx={{ fontSize: 16, color: "text.secondary" }} />
-                <Typography variant="body2" color="text.secondary">
-                  +60 11-6203 3072
-                </Typography>
-              </Box>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <LocationOn sx={{ fontSize: 16, color: "text.secondary" }} />
-                <Typography variant="body2" color="text.secondary">
-                  Shah Alam, Selangor, Malaysia
-                </Typography>
-              </Box>
-            </Stack>
+            {/* Independent Project Notice */}
+            <Chip
+              label="Independent Student Project"
+              size="small"
+              variant="outlined"
+              icon={<Code sx={{ fontSize: 14 }} />}
+              sx={{
+                mb: 2,
+                fontSize: "0.7rem",
+                color: "text.secondary",
+                borderColor: "divider",
+              }}
+            />
 
-            {/* Social Links */}
-            <Box sx={{ mt: 3 }}>
+            {/* Developer Info */}
+            <Box sx={{ mt: 2 }}>
               <Typography variant="subtitle2" color="text.primary" gutterBottom>
-                Follow Us
+                Developer
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Afiq Sharifuzan
               </Typography>
               <Stack direction="row" spacing={1}>
-                {socialLinks.map((social, index) => (
+                {developerLinks.map((link, index) => (
                   <IconButton
                     key={index}
                     component="a"
-                    href={social.href}
+                    href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={social.label}
+                    aria-label={link.label}
                     size="small"
                     sx={{
                       color: theme.palette.text.secondary,
@@ -136,7 +126,7 @@ function Footer() {
                       },
                     }}
                   >
-                    {social.icon}
+                    {link.icon}
                   </IconButton>
                 ))}
               </Stack>
@@ -195,7 +185,7 @@ function Footer() {
             </Stack>
           </Grid>
 
-          {/* Legal Links */}
+          {/* Legal Links - Opens in new tab */}
           <Grid size={{ xs: 12, sm: 4, md: 2 }}>
             <Typography variant="subtitle1" color="text.primary" gutterBottom>
               Legal
@@ -206,8 +196,11 @@ function Footer() {
                   key={index}
                   component={RouterLink}
                   to={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   color="text.secondary"
                   underline="hover"
+                  aria-label={`${link.text} (opens in new tab)`}
                   sx={{
                     fontSize: "0.875rem",
                     "&:hover": {
@@ -220,52 +213,6 @@ function Footer() {
               ))}
             </Stack>
           </Grid>
-
-          {/* Newsletter Signup */}
-          <Grid size={{ xs: 12, md: 2 }}>
-            <Typography variant="subtitle1" color="text.primary" gutterBottom>
-              Stay Updated
-            </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              Get the latest updates on new products and services.
-            </Typography>
-            <Box
-              component="form"
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 1,
-              }}
-            >
-              <input
-                type="email"
-                placeholder="Your email"
-                style={{
-                  padding: "8px 12px",
-                  border: `1px solid ${theme.palette.divider}`,
-                  borderRadius: "4px",
-                  backgroundColor: theme.palette.background.default,
-                  color: theme.palette.text.primary,
-                  fontSize: "14px",
-                }}
-              />
-              <button
-                type="submit"
-                style={{
-                  padding: "8px 12px",
-                  backgroundColor: theme.palette.primary.main,
-                  color: theme.palette.primary.contrastText,
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                }}
-              >
-                Subscribe
-              </button>
-            </Box>
-          </Grid>
         </Grid>
 
         <Divider sx={{ my: 4 }} />
@@ -274,22 +221,28 @@ function Footer() {
         <Box
           sx={{
             display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            justifyContent: "space-between",
-            alignItems: { xs: "flex-start", sm: "center" },
-            gap: 2,
+            flexDirection: "column",
+            alignItems: "center",
+            textAlign: "center",
+            gap: 1,
           }}
         >
           <Typography variant="body2" color="text.secondary">
-            © {new Date().getFullYear()} MarKet. All rights reserved.
+            © {new Date().getFullYear()} MarKet by Afiq Sharifuzan. All rights
+            reserved.
           </Typography>
           <Typography
             variant="caption"
             color="text.secondary"
-            sx={{ mt: 0.5, display: "block", opacity: 0.8 }}
+            sx={{
+              maxWidth: 600,
+              opacity: 0.7,
+            }}
           >
-            Independent platform for UiTM community. Not officially affiliated
-            with Universiti Teknologi MARA.
+            This is an independent Final Year Project (FYP). MarKet is not
+            officially affiliated with, endorsed by, or sponsored by Universiti
+            Teknologi MARA (UiTM). All trademarks belong to their respective
+            owners.
           </Typography>
         </Box>
       </Container>

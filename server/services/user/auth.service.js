@@ -435,7 +435,11 @@ const resetPassword = async (email, token, newPassword) => {
       createAuthError("Reset token validation failed", "RESET_TOKEN_INVALID");
     }
 
-    const user = await User.findById(validation.userId);
+    // IMPORTANT: Must select +password for the pre-save hook to detect modification
+    // Without this, the password field isn't loaded and won't be properly hashed
+    const user = await User.findById(validation.userId).select(
+      "+password +passwordReset.requestedAt"
+    );
     if (!user) {
       handleNotFoundError("User", "USER_NOT_FOUND", "resetPassword", {
         userId: validation.userId,
@@ -451,12 +455,11 @@ const resetPassword = async (email, token, newPassword) => {
       lastResetAt: new Date(),
     };
 
-    await user.save();
+    // Clear refresh tokens and force re-login in the same save operation
+    user.refreshTokens = [];
+    user.isActive = false;
 
-    await User.findByIdAndUpdate(user._id, {
-      refreshTokens: [],
-      isActive: false, // Force re-login
-    });
+    await user.save();
 
     logger.info("Password reset successfully", {
       action: "resetPassword",

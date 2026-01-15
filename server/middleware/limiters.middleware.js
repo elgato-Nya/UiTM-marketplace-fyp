@@ -14,6 +14,16 @@ const { getRateLimit } = require("../config/rateLimits.config");
 const logger = require("../utils/logger");
 
 /**
+ * Check if rate limiting is disabled (for security testing like OWASP ZAP)
+ * Set DISABLE_RATE_LIMITING=true in .env to disable
+ */
+const isRateLimitingDisabled = process.env.DISABLE_RATE_LIMITING === "true";
+
+if (isRateLimitingDisabled) {
+  logger.warn("⚠️  RATE LIMITING IS DISABLED - Only use for security testing!");
+}
+
+/**
  * Standard handler for rate limit exceeded
  * Logs the event and sends consistent error response
  *
@@ -64,6 +74,11 @@ const handleLimitReached = (req, res, next, options) => {
  * @returns {Function} Express rate limiter middleware
  */
 const createLimiter = (configOrName, overrides = {}) => {
+  // If rate limiting is disabled, return a pass-through middleware
+  if (isRateLimitingDisabled) {
+    return (req, res, next) => next();
+  }
+
   // Get configuration
   const config =
     typeof configOrName === "string"

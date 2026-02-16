@@ -126,20 +126,32 @@ const QuoteRequestForm = ({
         return;
       }
 
+      // Transform customFieldValues from object to array format expected by server
+      const customFieldValuesArray = customFields
+        .filter((field) => {
+          const value = formData.customFieldValues[field.label];
+          return value !== undefined && value !== "";
+        })
+        .map((field) => ({
+          label: field.label,
+          value: formData.customFieldValues[field.label],
+          fieldType: field.type,
+        }));
+
       const quoteRequest = {
         listingId: listing._id,
         message: formData.message.trim(),
         budget: formData.budget ? parseFloat(formData.budget) : undefined,
         timeline: formData.timeline.trim() || undefined,
         customFieldValues:
-          Object.keys(formData.customFieldValues).length > 0
-            ? formData.customFieldValues
+          customFieldValuesArray.length > 0
+            ? customFieldValuesArray
             : undefined,
       };
 
       await onSubmit(quoteRequest);
     },
-    [formData, listing, validateForm, agreedToTerms, onSubmit]
+    [formData, listing, customFields, validateForm, agreedToTerms, onSubmit]
   );
 
   // Handle close and reset
@@ -161,7 +173,7 @@ const QuoteRequestForm = ({
     const error = errors[`custom_${field.label}`];
 
     switch (field.type) {
-      case QUOTE_FIELD_TYPES.TEXT:
+      case QUOTE_FIELD_TYPES.TEXT.value:
         return (
           <TextField
             key={field.label}
@@ -179,7 +191,7 @@ const QuoteRequestForm = ({
           />
         );
 
-      case QUOTE_FIELD_TYPES.TEXTAREA:
+      case QUOTE_FIELD_TYPES.TEXTAREA.value:
         return (
           <TextField
             key={field.label}
@@ -199,7 +211,7 @@ const QuoteRequestForm = ({
           />
         );
 
-      case QUOTE_FIELD_TYPES.NUMBER:
+      case QUOTE_FIELD_TYPES.NUMBER.value:
         return (
           <TextField
             key={field.label}
@@ -218,7 +230,7 @@ const QuoteRequestForm = ({
           />
         );
 
-      case QUOTE_FIELD_TYPES.SELECT:
+      case QUOTE_FIELD_TYPES.SELECT.value:
         return (
           <FormControl
             key={field.label}
@@ -250,7 +262,7 @@ const QuoteRequestForm = ({
           </FormControl>
         );
 
-      case QUOTE_FIELD_TYPES.DATE:
+      case QUOTE_FIELD_TYPES.DATE.value:
         return (
           <TextField
             key={field.label}
@@ -399,9 +411,21 @@ const QuoteRequestForm = ({
           {/* Deposit Notice */}
           {quoteSettings.requiresDeposit &&
             quoteSettings.depositPercentage > 0 && (
-              <Alert severity="info" sx={{ mt: 3 }}>
-                This service requires a {quoteSettings.depositPercentage}%
-                deposit before work begins.
+              <Alert 
+                severity="info" 
+                sx={{ 
+                  mt: 3,
+                  "& .MuiAlert-message": {
+                    width: "100%",
+                  },
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  💰 {quoteSettings.depositPercentage}% Deposit Required
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Pay after accepting the seller&apos;s quote, before work starts.
+                </Typography>
               </Alert>
             )}
 

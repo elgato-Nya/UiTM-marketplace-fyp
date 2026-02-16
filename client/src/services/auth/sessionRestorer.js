@@ -7,8 +7,8 @@ export const restoreSession = async (dispatch) => {
 
     if (response.data.success && response.data.token) {
       // The server spreads user data directly into response.data
-      const { token, email, roles, profile } = response.data;
-      const user = { email, profile };
+      const { token, _id, email, roles, profile } = response.data;
+      const user = { _id, email, profile };
 
       dispatch({
         type: "auth/restoreSession",

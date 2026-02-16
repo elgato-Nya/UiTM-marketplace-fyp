@@ -1,6 +1,6 @@
-import React from "react";
+import React, { memo } from "react";
 import {
-  ListItem,
+  ListItemButton,
   ListItemAvatar,
   ListItemText,
   Avatar,
@@ -9,69 +9,30 @@ import {
   Badge,
   Chip,
 } from "@mui/material";
-import {
-  Person as PersonIcon,
-  Image as ImageIcon,
-} from "@mui/icons-material";
+import { Storefront as StoreIcon } from "@mui/icons-material";
 import { formatDistanceToNow } from "date-fns";
+import {
+  resolveOtherParticipant,
+  resolveListingInfo,
+} from "../utils/participantUtils";
 
-/**
- * Truncate text to a maximum character length with ellipsis
- */
-const truncateContent = (text, maxLen = 50) => {
+/** Truncate text with ellipsis */
+const truncateText = (text, maxLen = 50) => {
   if (!text) return "";
   return text.length > maxLen ? `${text.slice(0, maxLen)}…` : text;
 };
 
-/**
- * Format a timestamp into a relative "time ago" string
- */
+/** Relative "time ago" string */
 const formatTimeAgo = (dateStr) => {
   if (!dateStr) return "";
   try {
-    return formatDistanceToNow(new Date(dateStr), { addSuffix: true });
+    return formatDistanceToNow(new Date(dateStr), { addSuffix: false });
   } catch {
     return "";
   }
 };
 
-/**
- * Get display name for the other participant in the conversation
- */
-const getOtherParticipantName = (participants, currentUserId) => {
-  if (!participants || participants.length === 0) return "Unknown";
-  const other = participants.find((p) => {
-    const pId =
-      typeof p.userId === "object" ? p.userId._id || p.userId.id : p.userId;
-    return String(pId) !== String(currentUserId);
-  });
-  if (!other) return "Unknown";
-
-  const profile = other.userId?.profile || other.userId;
-  if (profile?.firstName && profile?.lastName) {
-    return `${profile.firstName} ${profile.lastName}`;
-  }
-  if (profile?.firstName) return profile.firstName;
-  if (other.userId?.email) return other.userId.email;
-  return "User";
-};
-
-/**
- * Get avatar URL for the other participant
- */
-const getOtherParticipantAvatar = (participants, currentUserId) => {
-  if (!participants || participants.length === 0) return null;
-  const other = participants.find((p) => {
-    const pId =
-      typeof p.userId === "object" ? p.userId._id || p.userId.id : p.userId;
-    return String(pId) !== String(currentUserId);
-  });
-  return other?.userId?.profile?.avatar || null;
-};
-
-/**
- * Get unread count for the current user in a conversation
- */
+/** Unread count for the current user */
 const getUnreadForUser = (participants, currentUserId) => {
   if (!participants) return 0;
   const self = participants.find((p) => {
@@ -83,13 +44,9 @@ const getUnreadForUser = (participants, currentUserId) => {
 };
 
 /**
- * Individual conversation item for the chat sidebar/inbox
+ * A single conversation row in the sidebar inbox.
  *
- * @param {Object} props
- * @param {Object} props.conversation - Conversation document
- * @param {string} props.currentUserId - Current authenticated user's ID
- * @param {boolean} props.isSelected - Whether this conversation is active
- * @param {Function} props.onClick - Click handler
+ * Uses semantic ListItemButton for keyboard/screen-reader accessibility.
  */
 function ConversationItem({
   conversation,
@@ -97,51 +54,75 @@ function ConversationItem({
   isSelected = false,
   onClick,
 }) {
-  const name = getOtherParticipantName(
+  const participant = resolveOtherParticipant(
     conversation.participants,
     currentUserId
   );
-  const avatarUrl = getOtherParticipantAvatar(
-    conversation.participants,
-    currentUserId
-  );
+  const listing = resolveListingInfo(conversation.listing);
   const unread = getUnreadForUser(conversation.participants, currentUserId);
   const lastMsg = conversation.lastMessage;
   const isImage = lastMsg?.type === "image";
 
-  const previewText = isImage ? "📷 Image" : truncateContent(lastMsg?.content);
-  const timeStr = formatTimeAgo(lastMsg?.createdAt || conversation.updatedAt);
+  const previewText = isImage ? "📷 Image" : truncateText(lastMsg?.content);
+  const timeStr = formatTimeAgo(lastMsg?.sentAt || conversation.updatedAt);
 
   return (
-    <ListItem
-      component="div"
+    <ListItemButton
+      role="option"
+      aria-selected={isSelected}
+      aria-label={`Conversation with ${participant.name}${unread > 0 ? `, ${unread} unread` : ""}`}
       onClick={onClick}
+      selected={isSelected}
       sx={{
-        cursor: "pointer",
-        px: 2,
         py: 1.5,
-        bgcolor: isSelected
-          ? "action.selected"
-          : unread > 0
-            ? "action.hover"
-            : "transparent",
-        borderLeft: isSelected ? 3 : 0,
-        borderColor: "primary.main",
-        "&:hover": {
-          bgcolor: isSelected ? "action.selected" : "action.hover",
+        px: 2,
+        gap: 1.5,
+        borderLeft: 3,
+        borderColor: isSelected ? "primary.main" : "transparent",
+        "&.Mui-selected": {
+          bgcolor: (theme) =>
+            theme.palette.mode === "dark"
+              ? "rgba(106, 90, 205, 0.12)"
+              : "rgba(72, 61, 139, 0.06)",
         },
-        transition: "background-color 0.15s ease",
+        "&.Mui-selected:hover": {
+          bgcolor: (theme) =>
+            theme.palette.mode === "dark"
+              ? "rgba(106, 90, 205, 0.18)"
+              : "rgba(72, 61, 139, 0.10)",
+        },
+        "&:hover": {
+          bgcolor: (theme) =>
+            theme.palette.mode === "dark"
+              ? "rgba(255,255,255,0.04)"
+              : "rgba(0,0,0,0.02)",
+        },
+        transition: "all 0.15s ease-in-out",
       }}
     >
-      <ListItemAvatar>
+      {/* Avatar with unread badge */}
+      <ListItemAvatar sx={{ minWidth: "auto" }}>
         <Badge
           badgeContent={unread}
           color="error"
           max={99}
           invisible={unread === 0}
+          overlap="circular"
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         >
-          <Avatar src={avatarUrl} alt={name}>
-            {!avatarUrl && <PersonIcon />}
+          <Avatar
+            src={participant.avatar}
+            alt={participant.name}
+            sx={{
+              width: 44,
+              height: 44,
+              bgcolor: participant.avatar ? "transparent" : "primary.main",
+              color: "primary.contrastText",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+            }}
+          >
+            {!participant.avatar && participant.initials}
           </Avatar>
         </Badge>
       </ListItemAvatar>
@@ -154,23 +135,43 @@ function ConversationItem({
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              gap: 1,
               mb: 0.25,
             }}
           >
-            <Typography
-              variant="subtitle2"
-              noWrap
+            <Box
               sx={{
-                fontWeight: unread > 0 ? 700 : 400,
-                maxWidth: "60%",
+                display: "flex",
+                alignItems: "center",
+                gap: 0.5,
+                minWidth: 0,
+                flex: 1,
               }}
             >
-              {name}
-            </Typography>
+              {participant.isMerchant && (
+                <StoreIcon
+                  sx={{ fontSize: 14, color: "primary.main", flexShrink: 0 }}
+                  aria-label="Merchant"
+                />
+              )}
+              <Typography
+                variant="subtitle2"
+                noWrap
+                component="span"
+                sx={{
+                  fontWeight: unread > 0 ? 700 : 500,
+                  color: "text.primary",
+                  lineHeight: 1.3,
+                }}
+              >
+                {participant.name}
+              </Typography>
+            </Box>
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ flexShrink: 0 }}
+              component="time"
+              sx={{ flexShrink: 0, fontSize: "0.7rem" }}
             >
               {timeStr}
             </Typography>
@@ -182,41 +183,44 @@ function ConversationItem({
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              gap: 0.5,
             }}
           >
             <Typography
               variant="body2"
               color="text.secondary"
               noWrap
+              component="span"
               sx={{
                 fontWeight: unread > 0 ? 600 : 400,
-                maxWidth: conversation.listing ? "55%" : "100%",
+                flex: 1,
+                minWidth: 0,
+                fontSize: "0.8125rem",
               }}
             >
-              {isImage && (
-                <ImageIcon
-                  sx={{ fontSize: 14, mr: 0.5, verticalAlign: "middle" }}
-                />
-              )}
               {previewText || "No messages yet"}
             </Typography>
 
-            {conversation.listing && (
+            {listing && (
               <Chip
-                label={truncateContent(
-                  conversation.listing.title || "Listing",
-                  18
-                )}
+                label={truncateText(listing.title, 16)}
                 size="small"
                 variant="outlined"
-                sx={{ ml: 0.5, maxWidth: 120, fontSize: "0.7rem" }}
+                sx={{
+                  ml: 0.5,
+                  maxWidth: 110,
+                  height: 20,
+                  fontSize: "0.65rem",
+                  borderColor: "divider",
+                  "& .MuiChip-label": { px: 0.75 },
+                }}
               />
             )}
           </Box>
         }
       />
-    </ListItem>
+    </ListItemButton>
   );
 }
 
-export default ConversationItem;
+export default memo(ConversationItem);

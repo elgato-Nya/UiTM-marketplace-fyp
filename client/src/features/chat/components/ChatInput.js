@@ -9,14 +9,13 @@ import {
 import { Send as SendIcon } from "@mui/icons-material";
 
 /**
- * Chat message input with send button
+ * Chat message input bar with send button.
  *
- * @param {Object} props
- * @param {Function} props.onSend - Handler called with message content string
- * @param {boolean} props.disabled - Disable input (e.g., when submitting)
- * @param {boolean} props.isSubmitting - Show loading indicator on send button
- * @param {Function} props.onTyping - Called when user starts typing
- * @param {Function} props.onStopTyping - Called when user stops typing
+ * Features:
+ * - Multiline auto-expand (max 4 rows)
+ * - Enter to send, Shift+Enter for new line
+ * - Typing indicators via onTyping/onStopTyping callbacks
+ * - Accessible labels and keyboard navigation
  */
 function ChatInput({
   onSend,
@@ -35,7 +34,6 @@ function ChatInput({
       onTyping();
     }
 
-    // Reset the stop-typing timer
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
@@ -51,7 +49,6 @@ function ChatInput({
     const trimmed = content.trim();
     if (!trimmed || disabled || isSubmitting) return;
 
-    // Stop typing indicator
     if (isTypingRef.current && onStopTyping) {
       isTypingRef.current = false;
       onStopTyping();
@@ -82,13 +79,22 @@ function ChatInput({
     [handleTypingStart]
   );
 
+  const canSend = content.trim().length > 0 && !disabled && !isSubmitting;
+
   return (
     <Box
+      component="form"
+      role="form"
+      aria-label="Message composer"
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleSend();
+      }}
       sx={{
         display: "flex",
         alignItems: "flex-end",
         gap: 1,
-        p: { xs: 1, md: 2 },
+        p: { xs: 1.25, md: 2 },
         borderTop: 1,
         borderColor: "divider",
         bgcolor: "background.paper",
@@ -99,35 +105,45 @@ function ChatInput({
         multiline
         maxRows={4}
         size="small"
-        placeholder="Type a message..."
+        placeholder="Type a message…"
         value={content}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        aria-label="Message input"
+        inputProps={{
+          "aria-label": "Type a message",
+        }}
         sx={{
           "& .MuiOutlinedInput-root": {
-            borderRadius: 3,
+            borderRadius: 2.5,
+            bgcolor: (theme) =>
+              theme.palette.mode === "dark"
+                ? "rgba(255,255,255,0.04)"
+                : "rgba(0,0,0,0.03)",
+            "& fieldset": { borderColor: "transparent" },
+            "&:hover fieldset": { borderColor: "divider" },
+            "&.Mui-focused fieldset": { borderColor: "primary.main" },
           },
         }}
       />
-      <Tooltip title="Send message">
+      <Tooltip title={canSend ? "Send message (Enter)" : "Type a message to send"}>
         <span>
           <IconButton
+            type="submit"
             color="primary"
-            onClick={handleSend}
-            disabled={!content.trim() || disabled || isSubmitting}
+            disabled={!canSend}
             aria-label="Send message"
             sx={{
-              bgcolor: "primary.main",
-              color: "primary.contrastText",
-              "&:hover": { bgcolor: "primary.dark" },
-              "&.Mui-disabled": {
-                bgcolor: "action.disabledBackground",
-                color: "action.disabled",
-              },
+              bgcolor: canSend ? "primary.main" : "action.disabledBackground",
+              color: canSend ? "primary.contrastText" : "action.disabled",
               width: { xs: 36, md: 40 },
               height: { xs: 36, md: 40 },
+              borderRadius: 2,
+              transition: "all 0.2s ease",
+              "&:hover": {
+                bgcolor: canSend ? "primary.dark" : "action.disabledBackground",
+                transform: canSend ? "scale(1.05)" : "none",
+              },
             }}
           >
             {isSubmitting ? (

@@ -3,13 +3,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
   Paper,
-  Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { Chat as ChatIcon } from "@mui/icons-material";
+import { useDispatch } from "react-redux";
 import { useChat } from "../../features/chat/hooks/useChat";
 import { useChatActions } from "../../features/chat/hooks/useChatActions";
+import { removeMessage } from "../../features/chat/store/chatSlice";
 import { ChatSidebar, ChatWindow } from "../../features/chat/components";
 import { useSocket } from "../../contexts/SocketContext";
 import { useSnackbarContext as useSnackbar } from "../../contexts/SnackbarContext";
@@ -18,18 +18,19 @@ import { ROUTES } from "../../constants/routes";
 /**
  * ChatPage
  *
- * PURPOSE: Full-screen inbox + conversation view for real-time messaging
- * LAYOUT: Sidebar (conversation list) + Main area (messages) — responsive
+ * Full-screen inbox + conversation view for real-time messaging.
+ * Responsive layout: sidebar + main area on desktop, toggle on mobile.
+ * Uses semantic HTML structure and ARIA landmarks.
  */
 const ChatPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { conversationId: routeConvoId } = useParams();
   const { error: showError } = useSnackbar();
   const { socket, isConnected } = useSocket();
 
-  // Chat state + actions from hooks
   const {
     conversations,
     activeConversation,
@@ -49,16 +50,14 @@ const ChatPage = () => {
     clearError,
   } = useChat({ autoFetch: true });
 
-  const { deleteConversation } = useChatActions();
+  const { deleteConversation, deleteMessage } = useChatActions();
 
   // Local UI state
   const [searchQuery, setSearchQuery] = useState("");
   const [typingUser, setTypingUser] = useState("");
-
-  // Show mobile sidebar when no active conversation
   const [showSidebar, setShowSidebar] = useState(true);
 
-  // Handle route-based conversation selection (e.g., /chat/:conversationId)
+  // Route-based conversation selection
   useEffect(() => {
     if (routeConvoId && routeConvoId !== activeConversation?._id) {
       loadConversation(routeConvoId);
@@ -70,14 +69,11 @@ const ChatPage = () => {
     if (activeConversation?._id) {
       loadMessages(activeConversation._id);
       markAsRead(activeConversation._id);
-
-      if (isMobile) {
-        setShowSidebar(false);
-      }
+      if (isMobile) setShowSidebar(false);
     }
   }, [activeConversation?._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Show error via snackbar
+  // Show errors via snackbar
   useEffect(() => {
     if (error?.message) {
       showError(error.message);
@@ -94,7 +90,6 @@ const ChatPage = () => {
         setTypingUser(userName || "Someone");
       }
     };
-
     const handleStopTyping = ({ userId }) => {
       if (String(userId) !== String(currentUserId)) {
         setTypingUser("");
@@ -103,14 +98,28 @@ const ChatPage = () => {
 
     socket.on("chat:typing", handleTyping);
     socket.on("chat:stop_typing", handleStopTyping);
-
     return () => {
       socket.off("chat:typing", handleTyping);
       socket.off("chat:stop_typing", handleStopTyping);
     };
   }, [socket, isConnected, currentUserId]);
 
-  // Handlers
+  // Socket: real-time message unsend from other participant
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handleRemoteDelete = ({ messageId, conversationId }) => {
+      dispatch(removeMessage({ messageId, conversationId }));
+    };
+
+    socket.on("chat:message_deleted", handleRemoteDelete);
+    return () => {
+      socket.off("chat:message_deleted", handleRemoteDelete);
+    };
+  }, [socket, isConnected, dispatch]);
+
+  /* ── Handlers ── */
+
   const handleSelectConversation = useCallback(
     (convo) => {
       selectConversation(convo);
@@ -144,6 +153,13 @@ const ChatPage = () => {
     [deleteConversation, activeConversation, deselectConversation, isMobile]
   );
 
+  const handleDeleteMessage = useCallback(
+    async (conversationId, messageId) => {
+      await deleteMessage(conversationId, messageId);
+    },
+    [deleteMessage]
+  );
+
   const handleRefresh = useCallback(() => {
     loadConversations();
   }, [loadConversations]);
@@ -164,27 +180,36 @@ const ChatPage = () => {
     }
   }, [socket, activeConversation]);
 
-  // Responsive layout
-  const sidebarWidth = 360;
+  /* ── Layout constants ── */
+  const sidebarWidth = 340;
 
   return (
-    <Box sx={{ py: { xs: 0.5, sm: 2 }, px: { xs: 0.5, sm: 2, md: 3 } }}>
-      {/* Page header */}
-      <Box sx={{ mb: { xs: 1, md: 2 }, display: "flex", alignItems: "center", gap: 1 }}>
-        <ChatIcon color="primary" />
-        <Typography variant="h5" fontWeight={700}>
-          Chat
-        </Typography>
-      </Box>
-
+    <Box
+      component="section"
+      aria-label="Chat"
+      sx={{
+        height: {
+          xs: "calc(100dvh - 64px)",
+          md: "calc(100dvh - 80px)",
+        },
+        display: "flex",
+        flexDirection: "column",
+        px: { xs: 0, sm: 2, md: 3 },
+        py: { xs: 0, sm: 2 },
+      }}
+    >
       {/* Main chat container */}
       <Paper
-        elevation={1}
+        elevation={0}
         sx={{
+          flex: 1,
           display: "flex",
-          height: { xs: "calc(100vh - 140px)", md: "calc(100vh - 200px)" },
           overflow: "hidden",
-          borderRadius: 2,
+          borderRadius: { xs: 0, sm: 2 },
+          border: 1,
+          borderColor: { xs: "transparent", sm: "divider" },
+          bgcolor: "background.paper",
+          minHeight: 0,
         }}
       >
         {/* Sidebar */}
@@ -197,6 +222,7 @@ const ChatPage = () => {
               md: "flex",
             },
             flexDirection: "column",
+            minHeight: 0,
           }}
         >
           <ChatSidebar
@@ -221,6 +247,7 @@ const ChatPage = () => {
             },
             flexDirection: "column",
             minWidth: 0,
+            minHeight: 0,
           }}
         >
           <ChatWindow
@@ -232,6 +259,7 @@ const ChatPage = () => {
             onSendMessage={handleSendMessage}
             onBack={isMobile ? handleBack : undefined}
             onDelete={handleDeleteConversation}
+            onDeleteMessage={handleDeleteMessage}
             onTyping={handleTyping}
             onStopTyping={handleStopTyping}
             typingUser={typingUser}

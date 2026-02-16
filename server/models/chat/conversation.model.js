@@ -84,9 +84,10 @@ const conversationSchema = new mongoose.Schema(
 // ==================== INDEXES ====================
 
 // Prevent duplicate conversations for the same user pair + listing
+// Unique per user-pair only (listing is informational, not part of uniqueness)
 conversationSchema.index(
-  { "participants.userId": 1, listing: 1 },
-  { unique: true }
+  { "participants.userId": 1 },
+  { unique: false }
 );
 
 // Fast lookup: "get all conversations for user X, newest first"
@@ -101,7 +102,10 @@ conversationSchema.index(
  */
 conversationSchema.methods.getOtherParticipant = function (userId) {
   const uid = userId.toString();
-  return this.participants.find((p) => p.userId.toString() !== uid);
+  return this.participants.find((p) => {
+    const pId = p.userId?._id || p.userId;
+    return pId?.toString() !== uid;
+  });
 };
 
 /**
@@ -109,7 +113,10 @@ conversationSchema.methods.getOtherParticipant = function (userId) {
  */
 conversationSchema.methods.isParticipant = function (userId) {
   const uid = userId.toString();
-  return this.participants.some((p) => p.userId.toString() === uid);
+  return this.participants.some((p) => {
+    const pId = p.userId?._id || p.userId;
+    return pId?.toString() === uid;
+  });
 };
 
 /**
@@ -117,9 +124,10 @@ conversationSchema.methods.isParticipant = function (userId) {
  */
 conversationSchema.methods.markReadForUser = async function (userId) {
   const uid = userId.toString();
-  const participant = this.participants.find(
-    (p) => p.userId.toString() === uid
-  );
+  const participant = this.participants.find((p) => {
+    const pId = p.userId?._id || p.userId;
+    return pId?.toString() === uid;
+  });
   if (participant) {
     participant.unreadCount = 0;
     participant.lastReadAt = new Date();

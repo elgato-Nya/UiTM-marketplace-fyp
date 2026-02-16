@@ -10,7 +10,8 @@ const {
   NotificationConfig,
   NotificationCategory,
 } = require("../../utils/enums/notification.enum");
-const { emitToUser } = require("../../socket");
+// Lazy accessor — avoids circular dependency with socket/index.js
+const getEmitToUser = () => require("../../socket").emitToUser;
 
 /**
  * Create a notification for a user
@@ -90,7 +91,7 @@ const createNotification = async (notifData) => {
 
     // Push real-time notification via WebSocket (non-blocking)
     try {
-      emitToUser(userId, "notification:new", {
+      getEmitToUser()(userId, "notification:new", {
         _id: notification._id,
         type: notification.type,
         category: notification.category,

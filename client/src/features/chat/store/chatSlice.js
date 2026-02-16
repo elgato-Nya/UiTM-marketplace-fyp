@@ -146,6 +146,23 @@ export const fetchUnreadCount = createAsyncThunk(
   }
 );
 
+export const deleteMessageThunk = createAsyncThunk(
+  "chat/deleteMessage",
+  async ({ conversationId, messageId }, { rejectWithValue }) => {
+    try {
+      const response = await chatService.deleteMessage(
+        conversationId,
+        messageId
+      );
+      return { ...response.data, conversationId, messageId };
+    } catch (error) {
+      return rejectWithValue(
+        extractThunkError(error, "Failed to delete message")
+      );
+    }
+  }
+);
+
 // --- Slice ---
 
 const chatSlice = createSlice({
@@ -213,6 +230,20 @@ const chatSlice = createSlice({
         if (participant) {
           participant.unreadCount = 0;
         }
+      }
+    },
+
+    /**
+     * Remove a message from the active messages list.
+     * Used for both local deletions and real-time unsend events.
+     */
+    removeMessage: (state, action) => {
+      const { messageId, conversationId } = action.payload;
+      if (
+        state.activeConversation &&
+        state.activeConversation._id === conversationId
+      ) {
+        state.messages = state.messages.filter((m) => m._id !== messageId);
       }
     },
   },
@@ -370,6 +401,19 @@ const chatSlice = createSlice({
       // fetchUnreadCount
       .addCase(fetchUnreadCount.fulfilled, (state, action) => {
         state.totalUnread = action.payload.totalUnread ?? 0;
+      })
+
+      // deleteMessageThunk
+      .addCase(deleteMessageThunk.fulfilled, (state, action) => {
+        const { messageId, conversationId } = action.payload;
+        if (
+          state.activeConversation &&
+          state.activeConversation._id === conversationId
+        ) {
+          state.messages = state.messages.filter(
+            (m) => m._id !== messageId
+          );
+        }
       });
   },
 });
@@ -382,6 +426,7 @@ export const {
   addIncomingMessage,
   updateUnreadCount,
   markMessagesReadLocal,
+  removeMessage,
 } = chatSlice.actions;
 
 // --- Selectors ---

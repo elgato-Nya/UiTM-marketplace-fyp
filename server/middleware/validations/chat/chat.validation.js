@@ -35,6 +35,19 @@ const conversationIdParamValidation = () => {
 };
 
 /**
+ * Validate messageId in URL params
+ */
+const messageIdParamValidation = () => {
+  return param("messageId")
+    .notEmpty()
+    .withMessage("Message ID is required")
+    .bail()
+    .trim()
+    .isMongoId()
+    .withMessage("Invalid message ID format");
+};
+
+/**
  * Validate optional listingId in request body
  */
 const listingIdBodyValidation = () => {
@@ -139,10 +152,21 @@ const validateGetConversations = [
   handleValidationErrors,
 ];
 
+/**
+ * Validate Delete Message Request
+ * @route DELETE /api/chat/conversations/:conversationId/messages/:messageId
+ */
+const validateDeleteMessage = [
+  conversationIdParamValidation(),
+  messageIdParamValidation(),
+  handleValidationErrors,
+];
+
 module.exports = {
   validateStartConversation,
   validateConversationIdParam,
   validateSendMessage,
   validateGetMessages,
   validateGetConversations,
+  validateDeleteMessage,
 };

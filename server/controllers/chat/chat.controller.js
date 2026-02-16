@@ -193,6 +193,32 @@ const getUnreadCount = asyncHandler(async (req, res) => {
   );
 }, "get_unread_count");
 
+/**
+ * Delete / unsend a single message
+ * @route DELETE /api/chat/conversations/:conversationId/messages/:messageId
+ *
+ * Within 15 minutes the sender can "unsend" (deleted for everyone).
+ * After that window the message is hidden only for the requesting user.
+ */
+const deleteMessage = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { messageId } = req.params;
+
+  const result = await chatService.deleteMessage(messageId, userId);
+
+  baseController.logAction("delete_message", req, {
+    userId: userId.toString(),
+    messageId,
+    deletedForEveryone: result.deletedForEveryone,
+  });
+
+  return baseController.sendSuccess(
+    res,
+    result,
+    result.deletedForEveryone ? "Message unsent" : "Message deleted"
+  );
+}, "delete_message");
+
 module.exports = {
   startConversation,
   getConversations,
@@ -201,5 +227,6 @@ module.exports = {
   getMessages,
   markAsRead,
   deleteConversation,
+  deleteMessage,
   getUnreadCount,
 };

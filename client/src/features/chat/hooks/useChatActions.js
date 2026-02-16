@@ -6,6 +6,7 @@ import {
   sendMessage,
   markConversationAsRead,
   deleteConversation,
+  deleteMessageThunk,
   selectChatSubmitting,
 } from "../store/chatSlice";
 
@@ -94,6 +95,28 @@ export function useChatActions() {
     [dispatch, showSnackbar]
   );
 
+  const handleDeleteMessage = useCallback(
+    async (conversationId, messageId) => {
+      try {
+        const result = await dispatch(
+          deleteMessageThunk({ conversationId, messageId })
+        ).unwrap();
+        showSnackbar(
+          result.deletedForEveryone ? "Message unsent" : "Message deleted",
+          "success"
+        );
+        return result;
+      } catch (error) {
+        showSnackbar(
+          error?.message || "Failed to delete message",
+          "error"
+        );
+        return null;
+      }
+    },
+    [dispatch, showSnackbar]
+  );
+
   return {
     isSubmitting,
     actionLoading,
@@ -101,5 +124,6 @@ export function useChatActions() {
     sendMessage: handleSendMessage,
     markAsRead: handleMarkAsRead,
     deleteConversation: handleDeleteConversation,
+    deleteMessage: handleDeleteMessage,
   };
 }

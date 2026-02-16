@@ -32,8 +32,8 @@ export const login = createAsyncThunk(
       const response = await authService.login(credentials);
 
       // Extract user data from response - the server returns user data in response.data directly
-      const { email, roles, profile, token } = response.data;
-      const user = { email, profile };
+      const { _id, email, roles, profile, token } = response.data;
+      const user = { _id, email, profile };
 
       return {
         user,

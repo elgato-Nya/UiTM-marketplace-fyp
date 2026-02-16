@@ -83,7 +83,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
             );
 
             if (refreshResult.data?.success && refreshResult.data?.token) {
-              const { token, email, roles, profile } = refreshResult.data;
+              const { token, _id, email, roles, profile } = refreshResult.data;
 
               // Update store with new token
               api.dispatch(
@@ -97,7 +97,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
               api.dispatch({
                 type: "auth/restoreSession",
                 payload: {
-                  user: { email, profile },
+                  user: { _id, email, profile },
                   token,
                   roles: roles || ["consumer"],
                   isAuthenticated: true,

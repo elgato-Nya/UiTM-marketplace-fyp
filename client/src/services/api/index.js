@@ -122,8 +122,8 @@ api.interceptors.response.use(
           );
 
           if (refreshResponse.data.success && refreshResponse.data.token) {
-            const { token, email, roles, profile } = refreshResponse.data;
-            const user = { email, profile };
+            const { token, _id, email, roles, profile } = refreshResponse.data;
+            const user = { _id, email, profile };
 
             // Update store with new token and user data
             store.dispatch(

@@ -8,7 +8,9 @@ const {
   createValidationError,
   createForbiddenError,
 } = require("../../utils/errors");
-const { emitToUser } = require("../../socket");
+// Lazy accessor — avoids circular dependency with socket/index.js
+// The require resolves at call-time when the module is fully loaded
+const getEmitToUser = () => require("../../socket").emitToUser;
 const { createNotification } = require("../notification/notification.service");
 const { NotificationType } = require("../../utils/enums/notification.enum");
 
@@ -49,21 +51,30 @@ const getOrCreateConversation = async (initiatorId, recipientId, listingId = nul
     // Sort participant IDs to ensure consistent uniqueness regardless of who initiates
     const sortedIds = [initiatorId.toString(), recipientId.toString()].sort();
 
-    // Try to find an existing conversation for this pair + listing
+    // Try to find an existing conversation for this user pair (listing-agnostic)
     let conversation = await Conversation.findOne({
       "participants.userId": { $all: sortedIds.map((id) => id) },
-      listing: listingId || null,
       isActive: true,
-    }).populate("participants.userId", "profile.username profile.avatarUrl email");
+    }).populate("participants.userId", "profile.username profile.avatarUrl email roles merchantDetails.shopName merchantDetails.shopLogo");
 
     if (conversation) {
       // Re-activate if the initiator had previously soft-deleted it
       const selfEntry = conversation.participants.find(
-        (p) => p.userId._id.toString() === initiatorId.toString()
+        (p) => (p.userId?._id || p.userId).toString() === initiatorId.toString()
       );
       if (selfEntry?.deletedAt) {
         selfEntry.deletedAt = null;
         await conversation.save();
+      }
+
+      // Update listing context if a new one is provided
+      if (listingId && (!conversation.listing || conversation.listing.toString() !== listingId.toString())) {
+        conversation.listing = listingId;
+        await conversation.save();
+        // Re-populate listing
+        conversation = await Conversation.findById(conversation._id)
+          .populate("participants.userId", "profile.username profile.avatarUrl email roles merchantDetails.shopName merchantDetails.shopLogo")
+          .populate("listing", "name images price");
       }
 
       return { conversation, created: false };
@@ -80,7 +91,7 @@ const getOrCreateConversation = async (initiatorId, recipientId, listingId = nul
 
     // Populate for the response
     conversation = await Conversation.findById(conversation._id)
-      .populate("participants.userId", "profile.username profile.avatarUrl email")
+      .populate("participants.userId", "profile.username profile.avatarUrl email roles merchantDetails.shopName merchantDetails.shopLogo")
       .populate("listing", "name images price");
 
     logger.info("Conversation created", {
@@ -122,7 +133,7 @@ const getUserConversations = async (userId, options = {}) => {
 
     const [conversations, totalCount] = await Promise.all([
       Conversation.find(filter)
-        .populate("participants.userId", "profile.username profile.avatarUrl email")
+        .populate("participants.userId", "profile.username profile.avatarUrl email roles merchantDetails.shopName merchantDetails.shopLogo")
         .populate("listing", "name images price")
         .sort({ updatedAt: -1 })
         .skip(skip)
@@ -151,7 +162,7 @@ const getUserConversations = async (userId, options = {}) => {
 const getConversationById = async (conversationId, userId) => {
   try {
     const conversation = await Conversation.findById(conversationId)
-      .populate("participants.userId", "profile.username profile.avatarUrl email")
+      .populate("participants.userId", "profile.username profile.avatarUrl email roles merchantDetails.shopName merchantDetails.shopLogo")
       .populate("listing", "name images price");
 
     if (!conversation) {
@@ -242,13 +253,13 @@ const sendMessage = async (conversationId, senderId, messageData) => {
     if (otherParticipant) {
       const recipientId = otherParticipant.userId.toString();
 
-      emitToUser(recipientId, "chat:message", {
+      getEmitToUser()(recipientId, "chat:message", {
         message: populatedMessage,
         conversationId,
       });
 
       // Also bump their unread-conversations badge
-      emitToUser(recipientId, "chat:unread_update", {
+      getEmitToUser()(recipientId, "chat:unread_update", {
         conversationId,
         unreadCount: otherParticipant.unreadCount,
       });
@@ -370,7 +381,7 @@ const markConversationAsRead = async (conversationId, userId) => {
     // Notify the other user that their messages were read (real-time)
     const otherParticipant = conversation.getOtherParticipant(userId);
     if (otherParticipant) {
-      emitToUser(otherParticipant.userId.toString(), "chat:messages_read", {
+      getEmitToUser()(otherParticipant.userId.toString(), "chat:messages_read", {
         conversationId,
         readBy: userId,
         readAt: new Date(),
@@ -403,7 +414,7 @@ const deleteConversationForUser = async (conversationId, userId) => {
     }
 
     const participant = conversation.participants.find(
-      (p) => p.userId.toString() === userId.toString()
+      (p) => (p.userId?._id || p.userId).toString() === userId.toString()
     );
     participant.deletedAt = new Date();
     await conversation.save();
@@ -449,6 +460,72 @@ const getTotalUnreadCount = async (userId) => {
   }
 };
 
+/**
+ * Soft-delete (unsend) a single message for the requesting user.
+ * If the user is the sender AND the message is less than 15 minutes old,
+ * it is deleted for everyone (unsend). Otherwise it is hidden only for
+ * the requesting user.
+ *
+ * @param {string} messageId - The message _id
+ * @param {string} userId    - The requesting user's _id
+ * @returns {{ success: boolean, deletedForEveryone: boolean }}
+ */
+const deleteMessage = async (messageId, userId) => {
+  try {
+    const message = await Message.findById(messageId);
+    if (!message) {
+      handleNotFoundError("Message", "MESSAGE_NOT_FOUND", "delete_message", {
+        messageId,
+      });
+    }
+
+    // Verify the user belongs to this conversation
+    const conversation = await Conversation.findById(message.conversationId);
+    if (!conversation || !conversation.isParticipant(userId)) {
+      throw createForbiddenError("You are not a participant of this conversation");
+    }
+
+    const senderId =
+      typeof message.sender === "object"
+        ? (message.sender._id || message.sender).toString()
+        : message.sender.toString();
+
+    const isSender = senderId === userId.toString();
+    const ageMs = Date.now() - new Date(message.createdAt).getTime();
+    const fifteenMinutes = 15 * 60 * 1000;
+
+    if (isSender && ageMs < fifteenMinutes) {
+      // Unsend — remove for everyone
+      await Message.findByIdAndDelete(messageId);
+
+      // Notify the other participant in real-time
+      const other = conversation.getOtherParticipant(userId);
+      if (other) {
+        const recipientId = (other.userId?._id || other.userId).toString();
+        getEmitToUser()(recipientId, "chat:message_deleted", {
+          messageId,
+          conversationId: message.conversationId.toString(),
+          deletedForEveryone: true,
+        });
+      }
+
+      logger.info("Message unsent (deleted for everyone)", { messageId, userId });
+      return { success: true, deletedForEveryone: true };
+    }
+
+    // Otherwise hide only for this user
+    if (!message.deletedFor.includes(userId)) {
+      message.deletedFor.push(userId);
+      await message.save();
+    }
+
+    logger.info("Message hidden for user", { messageId, userId });
+    return { success: true, deletedForEveryone: false };
+  } catch (error) {
+    handleServiceError(error, "deleteMessage", { messageId, userId });
+  }
+};
+
 module.exports = {
   getOrCreateConversation,
   getUserConversations,
@@ -457,5 +534,6 @@ module.exports = {
   getMessages,
   markConversationAsRead,
   deleteConversationForUser,
+  deleteMessage,
   getTotalUnreadCount,
 };

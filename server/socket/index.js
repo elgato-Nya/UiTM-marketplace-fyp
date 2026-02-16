@@ -3,7 +3,11 @@ const socketConfig = require("../config/socket.config");
 const logger = require("../utils/logger");
 const { verifyAccessToken } = require("../services/jwt.service");
 const { User } = require("../models/user");
-const { registerChatHandlers } = require("./handlers/chat.handler");
+
+// NOTE: chat.handler is lazy-required inside initializeSocket() to avoid
+// a circular dependency:  socket/index → chat.handler → chat.service → socket/index
+// Deferring the require ensures this module's exports are fully resolved
+// before the handler (and its service) try to import emitToUser.
 
 /**
  * Socket.IO Manager
@@ -113,6 +117,8 @@ const initializeSocket = (httpServer) => {
     });
 
     // Register feature-specific socket event handlers
+    // Lazy-require to break circular dependency (see top-of-file note)
+    const { registerChatHandlers } = require("./handlers/chat.handler");
     registerChatHandlers(socket);
 
     // Handle voluntary disconnect

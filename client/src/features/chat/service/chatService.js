@@ -79,6 +79,18 @@ const chatService = {
   },
 
   /**
+   * Delete or unsend a single message
+   * @param {string} conversationId
+   * @param {string} messageId
+   * @returns {Promise} { success, deletedForEveryone }
+   */
+  async deleteMessage(conversationId, messageId) {
+    return api.delete(
+      `/chat/conversations/${conversationId}/messages/${messageId}`
+    );
+  },
+
+  /**
    * Get total unread chat message count across all conversations
    * @returns {Promise} { totalUnread }
    */

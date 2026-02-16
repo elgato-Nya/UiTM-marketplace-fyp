@@ -5,7 +5,6 @@ import {
   Typography,
   TextField,
   InputAdornment,
-  Divider,
   CircularProgress,
   IconButton,
   Tooltip,
@@ -13,21 +12,15 @@ import {
 import {
   Search as SearchIcon,
   Refresh as RefreshIcon,
+  ChatBubbleOutline as EmptyIcon,
 } from "@mui/icons-material";
 import ConversationItem from "./ConversationItem";
 
 /**
- * Chat sidebar — shows inbox conversation list with search
+ * Chat sidebar — inbox conversation list with search.
  *
- * @param {Object} props
- * @param {Array} props.conversations - List of conversation objects
- * @param {string} props.currentUserId - Authenticated user ID
- * @param {Object|null} props.activeConversation - Currently selected conversation
- * @param {boolean} props.isLoading - Whether conversations are loading
- * @param {string} props.searchQuery - Current search filter
- * @param {Function} props.onSearchChange - Search input change handler
- * @param {Function} props.onSelectConversation - Conversation click handler
- * @param {Function} props.onRefresh - Refresh button handler
+ * Uses semantic list/role="listbox" for assistive technology, proper
+ * ARIA labelling, and responsive spacing from the app theme.
  */
 function ChatSidebar({
   conversations = [],
@@ -39,99 +32,155 @@ function ChatSidebar({
   onSelectConversation,
   onRefresh,
 }) {
-  // Client-side filter by participant name or listing title
+  // Client-side filter by participant username / listing name / message content
   const filtered = conversations.filter((convo) => {
     if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase();
 
-    // Search in participant names
     const nameMatch = convo.participants?.some((p) => {
-      const profile = p.userId?.profile || p.userId;
-      const fullName =
-        `${profile?.firstName || ""} ${profile?.lastName || ""}`.toLowerCase();
-      return fullName.includes(query);
+      const profile = p.userId?.profile || {};
+      const merchant = p.userId?.merchantDetails || {};
+      const combined = [
+        profile.username,
+        merchant.shopName,
+        p.userId?.email,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return combined.includes(q);
     });
 
-    // Search in listing title
-    const listingMatch = convo.listing?.title
-      ?.toLowerCase()
-      .includes(query);
+    const listingMatch = (convo.listing?.name || convo.listing?.title || "")
+      .toLowerCase()
+      .includes(q);
 
-    // Search in last message content
-    const messageMatch = convo.lastMessage?.content
-      ?.toLowerCase()
-      .includes(query);
+    const messageMatch = (convo.lastMessage?.content || "")
+      .toLowerCase()
+      .includes(q);
 
     return nameMatch || listingMatch || messageMatch;
   });
 
   return (
     <Box
+      component="aside"
+      aria-label="Conversations"
       sx={{
         display: "flex",
         flexDirection: "column",
         height: "100%",
         borderRight: 1,
         borderColor: "divider",
+        bgcolor: "background.paper",
       }}
     >
       {/* Header */}
       <Box
+        component="header"
         sx={{
-          p: 2,
+          px: 2.5,
+          pt: 2.5,
+          pb: 1.5,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
         }}
       >
-        <Typography variant="h6" fontWeight={700}>
+        <Typography
+          variant="h6"
+          component="h2"
+          fontWeight={700}
+          sx={{ fontSize: { xs: "1.05rem", md: "1.15rem" } }}
+        >
           Messages
         </Typography>
         {onRefresh && (
-          <Tooltip title="Refresh">
-            <IconButton
-              size="small"
-              onClick={onRefresh}
-              disabled={isLoading}
-              aria-label="Refresh conversations"
-            >
-              <RefreshIcon fontSize="small" />
-            </IconButton>
+          <Tooltip title="Refresh conversations">
+            <span>
+              <IconButton
+                size="small"
+                onClick={onRefresh}
+                disabled={isLoading}
+                aria-label="Refresh conversations"
+                sx={{
+                  color: "text.secondary",
+                  "&:hover": { color: "primary.main" },
+                }}
+              >
+                <RefreshIcon
+                  fontSize="small"
+                  sx={{
+                    animation: isLoading ? "spin 1s linear infinite" : "none",
+                    "@keyframes spin": {
+                      "0%": { transform: "rotate(0deg)" },
+                      "100%": { transform: "rotate(360deg)" },
+                    },
+                  }}
+                />
+              </IconButton>
+            </span>
           </Tooltip>
         )}
       </Box>
 
       {/* Search */}
-      <Box sx={{ px: 2, pb: 1 }}>
+      <Box sx={{ px: 2, pb: 1.5 }}>
         <TextField
           fullWidth
           size="small"
-          placeholder="Search conversations..."
+          placeholder="Search conversations…"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" color="action" />
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: "text.disabled" }} />
+                </InputAdornment>
+              ),
+            },
           }}
-          aria-label="Search conversations"
+          inputProps={{
+            "aria-label": "Search conversations",
+          }}
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              bgcolor: (theme) =>
+                theme.palette.mode === "dark"
+                  ? "rgba(255,255,255,0.04)"
+                  : "rgba(0,0,0,0.03)",
+              borderRadius: 2,
+              "& fieldset": { borderColor: "transparent" },
+              "&:hover fieldset": { borderColor: "divider" },
+              "&.Mui-focused fieldset": { borderColor: "primary.main" },
+            },
+          }}
         />
       </Box>
 
-      <Divider />
-
       {/* Conversation list */}
-      <Box sx={{ flex: 1, overflow: "auto" }}>
+      <Box
+        sx={{
+          flex: 1,
+          overflow: "auto",
+          "&::-webkit-scrollbar": { width: 4 },
+          "&::-webkit-scrollbar-thumb": {
+            bgcolor: "divider",
+            borderRadius: 2,
+          },
+        }}
+      >
         {isLoading ? (
           <Box
             sx={{
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              py: 6,
+              py: 8,
             }}
+            role="status"
+            aria-label="Loading conversations"
           >
             <CircularProgress size={28} />
           </Box>
@@ -142,28 +191,38 @@ function ChatSidebar({
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              py: 6,
-              px: 2,
+              py: 8,
+              px: 3,
+              gap: 1.5,
             }}
           >
-            <Typography variant="body2" color="text.secondary" align="center">
+            <EmptyIcon sx={{ fontSize: 40, color: "text.disabled" }} />
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              align="center"
+              sx={{ maxWidth: 200 }}
+            >
               {searchQuery
                 ? "No conversations match your search"
-                : "No conversations yet"}
+                : "No conversations yet. Start one from a listing page!"}
             </Typography>
           </Box>
         ) : (
-          <List disablePadding>
+          <List
+            role="listbox"
+            aria-label="Conversation list"
+            disablePadding
+            sx={{ py: 0.5 }}
+          >
             {filtered.map((convo) => (
-              <React.Fragment key={convo._id}>
-                <ConversationItem
-                  conversation={convo}
-                  currentUserId={currentUserId}
-                  isSelected={activeConversation?._id === convo._id}
-                  onClick={() => onSelectConversation(convo)}
-                />
-                <Divider component="li" />
-              </React.Fragment>
+              <ConversationItem
+                key={convo._id}
+                conversation={convo}
+                currentUserId={currentUserId}
+                isSelected={activeConversation?._id === convo._id}
+                onClick={() => onSelectConversation(convo)}
+              />
             ))}
           </List>
         )}

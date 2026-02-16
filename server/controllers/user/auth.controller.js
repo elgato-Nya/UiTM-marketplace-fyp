@@ -47,9 +47,10 @@ const sendStatusToken = async (user, statusCode, res) => {
   // Set cookie and use BaseController for consistent response
   res.cookie("refreshToken", tokenData.refreshToken, cookieOptions);
 
-  const { email, roles, profile } = user;
+  const { _id, email, roles, profile } = user;
 
   const userData = {
+    _id,
     token: tokenData.accessToken,
     email,
     roles,

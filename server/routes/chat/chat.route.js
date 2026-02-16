@@ -8,6 +8,7 @@ const {
   getMessages,
   markAsRead,
   deleteConversation,
+  deleteMessage,
   getUnreadCount,
 } = require("../../controllers/chat");
 const { protect } = require("../../middleware/auth/auth.middleware");
@@ -17,6 +18,7 @@ const {
   validateSendMessage,
   validateGetMessages,
   validateGetConversations,
+  validateDeleteMessage,
 } = require("../../middleware/validations/chat/chat.validation");
 const { standardLimiter } = require("../../middleware/limiters.middleware");
 
@@ -128,6 +130,19 @@ router.post(
   "/conversations/:conversationId/messages",
   validateSendMessage,
   sendMessage
+);
+
+/**
+ * @route   DELETE /api/chat/conversations/:conversationId/messages/:messageId
+ * @desc    Delete or unsend a single message
+ * @access  Private (participants only)
+ * @note    Sender can unsend within 15 min (deleted for everyone).
+ *          Otherwise the message is hidden only for the requesting user.
+ */
+router.delete(
+  "/conversations/:conversationId/messages/:messageId",
+  validateDeleteMessage,
+  deleteMessage
 );
 
 // ---------- Read Receipts ----------

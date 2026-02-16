@@ -35,6 +35,7 @@ import {
   FilterList,
   WhatsApp,
   Phone,
+  Chat as ChatIcon,
 } from "@mui/icons-material";
 import { useTheme } from "../../hooks/useTheme";
 import { useMerchant } from "../../features/merchant/hooks/useMerchant";
@@ -47,6 +48,8 @@ import {
   LISTING_CATEGORIES,
   CATEGORY_LABELS,
 } from "../../constants/listingConstant";
+import { useChatActions } from "../../features/chat/hooks/useChatActions";
+import { useAuth } from "../../features/auth/hooks/useAuth";
 import ListingCard from "../../features/listing/components/ListingCard";
 import ListingListItem from "../../features/listing/components/ListingListItem";
 
@@ -71,6 +74,9 @@ function ShopProfilePage() {
 
   const { viewedShop, isLoading, error, loadShopBySlug, clearShopView } =
     useMerchant();
+  const { isAuthenticated, user } = useAuth();
+  const { startConversation: initiateChat, actionLoading: chatLoading } =
+    useChatActions();
 
   // Scroll to top when shop slug changes
   useEffect(() => {
@@ -126,6 +132,28 @@ function ShopProfilePage() {
     const message = `Hi! I'm interested in your products at ${shop.shopName}`;
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
+  };
+
+  // Handle in-app chat with merchant
+  const handleMessageMerchant = async () => {
+    if (!isAuthenticated) {
+      navigate(ROUTES.AUTH.LOGIN, {
+        state: { from: window.location.pathname },
+      });
+      return;
+    }
+
+    const merchantUserId = viewedShop?.merchant?._id;
+    if (!merchantUserId) return;
+
+    const result = await initiateChat({
+      recipientId: merchantUserId.toString(),
+    });
+
+    if (result) {
+      const convoId = result.conversation?._id || result._id;
+      navigate(ROUTES.CHAT.DETAIL(convoId));
+    }
   };
 
   // Load shop on mount
@@ -422,6 +450,24 @@ function ShopProfilePage() {
                     Contact via WhatsApp
                   </Button>
                 )}
+
+                {/* In-App Message Button */}
+                {isAuthenticated &&
+                  String(user?._id) !==
+                    String(viewedShop?.merchant?._id) && (
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      startIcon={<ChatIcon />}
+                      size="large"
+                      onClick={handleMessageMerchant}
+                      disabled={chatLoading === "start"}
+                    >
+                      {chatLoading === "start"
+                        ? "Opening..."
+                        : "Send Message"}
+                    </Button>
+                  )}
               </Box>
             </Stack>
           ) : (
@@ -575,6 +621,23 @@ function ShopProfilePage() {
                     Contact via WhatsApp
                   </Button>
                 )}
+
+                {/* In-App Message Button */}
+                {isAuthenticated &&
+                  String(user?._id) !==
+                    String(viewedShop?.merchant?._id) && (
+                    <Button
+                      variant="outlined"
+                      startIcon={<ChatIcon />}
+                      onClick={handleMessageMerchant}
+                      disabled={chatLoading === "start"}
+                      sx={{ ml: merchant?.profile?.phoneNumber ? 1 : 0 }}
+                    >
+                      {chatLoading === "start"
+                        ? "Opening..."
+                        : "Send Message"}
+                    </Button>
+                  )}
               </Box>
             </Box>
           )}

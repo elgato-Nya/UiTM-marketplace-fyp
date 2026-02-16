@@ -20,6 +20,7 @@ import {
   Favorite as FavoriteIcon,
   FavoriteBorder as FavoriteBorderIcon,
   RequestQuote as QuoteIcon,
+  Chat as ChatIcon,
 } from "@mui/icons-material";
 
 import { useTheme } from "../../hooks/useTheme";
@@ -38,6 +39,7 @@ import AddToCartDialog from "../../features/cart/components/AddToCartDialog";
 import BuyNowDialog from "../../features/cart/components/BuyNowDialog";
 import { createSessionFromListing } from "../../features/checkout/store/checkoutSlice";
 import { createQuoteRequest } from "../../features/quote/store/quoteSlice";
+import { useChatActions } from "../../features/chat/hooks/useChatActions";
 
 const ListingDetailPage = () => {
   const { theme } = useTheme();
@@ -45,7 +47,9 @@ const ListingDetailPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { success, error: showError } = useSnackbar();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const { startConversation: initiateChat, actionLoading: chatLoading } =
+    useChatActions();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -334,6 +338,32 @@ const ListingDetailPage = () => {
     } else {
       // Fallback to user profile if no shop exists
       navigate(`/user/${username}`);
+    }
+  };
+
+  const handleMessageSeller = async () => {
+    if (!isAuthenticated) {
+      showError("Please log in to message the seller");
+      navigate(ROUTES.AUTH.LOGIN, {
+        state: { from: window.location.pathname },
+      });
+      return;
+    }
+
+    const sellerId = seller?.userId?._id || seller?.userId || seller?._id;
+    if (!sellerId) {
+      showError("Unable to identify the seller");
+      return;
+    }
+
+    const result = await initiateChat({
+      recipientId: sellerId.toString(),
+      listingId,
+    });
+
+    if (result) {
+      const convoId = result.conversation?._id || result._id;
+      navigate(ROUTES.CHAT.DETAIL(convoId));
     }
   };
 
@@ -692,17 +722,47 @@ const ListingDetailPage = () => {
                 <Chip label="Verified Merchant" color="success" size="small" />
               )}
             </Box>
-            <Button
-              variant="outlined"
-              onClick={handleViewShop}
+            <Box
               sx={{
-                minWidth: 150,
-                textTransform: "none",
-                fontSize: { xs: "0.875rem", md: "1rem" },
+                display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
+                gap: 1,
               }}
             >
-              Visit {shopSlug ? "Shop" : "Profile"}
-            </Button>
+              {/* Only show Message Seller if it's not the user's own listing */}
+              {isAuthenticated &&
+                String(user?._id) !==
+                  String(
+                    seller?.userId?._id || seller?.userId || seller?._id
+                  ) && (
+                  <Button
+                    variant="contained"
+                    startIcon={<ChatIcon />}
+                    onClick={handleMessageSeller}
+                    disabled={chatLoading === "start"}
+                    sx={{
+                      minWidth: 150,
+                      textTransform: "none",
+                      fontSize: { xs: "0.875rem", md: "1rem" },
+                    }}
+                  >
+                    {chatLoading === "start"
+                      ? "Opening..."
+                      : "Message Seller"}
+                  </Button>
+                )}
+              <Button
+                variant="outlined"
+                onClick={handleViewShop}
+                sx={{
+                  minWidth: 150,
+                  textTransform: "none",
+                  fontSize: { xs: "0.875rem", md: "1rem" },
+                }}
+              >
+                Visit {shopSlug ? "Shop" : "Profile"}
+              </Button>
+            </Box>
           </Box>
         </CardContent>
       </Card>

@@ -146,6 +146,11 @@ export const CONSUMER_NAV = [
     label: "Quote Requests",
     path: ROUTES.QUOTES.INDEX,
   },
+  {
+    icon: ICON_NAMES.CHAT,
+    label: "Messages",
+    path: ROUTES.CHAT.INDEX,
+  },
   { icon: ICON_NAMES.PERSON, label: "Profile", path: ROUTES.PROFILE.INDEX },
   {
     icon: ICON_NAMES.LOCATION,

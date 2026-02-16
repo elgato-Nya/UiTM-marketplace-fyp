@@ -63,6 +63,9 @@ const NotificationType = Object.freeze({
   CONTACT_FORM_SUBMISSION: "contact_form_submission",
   PAYMENT_DISPUTE: "payment_dispute",
   SYSTEM_ALERT: "system_alert",
+
+  // Chat Notifications (In-App Only)
+  NEW_CHAT_MESSAGE: "new_chat_message",
 });
 
 const NotificationCategory = Object.freeze({
@@ -72,6 +75,7 @@ const NotificationCategory = Object.freeze({
   QUOTE: "quote",
   SYSTEM: "system",
   ADMIN: "admin",
+  CHAT: "chat",
 });
 
 const NotificationPriority = Object.freeze({
@@ -352,6 +356,15 @@ const NotificationConfig = Object.freeze({
     channels: ["in_app"],
     icon: "🔔",
     ttlDays: 30,
+  },
+
+  // ==================== CHAT NOTIFICATIONS ====================
+  [NotificationType.NEW_CHAT_MESSAGE]: {
+    category: NotificationCategory.CHAT,
+    priority: NotificationPriority.NORMAL,
+    channels: ["in_app"],
+    icon: "💬",
+    ttlDays: 7,
   },
 });
 

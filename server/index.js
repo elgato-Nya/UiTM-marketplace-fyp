@@ -1,4 +1,5 @@
 const express = require("express");
+const http = require("http");
 const mongoose = require("mongoose");
 const morgan = require("morgan");
 const compression = require("compression");
@@ -43,6 +44,7 @@ const adminUserRoutes = require("./routes/admin/users.route");
 const quoteRoutes = require("./routes/quote/quote.route");
 const payoutRoutes = require("./routes/payout/payout.route");
 const notificationRoutes = require("./routes/notification/notification.route");
+const chatRoutes = require("./routes/chat/chat.route");
 
 logger.info("All route modules loaded successfully", {
   routes: [
@@ -63,6 +65,7 @@ logger.info("All route modules loaded successfully", {
     "quote",
     "payout",
     "notification",
+    "chat",
   ],
 });
 
@@ -134,12 +137,11 @@ app.use("/api/contact", contactRoutes);
 app.use("/api/quotes", quoteRoutes);
 app.use("/api/payouts", payoutRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/chat", chatRoutes);
 
 // Admin routes
 app.use("/api/admin/merchants", adminMerchantRoutes);
-logger.info("✅ Admin merchants route loaded");
 app.use("/api/admin/users", adminUserRoutes);
-logger.info("✅ Admin users route loaded");
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -162,6 +164,12 @@ app.use(globalErrorHandler);
 // Move scheduler functions to module scope for graceful shutdown
 let startAnalyticsScheduler, stopAnalyticsScheduler;
 let startNotificationCleanupScheduler, stopNotificationCleanupScheduler;
+
+// Create HTTP server from Express app (required for Socket.IO attachment)
+const httpServer = http.createServer(app);
+
+// Import socket manager
+const { initializeSocket, closeSocket } = require("./socket");
 
 const startServer = async () => {
   try {
@@ -210,11 +218,15 @@ const startServer = async () => {
       });
     }
 
-    // Start the server AFTER database is fully connected
-    const server = app.listen(PORT, () => {
+    // Initialize Socket.IO on the HTTP server
+    initializeSocket(httpServer);
+
+    // Start the HTTP server AFTER database is fully connected
+    httpServer.listen(PORT, () => {
       logger.info(
         `🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`,
       );
+      logger.info("🔌 Socket.IO attached and listening for connections");
     });
 
     // Graceful shutdown handling
@@ -226,7 +238,8 @@ const startServer = async () => {
       if (stopNotificationCleanupScheduler) {
         stopNotificationCleanupScheduler();
       }
-      server.close(() => {
+      closeSocket();
+      httpServer.close(() => {
         logger.info("Process terminated");
       });
     });
@@ -239,7 +252,8 @@ const startServer = async () => {
       if (stopNotificationCleanupScheduler) {
         stopNotificationCleanupScheduler();
       }
-      server.close(() => {
+      closeSocket();
+      httpServer.close(() => {
         logger.info("Process terminated");
       });
     });
@@ -282,4 +296,4 @@ if (require.main === module) {
   logger.info("Server module loaded (not starting server in this process)");
 }
 
-module.exports = app;
+module.exports = { app, httpServer };

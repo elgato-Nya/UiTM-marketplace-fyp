@@ -10,6 +10,7 @@ const {
   NotificationConfig,
   NotificationCategory,
 } = require("../../utils/enums/notification.enum");
+const { emitToUser } = require("../../socket");
 
 /**
  * Create a notification for a user
@@ -86,6 +87,29 @@ const createNotification = async (notifData) => {
       type,
       category: config.category,
     });
+
+    // Push real-time notification via WebSocket (non-blocking)
+    try {
+      emitToUser(userId, "notification:new", {
+        _id: notification._id,
+        type: notification.type,
+        category: notification.category,
+        priority: notification.priority,
+        title: notification.title,
+        message: notification.message,
+        icon: notification.icon,
+        data: notification.data,
+        read: false,
+        createdAt: notification.createdAt,
+      });
+    } catch (socketErr) {
+      // Socket failure must never block notification creation
+      logger.debug("Socket emit failed for notification", {
+        notificationId: notification._id.toString(),
+        userId: userId.toString(),
+        error: socketErr.message,
+      });
+    }
 
     // Send email for critical notification types (async, non-blocking)
     if (config.channels.includes("email")) {

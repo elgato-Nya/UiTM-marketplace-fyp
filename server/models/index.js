@@ -14,6 +14,7 @@ const { MerchantAnalytics, PlatformAnalytics } = require("./analytic");
 const { QuoteRequest } = require("./quote");
 const { SellerBalance, SellerPayout, BalanceTransaction } = require("./payout");
 const { Notification } = require("./notification");
+const { Conversation, Message } = require("./chat");
 
 module.exports = {
   // User exports
@@ -55,4 +56,8 @@ module.exports = {
 
   // Notification exports
   Notification,
+
+  // Chat exports
+  Conversation,
+  Message,
 };

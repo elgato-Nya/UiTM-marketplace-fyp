@@ -138,13 +138,15 @@ describe("Server Startup Tests", () => {
   describe("Server Application", () => {
     test("should create Express app without errors", () => {
       expect(() => {
-        app = require("../../index.js");
+        const serverModule = require("../../index.js");
+        app = serverModule.app || serverModule;
       }).not.toThrow();
       expect(app).toBeDefined();
     });
 
     test("should have middleware configured", () => {
-      app = require("../../index.js");
+      const serverModule = require("../../index.js");
+      app = serverModule.app || serverModule;
 
       // Check that app has the necessary middleware stack (mocked)
       expect(app._router).toBeDefined();

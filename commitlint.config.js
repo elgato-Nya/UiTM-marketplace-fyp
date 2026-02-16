@@ -18,6 +18,7 @@ module.exports = {
         "analytics", // Analytics & reporting
         "upload", // File/image uploads
         "contact", // Contact & support
+        "chat", // Real-time chat/messaging
 
         // Backend - Infrastructure
         "api", // API endpoints/routes

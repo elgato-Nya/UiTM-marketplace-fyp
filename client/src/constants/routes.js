@@ -110,6 +110,12 @@ export const ROUTES = {
     SUPPORT: "/admin/support",
   },
 
+  // Chat Routes
+  CHAT: {
+    INDEX: "/chat",
+    DETAIL: (id) => `/chat/${id}`,
+  },
+
   // Utility Routes
   SEARCH: "/search",
   BROWSE: "/browse",
@@ -147,6 +153,7 @@ export const MOBILE_AUTH_NAV = {
       label: "Notifications",
       path: ROUTES.NOTIFICATIONS,
     },
+    { icon: "Chat", label: "Messages", path: ROUTES.CHAT.INDEX },
     { icon: "Person", label: "Profile", path: ROUTES.PROFILE.INDEX },
     {
       icon: "LocationOn",

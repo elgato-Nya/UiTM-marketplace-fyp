@@ -369,6 +369,13 @@ export const getProfileNavigation = (roles = []) => {
       description: "View and manage your quote requests for services",
     },
     {
+      id: "chat",
+      icon: ICON_NAMES.CHAT,
+      label: "Messages",
+      path: ROUTES.CHAT.INDEX,
+      description: "View and send messages to other users",
+    },
+    {
       id: "addresses",
       icon: ICON_NAMES.LOCATION,
       label: "Addresses",
@@ -468,6 +475,12 @@ export const getAuthMenuSections = (roles) => {
           path: ROUTES.NOTIFICATIONS,
           show: true,
         },
+        {
+          icon: ICON_NAMES.CHAT,
+          label: "Messages",
+          path: ROUTES.CHAT.INDEX,
+          show: true,
+        },
       ],
     },
 
@@ -542,6 +555,11 @@ export const USER_MENU = {
       path: ROUTES.NOTIFICATIONS,
     },
     {
+      icon: ICON_NAMES.CHAT,
+      label: "Messages",
+      path: ROUTES.CHAT.INDEX,
+    },
+    {
       icon: ICON_NAMES.SETTINGS,
       label: "Account Settings",
       path: ROUTES.SETTINGS,
@@ -585,6 +603,11 @@ export const USER_MENU = {
       path: ROUTES.NOTIFICATIONS,
     },
     {
+      icon: ICON_NAMES.CHAT,
+      label: "Messages",
+      path: ROUTES.CHAT.INDEX,
+    },
+    {
       icon: ICON_NAMES.SETTINGS,
       label: "Account Settings",
       path: ROUTES.SETTINGS,
@@ -612,6 +635,11 @@ export const USER_MENU = {
       path: ROUTES.NOTIFICATIONS,
     },
     {
+      icon: ICON_NAMES.CHAT,
+      label: "Messages",
+      path: ROUTES.CHAT.INDEX,
+    },
+    {
       icon: ICON_NAMES.SETTINGS,
       label: "Account Settings",
       path: ROUTES.SETTINGS,
@@ -635,6 +663,7 @@ export const BREADCRUMB_MAP = {
   [ROUTES.MERCHANT.ORDERS]: "Sales Orders",
   [ROUTES.MERCHANT.QUOTES]: "Quote Requests",
   [ROUTES.MERCHANT.PAYOUTS]: "Payouts",
+  [ROUTES.CHAT.INDEX]: "Messages",
   [ROUTES.MERCHANT.INDEX]: "Merchant Dashboard",
   [ROUTES.ADMIN.INDEX]: "Admin Dashboard",
 };

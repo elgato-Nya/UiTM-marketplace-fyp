@@ -14,6 +14,7 @@ import { store } from "./store/index";
 import { useTheme } from "./hooks/useTheme";
 import { SnackbarProvider } from "./contexts/SnackbarContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import { SocketProvider } from "./contexts/SocketContext";
 
 // Auth Components
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -73,6 +74,9 @@ import PayoutPage from "./pages/Payout/PayoutPage";
 import NotificationsPage from "./pages/Notifications/NotificationsPage";
 import NotificationPreferencesPage from "./pages/Notifications/NotificationPreferencesPage";
 
+// Chat Pages
+import ChatPage from "./pages/Chat/ChatPage";
+
 // Legal Pages
 import { TermsPage, PrivacyPage, CookiePolicyPage } from "./pages/Legal";
 
@@ -86,6 +90,7 @@ function AppContent() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <SnackbarProvider>
+        <SocketProvider>
         <NotificationProvider>
         <Router>
           <ScrollToTop />
@@ -221,6 +226,24 @@ function AppContent() {
                   element={
                     <ProtectedRoute>
                       <NotificationsPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Protected Chat Routes */}
+                <Route
+                  path={ROUTES.CHAT.INDEX}
+                  element={
+                    <ProtectedRoute>
+                      <ChatPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/chat/:conversationId"
+                  element={
+                    <ProtectedRoute>
+                      <ChatPage />
                     </ProtectedRoute>
                   }
                 />
@@ -401,6 +424,7 @@ function AppContent() {
           </SessionProvider>
         </Router>
         </NotificationProvider>
+        </SocketProvider>
       </SnackbarProvider>
     </ThemeProvider>
   );

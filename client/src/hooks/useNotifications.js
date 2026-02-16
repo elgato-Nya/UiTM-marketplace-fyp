@@ -3,28 +3,35 @@ import {
   getUnreadCount as fetchUnreadCount,
   markAllNotificationsAsRead,
 } from "../services/notificationService";
+import { useSocket } from "../contexts/SocketContext";
 
 /**
  * Custom hook for notification state management
  *
- * PURPOSE: Manage unread count polling and notification state
- * PATTERN: Follows useSnackbar.js hook pattern
+ * PURPOSE: Manage unread count via WebSocket push with HTTP fallback
+ * STRATEGY:
+ *   - On mount, fetch current unread count via HTTP (single request)
+ *   - Listen for 'notification:new' socket events for real-time increments
+ *   - Fall back to periodic polling only when socket is disconnected
+ *   - Keep HTTP endpoints for mark-read, delete, and preference operations
  *
  * @param {boolean} isAuthenticated - Whether the user is currently authenticated
  * @param {Object} options - Configuration options
- * @param {number} options.pollingInterval - Polling interval in ms (default 30000)
+ * @param {number} options.fallbackInterval - Polling interval when socket is down (default 60000)
  * @returns {Object} Notification state and actions
  */
 const useNotifications = (isAuthenticated = false, options = {}) => {
-  const { pollingInterval = 30000 } = options;
+  const { fallbackInterval = 60000 } = options;
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const intervalRef = useRef(null);
+  const fallbackRef = useRef(null);
   const isMountedRef = useRef(true);
 
+  const { socket, isConnected } = useSocket();
+
   /**
-   * Fetch unread count from the API
+   * Fetch unread count from the API (used for initial load and fallback)
    */
   const refreshUnreadCount = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -75,29 +82,60 @@ const useNotifications = (isAuthenticated = false, options = {}) => {
     return refreshUnreadCount();
   }, [refreshUnreadCount]);
 
-  // Start/stop polling based on authentication state
+  // Initial HTTP fetch when user authenticates
   useEffect(() => {
     isMountedRef.current = true;
 
     if (isAuthenticated) {
-      // Fetch immediately
       refreshUnreadCount();
-
-      // Set up polling interval
-      intervalRef.current = setInterval(refreshUnreadCount, pollingInterval);
     } else {
-      // Clear state when logged out
       setUnreadCount(0);
     }
 
     return () => {
       isMountedRef.current = false;
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+    };
+  }, [isAuthenticated, refreshUnreadCount]);
+
+  // Listen for real-time notification events via socket
+  useEffect(() => {
+    if (!socket || !isAuthenticated) return;
+
+    const handleNewNotification = () => {
+      if (isMountedRef.current) {
+        setUnreadCount((prev) => prev + 1);
       }
     };
-  }, [isAuthenticated, pollingInterval, refreshUnreadCount]);
+
+    socket.on("notification:new", handleNewNotification);
+
+    return () => {
+      socket.off("notification:new", handleNewNotification);
+    };
+  }, [socket, isAuthenticated]);
+
+  // Fallback polling — only active when socket is disconnected
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Clear any existing fallback timer
+    if (fallbackRef.current) {
+      clearInterval(fallbackRef.current);
+      fallbackRef.current = null;
+    }
+
+    // Only poll when socket is NOT connected
+    if (!isConnected) {
+      fallbackRef.current = setInterval(refreshUnreadCount, fallbackInterval);
+    }
+
+    return () => {
+      if (fallbackRef.current) {
+        clearInterval(fallbackRef.current);
+        fallbackRef.current = null;
+      }
+    };
+  }, [isAuthenticated, isConnected, fallbackInterval, refreshUnreadCount]);
 
   return {
     unreadCount,
@@ -105,6 +143,7 @@ const useNotifications = (isAuthenticated = false, options = {}) => {
     markAllRead,
     decrementUnread,
     forceRefresh,
+    isSocketConnected: isConnected,
   };
 };
 

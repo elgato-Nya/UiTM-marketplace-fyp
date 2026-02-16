@@ -13,6 +13,7 @@ import merchantReducer from "../features/merchant/store/merchantSlice";
 import uploadReducer from "./slice/uploadSlice";
 import quoteReducer from "../features/quote/store/quoteSlice";
 import payoutReducer from "../features/payout/store/payoutSlice";
+import chatReducer from "../features/chat/store/chatSlice";
 import { listingApi } from "../features/listing/api/listingApi";
 
 export const store = configureStore({
@@ -31,6 +32,7 @@ export const store = configureStore({
     upload: uploadReducer,
     quotes: quoteReducer,
     payout: payoutReducer,
+    chat: chatReducer,
     // Add RTK Query API reducer
     [listingApi.reducerPath]: listingApi.reducer,
   },

@@ -908,11 +908,263 @@ const sendContactResponseEmail = async (contact, response) => {
   }
 };
 
+/**
+ * Send notification email for critical notification types
+ * Called by the notification service when a notification has "email" channel
+ * @param {Object} params - { recipientEmail, recipientName, subject, type, title, message, data }
+ * @returns {Promise<Object>} Send result
+ */
+const sendNotificationEmail = async ({
+  recipientEmail,
+  recipientName,
+  subject,
+  type,
+  title,
+  message,
+  data = {},
+}) => {
+  try {
+    if (!recipientEmail) {
+      logger.warn("Cannot send notification email - no recipient email", {
+        type,
+      });
+      return null;
+    }
+
+    const displayName = recipientName || "User";
+    const htmlContent = getNotificationEmailTemplate({
+      displayName,
+      title,
+      message,
+      type,
+      data,
+    });
+
+    const mailOptions = {
+      from: `${process.env.EMAIL_FROM_NAME || "MarKet"} <${process.env.EMAIL_FROM}>`,
+      to: recipientEmail,
+      subject: subject || title,
+      html: htmlContent,
+    };
+
+    let result;
+
+    if (!smtpBlocked) {
+      try {
+        const emailTransporter = initializeTransporter();
+        result = await emailTransporter.sendMail(mailOptions);
+        logger.info(`Notification email sent via SMTP to ${recipientEmail}`, {
+          messageId: result.messageId,
+          type,
+        });
+      } catch (smtpError) {
+        if (
+          smtpError.code === "ESOCKET" ||
+          smtpError.code === "ECONNRESET" ||
+          smtpError.code === "ETIMEDOUT"
+        ) {
+          logger.warn(
+            "SMTP blocked for notification email, switching to AWS SDK",
+            { error: smtpError.code }
+          );
+          smtpBlocked = true;
+          result = await sendEmailViaSdk(mailOptions);
+          logger.info(
+            `Notification email sent via AWS SDK to ${recipientEmail}`,
+            { messageId: result.messageId, type }
+          );
+        } else {
+          throw smtpError;
+        }
+      }
+    } else {
+      result = await sendEmailViaSdk(mailOptions);
+      logger.info(
+        `Notification email sent via AWS SDK to ${recipientEmail}`,
+        { messageId: result.messageId, type }
+      );
+    }
+
+    return result;
+  } catch (error) {
+    logger.error(
+      `Failed to send notification email to ${recipientEmail}: ${error.message}`,
+      { type, title }
+    );
+    // Don't throw - notification emails should not break the main flow
+    return null;
+  }
+};
+
+/**
+ * Generate unified notification email template
+ * @param {Object} params - { displayName, title, message, type, data }
+ * @returns {String} HTML content
+ */
+const getNotificationEmailTemplate = ({
+  displayName,
+  title,
+  message,
+  type,
+  data,
+}) => {
+  // Type-specific accent colors
+  const typeColors = {
+    new_order_received: "#28a745",
+    order_delivered: "#007bff",
+    quote_request_received: "#6f42c1",
+    quote_response_received: "#17a2b8",
+    password_reset: "#d32f2f",
+    security_alert: "#dc3545",
+  };
+
+  const typeIcons = {
+    new_order_received: "\uD83D\uDECD\uFE0F",
+    order_delivered: "\u2705",
+    quote_request_received: "\uD83D\uDCAC",
+    quote_response_received: "\uD83D\uDCAC",
+    password_reset: "\uD83D\uDD10",
+    security_alert: "\u26A0\uFE0F",
+  };
+
+  const accentColor = typeColors[type] || "#007bff";
+  const icon = typeIcons[type] || "\uD83D\uDD14";
+
+  // Build CTA button if applicable
+  let ctaHtml = "";
+  const clientUrl = process.env.CLIENT_URL || "";
+
+  if (type === "new_order_received" && data.orderId) {
+    ctaHtml = `
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${clientUrl}/orders/${data.orderId}" style="background: ${accentColor}; color: white; padding: 14px 32px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+          View Order Details
+        </a>
+      </div>`;
+  } else if (type === "order_delivered" && data.orderId) {
+    ctaHtml = `
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${clientUrl}/orders/${data.orderId}" style="background: ${accentColor}; color: white; padding: 14px 32px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+          View Delivery Details
+        </a>
+      </div>`;
+  } else if (
+    (type === "quote_request_received" || type === "quote_response_received") &&
+    data.quoteId
+  ) {
+    ctaHtml = `
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${clientUrl}/quotes/${data.quoteId}" style="background: ${accentColor}; color: white; padding: 14px 32px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+          View Quote
+        </a>
+      </div>`;
+  }
+
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; background: #f5f5f5;">
+      <div style="background: ${accentColor}; color: white; padding: 24px; text-align: center; border-radius: 8px 8px 0 0;">
+        <div style="font-size: 36px; margin-bottom: 8px;">${icon}</div>
+        <h1 style="margin: 0; font-size: 22px;">${title}</h1>
+        <p style="margin: 4px 0 0 0; opacity: 0.9; font-size: 13px;">MarKet Platform</p>
+      </div>
+      <div style="background: white; padding: 28px; border-radius: 0 0 8px 8px;">
+        <p style="margin-top: 0;">Hi <strong>${displayName}</strong>,</p>
+        <p style="color: #444; line-height: 1.6;">${message}</p>
+        ${ctaHtml}
+        <hr style="border: none; border-top: 1px solid #eee; margin: 28px 0;">
+        <p style="color: #999; font-size: 12px; text-align: center; margin-bottom: 0;">
+          This is an automated notification from MarKet. You can manage your notification preferences in your account settings.
+        </p>
+      </div>
+    </div>
+  `;
+};
+
+/**
+ * Send merchant approval email
+ * @param {Object} merchant - Merchant user object
+ * @param {String} note - Optional admin note
+ */
+const sendMerchantApprovalEmail = async (merchant, note) => {
+  return sendNotificationEmail({
+    recipientEmail: merchant.email,
+    recipientName:
+      merchant.merchantDetails?.shopName ||
+      merchant.profile?.username ||
+      "Merchant",
+    subject: "Your Shop Has Been Verified - MarKet",
+    type: "merchant_verified",
+    title: "Shop Verified!",
+    message: `Congratulations! Your shop "${merchant.merchantDetails?.shopName || "your shop"}" has been verified and is now active on MarKet. You can start listing products and accepting orders.${note ? `<br><br><strong>Admin Note:</strong> ${note}` : ""}`,
+    data: { shopName: merchant.merchantDetails?.shopName },
+  });
+};
+
+/**
+ * Send merchant rejection email
+ * @param {Object} merchant - Merchant user object
+ * @param {String} reason - Rejection reason
+ */
+const sendMerchantRejectionEmail = async (merchant, reason) => {
+  return sendNotificationEmail({
+    recipientEmail: merchant.email,
+    recipientName:
+      merchant.profile?.username || "Merchant",
+    subject: "Verification Update - MarKet",
+    type: "merchant_rejected",
+    title: "Verification Not Approved",
+    message: `We've reviewed your shop verification request and unfortunately it was not approved at this time.<br><br><strong>Reason:</strong> ${reason}<br><br>Please review the requirements and consider resubmitting your verification.`,
+    data: { shopName: merchant.merchantDetails?.shopName, reason },
+  });
+};
+
+/**
+ * Send merchant suspension email
+ * @param {Object} merchant - Merchant user object
+ * @param {String} reason - Suspension reason
+ */
+const sendMerchantSuspensionEmail = async (merchant, reason) => {
+  return sendNotificationEmail({
+    recipientEmail: merchant.email,
+    recipientName:
+      merchant.profile?.username || "Merchant",
+    subject: "Account Suspended - MarKet",
+    type: "security_alert",
+    title: "Account Suspended",
+    message: `Your shop "${merchant.merchantDetails?.shopName || "your shop"}" has been suspended.<br><br><strong>Reason:</strong> ${reason}<br><br>If you believe this is a mistake, please contact our support team for assistance.`,
+    data: { shopName: merchant.merchantDetails?.shopName, reason },
+  });
+};
+
+/**
+ * Send merchant reactivation email
+ * @param {Object} merchant - Merchant user object
+ */
+const sendMerchantReactivationEmail = async (merchant) => {
+  return sendNotificationEmail({
+    recipientEmail: merchant.email,
+    recipientName:
+      merchant.merchantDetails?.shopName ||
+      merchant.profile?.username ||
+      "Merchant",
+    subject: "Account Reactivated - MarKet",
+    type: "merchant_verified",
+    title: "Account Reactivated",
+    message: `Great news! Your shop "${merchant.merchantDetails?.shopName || "your shop"}" has been reactivated. You can now resume listing products and accepting orders on MarKet.`,
+    data: { shopName: merchant.merchantDetails?.shopName },
+  });
+};
+
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendMerchantVerificationEmail,
   sendContactResponseEmail,
+  sendNotificationEmail,
+  sendMerchantApprovalEmail,
+  sendMerchantRejectionEmail,
+  sendMerchantSuspensionEmail,
+  sendMerchantReactivationEmail,
   initializeTransporter,
   testConnection,
   handleSesError,

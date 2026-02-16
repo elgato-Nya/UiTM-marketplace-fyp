@@ -18,6 +18,12 @@ const {
   handleStatusSideEffects,
 } = require("./order.helpers");
 const logger = require("../../utils/logger");
+const {
+  createNotification,
+} = require("../notification/notification.service");
+const {
+  NotificationType,
+} = require("../../utils/enums/notification.enum");
 
 const createOrder = async (userId, orderData) => {
   try {
@@ -329,6 +335,34 @@ const createOrder = async (userId, orderData) => {
     if (stockUpdates.length > 0) {
       await Promise.all(stockUpdates);
     }
+
+    // Fire-and-forget notification triggers
+    Promise.allSettled([
+      createNotification({
+        userId: seller._id,
+        type: NotificationType.NEW_ORDER_RECEIVED,
+        title: "New Order Received!",
+        message: `Order #${order.orderNumber} from ${buyer.profile.username} — RM ${totalAmount.toFixed(2)}`,
+        data: {
+          referenceId: order._id,
+          referenceModel: "Order",
+          actionUrl: `/merchant/orders/${order._id}`,
+          extra: { orderNumber: order.orderNumber, amount: totalAmount },
+        },
+      }),
+      createNotification({
+        userId: buyer._id,
+        type: NotificationType.ORDER_PLACED,
+        title: "Order Placed Successfully",
+        message: `Your order #${order.orderNumber} has been placed with ${sellerDisplayName}`,
+        data: {
+          referenceId: order._id,
+          referenceModel: "Order",
+          actionUrl: `/orders/${order._id}`,
+          extra: { orderNumber: order.orderNumber, amount: totalAmount },
+        },
+      }),
+    ]).catch((err) => logger.error("Failed to send order creation notifications", { error: err.message }));
 
     // Convert address enum keys to values for client response
     const orderObj = order.toObject();
@@ -702,6 +736,22 @@ const cancelOrder = async (orderId, userId, reason, description = "") => {
       restoredItems: order.items.length,
       action: "cancel_order",
     });
+
+    // Notify the other party about cancellation (fire-and-forget)
+    const recipientId = isBuyer ? order.seller.userId : order.buyer.userId;
+    const cancelledByName = isBuyer ? order.buyer.username : order.seller.name;
+    createNotification({
+      userId: recipientId,
+      type: NotificationType.ORDER_CANCELLED,
+      title: "Order Cancelled",
+      message: `Order #${order.orderNumber} was cancelled by ${cancelledByName}. Reason: ${reason}`,
+      data: {
+        referenceId: order._id,
+        referenceModel: "Order",
+        actionUrl: isBuyer ? `/merchant/orders/${order._id}` : `/orders/${order._id}`,
+        extra: { orderNumber: order.orderNumber, cancelledBy: userId.toString() },
+      },
+    }).catch((err) => logger.error("Failed to send cancellation notification", { error: err.message }));
 
     // Convert address enum keys to values for client response
     const orderObj = order.toObject();

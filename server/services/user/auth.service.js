@@ -14,6 +14,8 @@ const {
   sendPasswordResetEmail,
   initializeTransporter,
 } = require("../email.service");
+const { createNotification } = require("../notification/notification.service");
+const { NotificationType } = require("../../utils/enums/notification.enum");
 
 const createUser = async (userData, password) => {
   try {
@@ -84,6 +86,20 @@ const createUser = async (userData, password) => {
 
     const user = new User(completedData);
     await user.save({ validateBeforeSave: false });
+
+    // Fire-and-forget: send welcome notification
+    createNotification({
+      userId: user._id,
+      type: NotificationType.WELCOME,
+      title: "Welcome to MarKet!",
+      message: `Hi ${user.profile?.username || "there"}, welcome to the MarKet platform. Start exploring products and services!`,
+      data: { isUiTMVerified: !!isUiTMEmail },
+    }).catch((err) =>
+      logger.error("Failed to send welcome notification", {
+        error: err.message,
+        userId: user._id,
+      })
+    );
 
     return user;
   } catch (error) {
@@ -321,6 +337,20 @@ const verifyEmail = async (email, token) => {
       "emailVerification.tokenExpires": null,
     });
 
+    // Fire-and-forget: send email verified notification
+    createNotification({
+      userId: user._id,
+      type: NotificationType.EMAIL_VERIFIED,
+      title: "Email Verified",
+      message: "Your email address has been successfully verified. You now have full access to all features.",
+      data: { email },
+    }).catch((err) =>
+      logger.error("Failed to send email verified notification", {
+        error: err.message,
+        userId: user._id,
+      })
+    );
+
     logger.auth("Email verified successfully", user._id, { email });
     return true;
   } catch (error) {
@@ -460,6 +490,20 @@ const resetPassword = async (email, token, newPassword) => {
     user.isActive = false;
 
     await user.save();
+
+    // Fire-and-forget: send password changed notification
+    createNotification({
+      userId: user._id,
+      type: NotificationType.PASSWORD_CHANGED,
+      title: "Password Changed",
+      message: "Your password has been reset successfully. If you did not initiate this change, please contact support immediately.",
+      data: { email: user.email, resetAt: new Date().toISOString() },
+    }).catch((err) =>
+      logger.error("Failed to send password changed notification", {
+        error: err.message,
+        userId: user._id,
+      })
+    );
 
     logger.info("Password reset successfully", {
       action: "resetPassword",

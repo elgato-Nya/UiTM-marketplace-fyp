@@ -32,6 +32,14 @@ const {
   ContactValidator,
   contactValidatorMessages,
 } = require("./contact/contact.validator");
+const {
+  QuoteValidator,
+  quoteErrorMessages,
+} = require("./quote/quote.validator");
+const {
+  PayoutValidator,
+  payoutErrorMessages,
+} = require("./payout/payout.validator");
 
 module.exports = {
   // User-related validators
@@ -69,4 +77,12 @@ module.exports = {
   // Contact validators
   ContactValidator,
   contactValidatorMessages,
+
+  // Quote validators
+  QuoteValidator,
+  quoteErrorMessages,
+
+  // Payout validators
+  PayoutValidator,
+  payoutErrorMessages,
 };

@@ -4,6 +4,8 @@ const { AppError } = require("../../utils/errors");
 const BaseController = require("../base.controller");
 const asyncHandler = require("../../utils/asyncHandler");
 const Fuse = require("fuse.js");
+const { createNotification } = require("../../services/notification/notification.service");
+const { NotificationType } = require("../../utils/enums/notification.enum");
 
 /**
  * Admin Merchant Management Controller
@@ -220,6 +222,24 @@ const handleVerifyMerchant = asyncHandler(async (req, res) => {
     shopName: merchant.merchantDetails.shopName,
   });
 
+  // Fire-and-forget: notify merchant of verification approval
+  createNotification({
+    userId: merchant._id,
+    type: NotificationType.MERCHANT_VERIFIED,
+    title: "Shop Verified!",
+    message: `Congratulations! Your shop "${merchant.merchantDetails.shopName}" has been verified. You can now list products and start selling.`,
+    data: {
+      shopName: merchant.merchantDetails.shopName,
+      verifiedBy: req.user._id,
+      note: note || null,
+    },
+  }).catch((err) =>
+    logger.error("Failed to send merchant verified notification", {
+      error: err.message,
+      userId: userId.toString(),
+    })
+  );
+
   return baseController.sendSuccess(res, {
     message: "Merchant verified successfully",
     merchant: {
@@ -279,6 +299,24 @@ const handleRejectMerchant = asyncHandler(async (req, res) => {
     reason,
   });
 
+  // Fire-and-forget: notify merchant of verification rejection
+  createNotification({
+    userId: merchant._id,
+    type: NotificationType.MERCHANT_REJECTED,
+    title: "Verification Rejected",
+    message: `Your shop verification has been rejected. Reason: ${reason}. Please review the requirements and resubmit.`,
+    data: {
+      shopName: merchant.merchantDetails.shopName,
+      rejectedBy: req.user._id,
+      reason,
+    },
+  }).catch((err) =>
+    logger.error("Failed to send merchant rejected notification", {
+      error: err.message,
+      userId: userId.toString(),
+    })
+  );
+
   return baseController.sendSuccess(res, {
     message: "Merchant rejected",
     merchant: {
@@ -336,6 +374,24 @@ const handleSuspendMerchant = asyncHandler(async (req, res) => {
     shopName: merchant.merchantDetails.shopName,
     reason,
   });
+
+  // Fire-and-forget: notify merchant of account suspension
+  createNotification({
+    userId: merchant._id,
+    type: NotificationType.ACCOUNT_SUSPENDED,
+    title: "Account Suspended",
+    message: `Your shop "${merchant.merchantDetails.shopName}" has been suspended. Reason: ${reason}. Contact support for assistance.`,
+    data: {
+      shopName: merchant.merchantDetails.shopName,
+      suspendedBy: req.user._id,
+      reason,
+    },
+  }).catch((err) =>
+    logger.error("Failed to send account suspended notification", {
+      error: err.message,
+      userId: userId.toString(),
+    })
+  );
 
   return baseController.sendSuccess(res, {
     message: "Merchant suspended",
@@ -405,6 +461,23 @@ const handleReactivateMerchant = asyncHandler(async (req, res) => {
     adminId: req.user._id.toString(),
     shopName: merchant.merchantDetails.shopName,
   });
+
+  // Fire-and-forget: notify merchant of account reactivation
+  createNotification({
+    userId: merchant._id,
+    type: NotificationType.MERCHANT_VERIFIED,
+    title: "Account Reactivated",
+    message: `Your shop "${merchant.merchantDetails.shopName}" has been reactivated. You can now resume selling on MarKet.`,
+    data: {
+      shopName: merchant.merchantDetails.shopName,
+      reactivatedBy: req.user._id,
+    },
+  }).catch((err) =>
+    logger.error("Failed to send account reactivated notification", {
+      error: err.message,
+      userId: userId.toString(),
+    })
+  );
 
   return baseController.sendSuccess(res, {
     message: "Merchant reactivated",

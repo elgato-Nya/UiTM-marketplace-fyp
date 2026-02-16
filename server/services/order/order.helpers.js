@@ -1,6 +1,13 @@
 const { User } = require("../../models");
 const logger = require("../../utils/logger");
 const { DeliveryMethod, AddressType } = require("../../utils/enums/order.enum");
+const payoutService = require("../payout");
+const {
+  createNotification,
+} = require("../notification/notification.service");
+const {
+  NotificationType,
+} = require("../../utils/enums/notification.enum");
 
 /**
  * PLATFORM DEFAULT DELIVERY FEES
@@ -37,7 +44,7 @@ const DELIVERY_METHOD_MAP = {
 const calculateDeliveryFee = async (
   deliveryMethod,
   merchantId,
-  orderTotal = 0
+  orderTotal = 0,
 ) => {
   try {
     // Map delivery method to address type (fee category)
@@ -55,7 +62,7 @@ const calculateDeliveryFee = async (
 
     // Fetch merchant (with deliveryFees)
     const merchant = await User.findById(merchantId).select(
-      "merchantDetails.deliveryFees"
+      "merchantDetails.deliveryFees",
     );
 
     // If merchant not found, fallback to platform defaults
@@ -151,7 +158,7 @@ const validateCampusDelivery = async (merchantId, campusKey) => {
 
     // Fetch merchant deliverable campuses
     const merchant = await User.findById(merchantId).select(
-      "merchantDetails.deliverableCampuses merchantDetails.shopName"
+      "merchantDetails.deliverableCampuses merchantDetails.shopName",
     );
 
     if (!merchant || !merchant.merchantDetails) {
@@ -173,7 +180,7 @@ const validateCampusDelivery = async (merchantId, campusKey) => {
           shopName,
           requestedCampus: campusKey,
           action: "validate_campus_delivery",
-        }
+        },
       );
       return { valid: true, reason: null };
     }
@@ -220,34 +227,102 @@ const handleStatusSideEffects = async (order, newStatus) => {
   try {
     switch (newStatus) {
       case "shipped":
-        // Could trigger shipping notifications
         logger.info("Order shipped", {
           orderId: order._id,
           orderNumber: order.orderNumber,
           action: "status_side_effect",
         });
+        // Notify buyer that order has been shipped
+        createNotification({
+          userId: order.buyer.userId,
+          type: NotificationType.ORDER_SHIPPED,
+          title: "Order Shipped! 🚚",
+          message: `Your order #${order.orderNumber} has been shipped by ${order.seller.name}`,
+          data: {
+            referenceId: order._id,
+            referenceModel: "Order",
+            actionUrl: `/orders/${order._id}`,
+            extra: { orderNumber: order.orderNumber },
+          },
+        }).catch((err) => logger.error("Failed to send shipped notification", { error: err.message }));
         break;
 
       case "delivered":
-        // Could trigger delivery confirmations
         logger.info("Order delivered", {
           orderId: order._id,
           orderNumber: order.orderNumber,
           action: "status_side_effect",
         });
+        // Notify buyer that order was delivered (EMAIL + In-App - critical)
+        createNotification({
+          userId: order.buyer.userId,
+          type: NotificationType.ORDER_DELIVERED,
+          title: "Order Delivered! ✅",
+          message: `Your order #${order.orderNumber} has been delivered. Enjoy your purchase!`,
+          data: {
+            referenceId: order._id,
+            referenceModel: "Order",
+            actionUrl: `/orders/${order._id}`,
+            extra: { orderNumber: order.orderNumber },
+          },
+        }).catch((err) => logger.error("Failed to send delivery notification", { error: err.message }));
         break;
 
       case "completed":
         // Update merchant revenue and sales metrics
         const sellerId = order.seller?.userId;
         if (sellerId) {
+          const orderTotal = order.totalAmount || 0;
+          const platformFeeRate = 0.05; // 5% platform fee
+
+          // Add earnings to seller balance (payout system)
+          try {
+            await payoutService.addEarnings(
+              sellerId,
+              order._id,
+              order.orderNumber,
+              orderTotal,
+              platformFeeRate,
+            );
+            logger.info("Seller earnings added to balance", {
+              orderId: order._id,
+              orderNumber: order.orderNumber,
+              sellerId: sellerId.toString(),
+              grossAmount: orderTotal,
+              platformFeeRate,
+              netAmount: orderTotal * (1 - platformFeeRate),
+              action: "status_side_effect",
+            });
+
+            // Notify seller that earnings have been credited
+            createNotification({
+              userId: sellerId,
+              type: NotificationType.PAYOUT_PROCESSED,
+              title: "Earnings Credited 💳",
+              message: `RM ${(orderTotal * (1 - platformFeeRate)).toFixed(2)} credited from order #${order.orderNumber}`,
+              data: {
+                referenceId: order._id,
+                referenceModel: "Order",
+                actionUrl: `/merchant/dashboard`,
+                extra: { orderNumber: order.orderNumber, net: orderTotal * (1 - platformFeeRate) },
+              },
+            }).catch((err) => logger.error("Failed to send earnings notification", { error: err.message }));
+          } catch (earningsError) {
+            logger.error("Failed to add earnings to seller balance", {
+              orderId: order._id,
+              sellerId: sellerId.toString(),
+              error: earningsError.message,
+              action: "status_side_effect",
+            });
+          }
+
+          // Update merchant shop metrics
           const seller = await User.findById(sellerId);
           if (seller && seller.merchantDetails?.shopMetrics) {
-            const orderTotal = order.totalAmount || 0;
             const itemsSold =
               order.items?.reduce(
                 (sum, item) => sum + (item.quantity || 1),
-                0
+                0,
               ) || 0;
 
             // Increment revenue and sales

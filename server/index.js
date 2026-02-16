@@ -40,6 +40,9 @@ const analyticsRoutes = require("./routes/analytic/analytics.route");
 const contactRoutes = require("./routes/contact/contact.route");
 const adminMerchantRoutes = require("./routes/admin/merchant.routes");
 const adminUserRoutes = require("./routes/admin/users.route");
+const quoteRoutes = require("./routes/quote/quote.route");
+const payoutRoutes = require("./routes/payout/payout.route");
+const notificationRoutes = require("./routes/notification/notification.route");
 
 logger.info("All route modules loaded successfully", {
   routes: [
@@ -57,6 +60,9 @@ logger.info("All route modules loaded successfully", {
     "contact",
     "admin/merchants",
     "admin/users",
+    "quote",
+    "payout",
+    "notification",
   ],
 });
 
@@ -109,7 +115,7 @@ app.use(
       // Use compression default filter
       return compression.filter(req, res);
     },
-  })
+  }),
 );
 
 // ================== API ROUTES ========================
@@ -125,6 +131,9 @@ app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/checkout", checkoutRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/quotes", quoteRoutes);
+app.use("/api/payouts", payoutRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Admin routes
 app.use("/api/admin/merchants", adminMerchantRoutes);
@@ -152,57 +161,59 @@ app.use(globalErrorHandler);
 // ================== START SERVER ========================
 // Move scheduler functions to module scope for graceful shutdown
 let startAnalyticsScheduler, stopAnalyticsScheduler;
+let startNotificationCleanupScheduler, stopNotificationCleanupScheduler;
 
 const startServer = async () => {
   try {
     logger.info("Starting e-commerce server...");
 
-    // Try to connect to database, but don't fail if it's not available in development
+    // Import scheduler functions BEFORE connection attempt
+    const analyticsJob = require("./jobs/analytics.job");
+    startAnalyticsScheduler = analyticsJob.startAnalyticsScheduler;
+    stopAnalyticsScheduler = analyticsJob.stopAnalyticsScheduler;
+
+    const notificationJob = require("./jobs/notification.job");
+    startNotificationCleanupScheduler = notificationJob.startNotificationCleanupScheduler;
+    stopNotificationCleanupScheduler = notificationJob.stopNotificationCleanupScheduler;
+
+    // Connect to database and wait for it to be fully ready
+    await database.connect();
+    
+    // Wait for connection to be fully ready before starting server
+    if (mongoose.connection.readyState !== 1) {
+      logger.info("Waiting for MongoDB connection to be ready...");
+      await new Promise((resolve) => {
+        mongoose.connection.once("open", resolve);
+      });
+    }
+    
+    logger.info("MongoDB connection ready");
+
+    // Start analytics scheduler after successful connection
     try {
-      // Import scheduler functions BEFORE connection attempt
-      const analyticsJob = require("./jobs/analytics.job");
-      startAnalyticsScheduler = analyticsJob.startAnalyticsScheduler;
-      stopAnalyticsScheduler = analyticsJob.stopAnalyticsScheduler;
-
-      // Connect to database and wait for it to be fully ready
-      await database.connect();
-
-      // Start analytics scheduler after successful connection
-      try {
-        // Check if connection is ready (might already be open)
-        if (mongoose.connection.readyState === 1) {
-          logger.info("MongoDB connected, starting analytics scheduler...");
-          startAnalyticsScheduler();
-        } else {
-          // If not ready yet, wait for 'open' event
-          mongoose.connection.once("open", () => {
-            logger.info("MongoDB ready, starting analytics scheduler...");
-            startAnalyticsScheduler();
-          });
-        }
-      } catch (schedulerError) {
-        // Scheduler error should not crash the server
-        logger.warn("Analytics scheduler failed to start", {
-          error: schedulerError.message,
-        });
-      }
-    } catch (dbError) {
-      if (process.env.NODE_ENV === "development") {
-        logger.warn(
-          "Database connection failed in development mode, continuing without database",
-          {
-            error: dbError.message,
-          }
-        );
-      } else {
-        throw dbError; // In production, database is required
-      }
+      logger.info("Starting analytics scheduler...");
+      startAnalyticsScheduler();
+    } catch (schedulerError) {
+      // Scheduler error should not crash the server
+      logger.warn("Analytics scheduler failed to start", {
+        error: schedulerError.message,
+      });
     }
 
-    // Start the server
+    // Start notification cleanup scheduler
+    try {
+      logger.info("Starting notification cleanup scheduler...");
+      startNotificationCleanupScheduler();
+    } catch (schedulerError) {
+      logger.warn("Notification cleanup scheduler failed to start", {
+        error: schedulerError.message,
+      });
+    }
+
+    // Start the server AFTER database is fully connected
     const server = app.listen(PORT, () => {
       logger.info(
-        `🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
+        `🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`,
       );
     });
 
@@ -211,6 +222,9 @@ const startServer = async () => {
       logger.info("SIGTERM received, shutting down gracefully");
       if (stopAnalyticsScheduler) {
         stopAnalyticsScheduler();
+      }
+      if (stopNotificationCleanupScheduler) {
+        stopNotificationCleanupScheduler();
       }
       server.close(() => {
         logger.info("Process terminated");
@@ -221,6 +235,9 @@ const startServer = async () => {
       logger.info("SIGINT received, shutting down gracefully");
       if (stopAnalyticsScheduler) {
         stopAnalyticsScheduler();
+      }
+      if (stopNotificationCleanupScheduler) {
+        stopNotificationCleanupScheduler();
       }
       server.close(() => {
         logger.info("Process terminated");

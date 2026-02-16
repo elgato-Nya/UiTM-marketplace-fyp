@@ -236,18 +236,18 @@ The search and notification systems enable users to discover content efficiently
 
 **Purpose:** Keep users informed of important events
 
-**Status:** 🚧 Future Enhancement
+**Status:** ✅ Implemented (Phase 1 — Polling + Email)
 
-### Planned Features
+### Features
 
-| Feature                  | Description        | Priority |
-| ------------------------ | ------------------ | -------- |
-| In-App Notifications     | Bell icon alerts   | High     |
-| Email Notifications      | Important events   | High     |
-| Push Notifications       | Mobile alerts      | Medium   |
-| Notification Preferences | User settings      | High     |
-| Real-time Updates        | Live notifications | Medium   |
-| Notification History     | Past notifications | Medium   |
+| Feature                  | Description        | Status          |
+| ------------------------ | ------------------ | --------------- |
+| In-App Notifications     | Bell icon alerts   | ✅ Implemented  |
+| Email Notifications      | 6 critical types   | ✅ Implemented  |
+| Push Notifications       | Mobile alerts      | 🚧 Phase 2      |
+| Notification Preferences | Per-category control | ✅ Implemented |
+| Real-time Updates        | Socket.io          | 🚧 Phase 2 (polling now) |
+| Notification History     | 30-day retention   | ✅ Implemented  |
 
 ### Notification Types
 
@@ -340,16 +340,17 @@ The search and notification systems enable users to discover content efficiently
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Technical Implementation (Planned)
+### Technical Implementation
 
-| Component   | Technology                       |
-| ----------- | -------------------------------- |
-| In-App      | WebSocket (Socket.io)            |
-| Email       | Nodemailer + Templates           |
-| Push        | Firebase Cloud Messaging         |
-| Queue       | Bull + Redis                     |
-| Storage     | MongoDB notifications collection |
-| Preferences | User document embedded           |
+| Component   | Technology                       | Status         |
+| ----------- | -------------------------------- | -------------- |
+| In-App      | Polling (30s) → Socket.io later  | ✅ Implemented |
+| Email       | Nodemailer + AWS SES (6 types)   | ✅ Implemented |
+| Push        | Firebase Cloud Messaging         | 🚧 Phase 2    |
+| Queue       | Bull + Redis                     | 🚧 Phase 2    |
+| Storage     | MongoDB notifications collection | ✅ Implemented |
+| Preferences | User document embedded           | ✅ Implemented |
+| Cleanup     | Cron job (30-day TTL)            | ✅ Implemented |
 
 ### Notification Data Model
 
@@ -385,16 +386,18 @@ The search and notification systems enable users to discover content efficiently
 | `GET`  | `/api/search/popular`     | Popular searches    |
 | `GET`  | `/api/search/history`     | User search history |
 
-### Notifications (Planned)
+### Notifications (✅ Implemented)
 
-| Method   | Endpoint                         | Description            |
-| -------- | -------------------------------- | ---------------------- |
-| `GET`    | `/api/notifications`             | Get user notifications |
-| `PATCH`  | `/api/notifications/:id/read`    | Mark as read           |
-| `PATCH`  | `/api/notifications/read-all`    | Mark all read          |
-| `DELETE` | `/api/notifications/:id`         | Delete notification    |
-| `GET`    | `/api/notifications/preferences` | Get preferences        |
-| `PATCH`  | `/api/notifications/preferences` | Update preferences     |
+| Method   | Endpoint                         | Description            | Status |
+| -------- | -------------------------------- | ---------------------- | ------ |
+| `GET`    | `/api/notifications`             | Get user notifications | ✅     |
+| `GET`    | `/api/notifications/unread`      | Get unread count       | ✅     |
+| `PATCH`  | `/api/notifications/:id/read`    | Mark as read           | ✅     |
+| `PATCH`  | `/api/notifications/read-all`    | Mark all read          | ✅     |
+| `DELETE` | `/api/notifications/:id`         | Delete notification    | ✅     |
+| `DELETE` | `/api/notifications/read`        | Delete all read        | ✅     |
+| `GET`    | `/api/notifications/preferences` | Get preferences        | ✅     |
+| `PUT`    | `/api/notifications/preferences` | Update preferences     | ✅     |
 
 ---
 
@@ -405,13 +408,25 @@ The search and notification systems enable users to discover content efficiently
 - `client/src/components/search/SearchBar.js`
 - `client/src/components/search/SearchResults.js`
 - `client/src/components/filters/FilterSidebar.js`
-- `client/src/components/notifications/` (planned)
+- `client/src/services/notificationService.js`
+- `client/src/hooks/useNotification.js`
+- `client/src/contexts/NotificationContext.js`
+- `client/src/components/notification/NotificationItem.js`
+- `client/src/components/notification/NotificationDropdown.js`
+- `client/src/pages/Notifications/NotificationsPage.js`
+- `client/src/pages/Notifications/NotificationPreferencesPage.js`
 
 ### Server-Side
 
 - `server/controllers/listing/search.controller.js`
 - `server/services/search.service.js`
-- `server/services/notification.service.js` (planned)
+- `server/utils/enums/notification.enum.js`
+- `server/models/notification/notification.model.js`
+- `server/services/notification/notification.service.js`
+- `server/controllers/notification/notification.controller.js`
+- `server/validators/notification.validator.js`
+- `server/routes/notification.routes.js`
+- `server/jobs/notification-cleanup.job.js`
 
 ---
 

@@ -245,6 +245,35 @@ const UserSchema = new mongoose.Schema(
     suspensionReason: { type: String, trim: true },
     requirePasswordChange: { type: Boolean, default: false },
 
+    // ======================   Notification Preferences   ========================
+    notificationPreferences: {
+      enabled: { type: Boolean, default: true },
+      order: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: true },
+      },
+      shopping: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: false },
+      },
+      merchant: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: true },
+      },
+      quote: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: true },
+      },
+      system: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: true },
+      },
+      admin: {
+        inApp: { type: Boolean, default: true },
+        email: { type: Boolean, default: false },
+      },
+    },
+
     emailVerification: {
       isVerified: { type: Boolean, default: false },
       token: { type: String, select: false },

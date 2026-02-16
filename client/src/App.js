@@ -13,6 +13,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { store } from "./store/index";
 import { useTheme } from "./hooks/useTheme";
 import { SnackbarProvider } from "./contexts/SnackbarContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 
 // Auth Components
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -50,6 +51,7 @@ import AdminDashboardPage from "./pages/Admin/AdminDashboardPage";
 import MerchantVerificationPage from "./pages/Admin/MerchantVerificationPage";
 import UserManagementPage from "./pages/Admin/UserManagementPage";
 import ContactManagementPage from "./pages/Admin/ContactManagementPage";
+import AdminPayoutPage from "./pages/Admin/AdminPayoutPage";
 import PlaceholderPage from "./pages/Admin/PlaceholderPage";
 import MyStorePage from "./pages/Merchant/MyStorePage";
 import ShopProfilePage from "./pages/Merchant/ShopProfilePage";
@@ -60,6 +62,16 @@ import NekodezPage from "./pages/About/NekodezPage";
 import ContactUsPage from "./pages/Contact/ContactUsPage";
 import NotFoundPage from "./pages/NotFound/NotFoundPage";
 import ScrollToTop from "./components/common/ScrollToTop";
+
+// Quote Pages
+import { MyQuotesPage, SellerQuotesPage } from "./pages/Quote";
+
+// Payout Pages
+import PayoutPage from "./pages/Payout/PayoutPage";
+
+// Notification Pages
+import NotificationsPage from "./pages/Notifications/NotificationsPage";
+import NotificationPreferencesPage from "./pages/Notifications/NotificationPreferencesPage";
 
 // Legal Pages
 import { TermsPage, PrivacyPage, CookiePolicyPage } from "./pages/Legal";
@@ -74,6 +86,7 @@ function AppContent() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <SnackbarProvider>
+        <NotificationProvider>
         <Router>
           <ScrollToTop />
           <SessionProvider>
@@ -179,7 +192,7 @@ function AppContent() {
                 >
                   <Route index element={<ProfilePage />} />
                   <Route path="addresses" element={<AddressesPage />} />
-                  <Route path="notifications" element={<PlaceholderPage />} />
+                  <Route path="notifications" element={<NotificationsPage />} />
                 </Route>
 
                 {/* Protected Settings Route */}
@@ -187,7 +200,17 @@ function AppContent() {
                   path={ROUTES.SETTINGS}
                   element={
                     <ProtectedRoute>
-                      <PlaceholderPage />
+                      <NotificationPreferencesPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Protected Notification Preferences Route */}
+                <Route
+                  path="/notifications/preferences"
+                  element={
+                    <ProtectedRoute>
+                      <NotificationPreferencesPage />
                     </ProtectedRoute>
                   }
                 />
@@ -197,7 +220,7 @@ function AppContent() {
                   path={ROUTES.NOTIFICATIONS}
                   element={
                     <ProtectedRoute>
-                      <PlaceholderPage />
+                      <NotificationsPage />
                     </ProtectedRoute>
                   }
                 />
@@ -219,6 +242,19 @@ function AppContent() {
                 >
                   <Route path="purchases" element={<PurchasesPage />} />
                   <Route path=":orderId" element={<OrderDetailPage />} />
+                </Route>
+
+                {/* Protected Quote Routes - Buyer Only */}
+                <Route
+                  path={ROUTES.QUOTES.INDEX}
+                  element={
+                    <ProtectedRoute>
+                      <Outlet />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<MyQuotesPage />} />
+                  <Route path="my-quotes" element={<MyQuotesPage />} />
                 </Route>
 
                 {/* Public Pages */}
@@ -294,6 +330,9 @@ function AppContent() {
                 {/* Contact & Report Management */}
                 <Route path="contacts" element={<ContactManagementPage />} />
 
+                {/* Payout Management */}
+                <Route path="payouts" element={<AdminPayoutPage />} />
+
                 {/* Placeholder routes for features under development */}
                 <Route path="reports" element={<PlaceholderPage />} />
                 <Route path="listings" element={<PlaceholderPage />} />
@@ -336,6 +375,14 @@ function AppContent() {
                   <Route index element={<SalesPage />} />
                   <Route path=":orderId" element={<OrderDetailPage />} />
                 </Route>
+
+                {/* Quote Management - Seller View */}
+                <Route path="quotes">
+                  <Route index element={<SellerQuotesPage />} />
+                </Route>
+
+                {/* Payout Management */}
+                <Route path="payouts" element={<PayoutPage />} />
               </Route>
 
               {/* Unauthorized Route */}
@@ -353,6 +400,7 @@ function AppContent() {
             </Routes>
           </SessionProvider>
         </Router>
+        </NotificationProvider>
       </SnackbarProvider>
     </ThemeProvider>
   );

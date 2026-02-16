@@ -11,6 +11,9 @@ const { Cart, cartItemSchema } = require("./cart/cart.model");
 const { Wishlist } = require("./wishlist/wishlist.model");
 const { CheckoutSession } = require("./checkout");
 const { MerchantAnalytics, PlatformAnalytics } = require("./analytic");
+const { QuoteRequest } = require("./quote");
+const { SellerBalance, SellerPayout, BalanceTransaction } = require("./payout");
+const { Notification } = require("./notification");
 
 module.exports = {
   // User exports
@@ -41,4 +44,15 @@ module.exports = {
   // Analytics exports
   MerchantAnalytics,
   PlatformAnalytics,
+
+  // Quote exports
+  QuoteRequest,
+
+  // Payout exports
+  SellerBalance,
+  SellerPayout,
+  BalanceTransaction,
+
+  // Notification exports
+  Notification,
 };

@@ -5,6 +5,8 @@ const logger = require("../../utils/logger");
 const { AppError } = require("../../utils/errors");
 const { handleServiceError, handleNotFoundError } = require("../base.service");
 const { sendContactResponseEmail } = require("../email.service");
+const { createNotification } = require("../notification/notification.service");
+const { NotificationType } = require("../../utils/enums/notification.enum");
 
 /**
  * Contact Service
@@ -116,6 +118,43 @@ const createContactSubmission = async (submissionData, userInfo = null) => {
       submitterEmail: contact.submittedBy.email,
       isGuest: contact.submittedBy.isGuest,
     });
+
+    // Fire-and-forget: notify all admin users about new contact submission
+    User.find({ roles: "admin" })
+      .select("_id")
+      .lean()
+      .then((admins) => {
+        const typeLabels = {
+          bug_report: "Bug Report",
+          enquiry: "Enquiry",
+          feedback: "Feedback",
+          collaboration: "Collaboration Request",
+          content_report: "Content Report",
+        };
+        const typeLabel = typeLabels[contact.type] || contact.type;
+        const notifPromises = admins.map((admin) =>
+          createNotification({
+            userId: admin._id,
+            type: NotificationType.CONTACT_FORM_SUBMISSION,
+            title: `New ${typeLabel} Received`,
+            message: `${contact.submittedBy.name || "A user"} submitted a ${typeLabel.toLowerCase()}: "${contact.subject}"`,
+            data: {
+              contactId: contact._id,
+              contactType: contact.type,
+              subject: contact.subject,
+              submitterEmail: contact.submittedBy.email,
+              priority: contact.priority,
+            },
+          })
+        );
+        return Promise.allSettled(notifPromises);
+      })
+      .catch((err) =>
+        logger.error("Failed to send contact form admin notifications", {
+          error: err.message,
+          contactId: contact._id,
+        })
+      );
 
     // Return contact without admin-only fields
     return cleanContactForClient(contact);

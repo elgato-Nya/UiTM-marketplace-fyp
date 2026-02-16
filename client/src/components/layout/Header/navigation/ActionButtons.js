@@ -5,10 +5,13 @@ import {
   Favorite as FavoriteIcon,
   Notifications,
   AccountCircle,
+  ChatBubbleOutline as ChatIcon,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { ROUTES } from "../../../../constants/routes";
 import { useNotificationContext } from "../../../../contexts/NotificationContext";
+import { selectTotalUnread } from "../../../../features/chat/store/chatSlice";
 import NotificationDropdown from "../../../notification/NotificationDropdown";
 
 function ActionButtons({
@@ -20,6 +23,7 @@ function ActionButtons({
   user,
 }) {
   const { unreadCount } = useNotificationContext();
+  const chatUnreadCount = useSelector(selectTotalUnread);
   const [notifAnchorEl, setNotifAnchorEl] = useState(null);
 
   const handleNotifOpen = (event) => {
@@ -50,6 +54,21 @@ function ActionButtons({
         anchorEl={notifAnchorEl}
         onClose={handleNotifClose}
       />
+
+      {/* Messages */}
+      <Tooltip title="Messages">
+        <IconButton
+          color="inherit"
+          component={Link}
+          to={ROUTES.CHAT.INDEX}
+          aria-label={`${chatUnreadCount} unread messages`}
+          size={isSmallScreen ? "small" : "medium"}
+        >
+          <Badge badgeContent={chatUnreadCount} color="error">
+            <ChatIcon fontSize={isSmallScreen ? "small" : "medium"} />
+          </Badge>
+        </IconButton>
+      </Tooltip>
 
       {/* Shopping Cart */}
       <Tooltip title="Shopping Cart">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AppBar,
   Toolbar,
@@ -15,13 +15,19 @@ import {
   KeyboardArrowDown,
   ShoppingCart as CartIcon,
   Favorite as WishlistIcon,
+  ChatBubbleOutline as ChatBubbleIcon,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
 
 import { useTheme } from "../../../hooks/useTheme";
 import { useAuth } from "../../../features/auth/hooks/useAuth";
 import useCart from "../../../features/cart/hook/useCart";
 import useWishlist from "../../../features/wishlist/hook/useWishlist";
+import {
+  selectTotalUnread,
+  fetchUnreadCount,
+} from "../../../features/chat/store/chatSlice";
 import { ROUTES } from "../../../constants/routes";
 import { Logo } from "../../common/Logo";
 import ThemeToggle from "../../common/ThemeToggle";
@@ -34,10 +40,19 @@ import ActionButtons from "./navigation/ActionButtons";
 
 function Header({ onMenuClick, userRole, isMobile }) {
   const { theme } = useTheme();
+  const dispatch = useDispatch();
   const { isAuthenticated, user, isMerchant, isAdmin } = useAuth();
   const { itemCount: cartCount } = useCart();
   const { itemCount: wishlistCount } = useWishlist();
+  const chatUnreadCount = useSelector(selectTotalUnread);
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
+
+  // Fetch chat unread count when user is authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchUnreadCount());
+    }
+  }, [isAuthenticated, dispatch]);
 
   const [userMenuAnchor, setUserMenuAnchor] = useState(null);
   const [browseMenuAnchor, setBrowseMenuAnchor] = useState(null);
@@ -275,6 +290,21 @@ function Header({ onMenuClick, userRole, isMobile }) {
 
           {isAuthenticated ? (
             <>
+              {/* Messages Icon - Show on Mobile */}
+              {isMobile && (
+                <IconButton
+                  component={Link}
+                  to={ROUTES.CHAT.INDEX}
+                  color="inherit"
+                  size="small"
+                  aria-label={`${chatUnreadCount} unread messages`}
+                >
+                  <Badge badgeContent={chatUnreadCount} color="error">
+                    <ChatBubbleIcon />
+                  </Badge>
+                </IconButton>
+              )}
+
               {/* Cart Icon - Show on Mobile */}
               {isMobile && (
                 <IconButton

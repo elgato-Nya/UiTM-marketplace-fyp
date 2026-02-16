@@ -356,14 +356,18 @@ const ListingDetailPage = () => {
       return;
     }
 
-    const result = await initiateChat({
-      recipientId: sellerId.toString(),
-      listingId,
-    });
+    try {
+      const result = await initiateChat({
+        recipientId: sellerId.toString(),
+        listingId,
+      });
 
-    if (result) {
-      const convoId = result.conversation?._id || result._id;
-      navigate(ROUTES.CHAT.DETAIL(convoId));
+      if (result) {
+        const convoId = result.conversation?._id || result._id;
+        navigate(ROUTES.CHAT.DETAIL(convoId));
+      }
+    } catch (err) {
+      showError(err?.message || "Failed to start conversation. Please try again.");
     }
   };
 

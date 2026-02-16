@@ -88,7 +88,7 @@ function ChatInput({
         display: "flex",
         alignItems: "flex-end",
         gap: 1,
-        p: 2,
+        p: { xs: 1, md: 2 },
         borderTop: 1,
         borderColor: "divider",
         bgcolor: "background.paper",
@@ -126,8 +126,8 @@ function ChatInput({
                 bgcolor: "action.disabledBackground",
                 color: "action.disabled",
               },
-              width: 40,
-              height: 40,
+              width: { xs: 36, md: 40 },
+              height: { xs: 36, md: 40 },
             }}
           >
             {isSubmitting ? (

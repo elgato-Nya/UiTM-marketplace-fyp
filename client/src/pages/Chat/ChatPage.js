@@ -168,9 +168,9 @@ const ChatPage = () => {
   const sidebarWidth = 360;
 
   return (
-    <Box sx={{ py: { xs: 1, sm: 2 }, px: { xs: 1, sm: 2, md: 3 } }}>
+    <Box sx={{ py: { xs: 0.5, sm: 2 }, px: { xs: 0.5, sm: 2, md: 3 } }}>
       {/* Page header */}
-      <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+      <Box sx={{ mb: { xs: 1, md: 2 }, display: "flex", alignItems: "center", gap: 1 }}>
         <ChatIcon color="primary" />
         <Typography variant="h5" fontWeight={700}>
           Chat
@@ -182,7 +182,7 @@ const ChatPage = () => {
         elevation={1}
         sx={{
           display: "flex",
-          height: { xs: "calc(100vh - 180px)", md: "calc(100vh - 200px)" },
+          height: { xs: "calc(100vh - 140px)", md: "calc(100vh - 200px)" },
           overflow: "hidden",
           borderRadius: 2,
         }}

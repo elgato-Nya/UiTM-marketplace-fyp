@@ -128,7 +128,7 @@ function ChatWindow({
           display: "flex",
           alignItems: "center",
           gap: 1.5,
-          p: 2,
+          p: { xs: 1, md: 2 },
           borderBottom: 1,
           borderColor: "divider",
           bgcolor: "background.paper",
@@ -145,16 +145,37 @@ function ChatWindow({
           </IconButton>
         )}
 
-        <Avatar src={other.avatar} alt={other.name} sx={{ width: 36, height: 36 }}>
+        <Avatar 
+          src={other.avatar} 
+          alt={other.name} 
+          sx={{ 
+            width: { xs: 32, md: 36 }, 
+            height: { xs: 32, md: 36 } 
+          }}
+        >
           {!other.avatar && <PersonIcon />}
         </Avatar>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="subtitle1" fontWeight={600} noWrap>
+          <Typography 
+            variant="subtitle1" 
+            fontWeight={600} 
+            sx={{ 
+              wordBreak: "break-word",
+              fontSize: { xs: "0.875rem", md: "1rem" }
+            }}
+          >
             {other.name}
           </Typography>
           {conversation.listing && (
-            <Typography variant="caption" color="text.secondary" noWrap>
+            <Typography 
+              variant="caption" 
+              color="text.secondary"
+              sx={{ 
+                wordBreak: "break-word",
+                fontSize: { xs: "0.75rem", md: "0.8125rem" }
+              }}
+            >
               Re: {conversation.listing.title || "Listing"}
             </Typography>
           )}
@@ -182,7 +203,8 @@ function ChatWindow({
         sx={{
           flex: 1,
           overflow: "auto",
-          py: 2,
+          py: { xs: 1, md: 2 },
+          px: { xs: 1, md: 0 },
           bgcolor: "background.default",
           display: "flex",
           flexDirection: "column",

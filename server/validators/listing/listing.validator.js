@@ -407,8 +407,10 @@ class ListingValidator {
    * @returns {boolean}
    */
   static isValidQuoteCustomField(field) {
-    if (!field || typeof field !== "object" || Array.isArray(field))
+    if (!field || typeof field !== "object" || Array.isArray(field)) {
+      console.log("[Quote Field Validation] Failed: field is not an object", { field });
       return false;
+    }
 
     // Label is required
     if (
@@ -417,22 +419,36 @@ class ListingValidator {
       field.label.trim().length === 0 ||
       field.label.length > QuoteLimits.MAX_FIELD_LABEL_LENGTH
     ) {
+      console.log("[Quote Field Validation] Failed: invalid label", { 
+        label: field.label,
+        labelLength: field.label?.length,
+        maxLength: QuoteLimits.MAX_FIELD_LABEL_LENGTH 
+      });
       return false;
     }
 
     // Type is required and must be valid
     if (!field.type || !Object.values(QuoteFieldType).includes(field.type)) {
+      console.log("[Quote Field Validation] Failed: invalid type", { 
+        type: field.type,
+        validTypes: Object.values(QuoteFieldType)
+      });
       return false;
     }
 
     // Required must be boolean if provided
     if (field.required !== undefined && typeof field.required !== "boolean") {
+      console.log("[Quote Field Validation] Failed: required is not boolean", { 
+        required: field.required,
+        typeOf: typeof field.required
+      });
       return false;
     }
 
     // Options validation (for select type)
     if (field.type === QuoteFieldType.SELECT) {
       if (!Array.isArray(field.options) || field.options.length === 0) {
+        console.log("[Quote Field Validation] Failed: SELECT type requires options array");
         return false;
       }
       if (field.options.length > QuoteLimits.MAX_FIELD_OPTIONS) return false;
@@ -447,6 +463,7 @@ class ListingValidator {
       }
     }
 
+    console.log("[Quote Field Validation] Passed:", field);
     return true;
   }
 
@@ -473,6 +490,14 @@ class ListingValidator {
     if (
       quoteSettings.autoAccept !== undefined &&
       typeof quoteSettings.autoAccept !== "boolean"
+    ) {
+      return false;
+    }
+
+    // quoteOnly must be boolean if provided
+    if (
+      quoteSettings.quoteOnly !== undefined &&
+      typeof quoteSettings.quoteOnly !== "boolean"
     ) {
       return false;
     }

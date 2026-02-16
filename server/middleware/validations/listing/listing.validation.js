@@ -274,8 +274,9 @@ const conditionalPriceValidation = (fieldname = "price") => {
     .if((value, { req }) => {
       const hasVariants = req.body.variants && req.body.variants.length > 0;
       const isQuoteBased = req.body.quoteSettings?.enabled === true;
-      // Price required only if no variants and not quote-based
-      return !hasVariants && !isQuoteBased;
+      const isQuoteOnly = req.body.quoteSettings?.quoteOnly === true;
+      // Price required only if no variants and not quote-based/quote-only
+      return !hasVariants && !isQuoteBased && !isQuoteOnly;
     })
     .notEmpty()
     .withMessage(listingErrorMessages.price.conditionalRequired)

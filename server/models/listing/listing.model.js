@@ -60,10 +60,11 @@ const ListingSchema = new mongoose.Schema(
       type: Number,
       required: [
         function () {
-          // Price required if NO variants AND NOT quote-based
+          // Price required if NO variants AND NOT quote-based/quote-only
           const hasVariants = this.variants && this.variants.length > 0;
           const isQuoteBased = this.quoteSettings?.enabled === true;
-          return !hasVariants && !isQuoteBased;
+          const isQuoteOnly = this.quoteSettings?.quoteOnly === true;
+          return !hasVariants && !isQuoteBased && !isQuoteOnly;
         },
         listingErrorMessages.price.conditionalRequired,
       ],
@@ -242,6 +243,11 @@ ListingSchema.virtual("hasVariants").get(function () {
 // Virtual for checking if listing is quote-based
 ListingSchema.virtual("isQuoteBased").get(function () {
   return this.quoteSettings?.enabled === true;
+});
+
+// Virtual for checking if listing is quote-only (no fixed price)
+ListingSchema.virtual("isQuoteOnly").get(function () {
+  return this.quoteSettings?.quoteOnly === true;
 });
 
 // Virtual for checking if listing is in stock (updated for variants)

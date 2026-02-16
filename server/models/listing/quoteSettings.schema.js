@@ -89,6 +89,13 @@ const QuoteSettingsSchema = new mongoose.Schema(
       default: false,
     },
 
+    // When true, listing uses quote-based pricing ONLY (no fixed price)
+    // Hides Add to Cart/Buy Now buttons, shows only Quote Request
+    quoteOnly: {
+      type: Boolean,
+      default: false,
+    },
+
     autoAccept: {
       type: Boolean,
       default: false,

@@ -240,14 +240,14 @@ The search and notification systems enable users to discover content efficiently
 
 ### Features
 
-| Feature                  | Description        | Status          |
-| ------------------------ | ------------------ | --------------- |
-| In-App Notifications     | Bell icon alerts   | ✅ Implemented  |
-| Email Notifications      | 6 critical types   | ✅ Implemented  |
-| Push Notifications       | Mobile alerts      | 🚧 Phase 2      |
-| Notification Preferences | Per-category control | ✅ Implemented |
-| Real-time Updates        | Socket.io          | 🚧 Phase 2 (polling now) |
-| Notification History     | 30-day retention   | ✅ Implemented  |
+| Feature                  | Description          | Status                   |
+| ------------------------ | -------------------- | ------------------------ |
+| In-App Notifications     | Bell icon alerts     | ✅ Implemented           |
+| Email Notifications      | 6 critical types     | ✅ Implemented           |
+| Push Notifications       | Mobile alerts        | 🚧 Phase 2               |
+| Notification Preferences | Per-category control | ✅ Implemented           |
+| Real-time Updates        | Socket.io            | 🚧 Phase 2 (polling now) |
+| Notification History     | 30-day retention     | ✅ Implemented           |
 
 ### Notification Types
 
@@ -346,8 +346,8 @@ The search and notification systems enable users to discover content efficiently
 | ----------- | -------------------------------- | -------------- |
 | In-App      | Polling (30s) → Socket.io later  | ✅ Implemented |
 | Email       | Nodemailer + AWS SES (6 types)   | ✅ Implemented |
-| Push        | Firebase Cloud Messaging         | 🚧 Phase 2    |
-| Queue       | Bull + Redis                     | 🚧 Phase 2    |
+| Push        | Firebase Cloud Messaging         | 🚧 Phase 2     |
+| Queue       | Bull + Redis                     | 🚧 Phase 2     |
 | Storage     | MongoDB notifications collection | ✅ Implemented |
 | Preferences | User document embedded           | ✅ Implemented |
 | Cleanup     | Cron job (30-day TTL)            | ✅ Implemented |

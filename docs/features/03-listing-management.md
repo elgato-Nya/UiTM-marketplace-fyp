@@ -28,19 +28,21 @@ The listing management system enables merchants to create, publish, and manage t
 
 ### Key Features
 
-| Feature             | Description              |
-| ------------------- | ------------------------ |
-| Type Selection      | Product or Service       |
-| Multi-Step Form     | Wizard-style interface   |
-| Image Upload        | Up to 10 images          |
-| Image Management    | Preview, reorder, delete |
-| Rich Description    | Formatted text editor    |
-| Category Selection  | 8 categories available   |
-| Price Setting       | RM currency format       |
-| Stock Management    | Products only            |
-| Availability Toggle | Quick on/off switch      |
-| Draft Save          | Save progress locally    |
-| Form Validation     | Real-time feedback       |
+| Feature             | Description                    |
+| ------------------- | ------------------------------ |
+| Type Selection      | Product or Service             |
+| Multi-Step Form     | Wizard-style interface         |
+| Image Upload        | Up to 10 images                |
+| Image Management    | Preview, reorder, delete       |
+| Rich Description    | Formatted text editor          |
+| Category Selection  | 10 categories available        |
+| Price Setting       | RM currency format             |
+| Stock Management    | Products without variants      |
+| Variant Support     | Up to 100 variants per listing |
+| Quote System        | Services only - quote requests |
+| Availability Toggle | Quick on/off switch            |
+| Draft Save          | Save progress locally          |
+| Form Validation     | Real-time feedback             |
 
 ### User Capabilities
 
@@ -51,8 +53,10 @@ The listing management system enables merchants to create, publish, and manage t
 - Set primary image
 - Write detailed description
 - Select appropriate category
-- Set competitive price
-- Define stock quantity (products)
+- Set competitive price (or enable quote-based pricing for services)
+- Define stock quantity (products without variants)
+- Add variants (both products and services)
+- Configure quote request settings (services only)
 - Mark as available/unavailable
 - Save as draft
 - Preview before publishing
@@ -61,16 +65,18 @@ The listing management system enables merchants to create, publish, and manage t
 
 ### Form Fields
 
-| Field        | Type        | Requirements  | Validation                     |
-| ------------ | ----------- | ------------- | ------------------------------ |
-| Type         | Radio       | Required      | Product or Service             |
-| Name         | Text        | Required      | 3-100 characters, no HTML      |
-| Description  | Textarea    | Optional      | Max 1000 characters, sanitized |
-| Price        | Number      | Required      | Positive number, RM format     |
-| Category     | Dropdown    | Required      | Valid category enum            |
-| Images       | File Upload | Required      | 1-10 images, max 5MB each      |
-| Stock        | Number      | Products only | Non-negative integer           |
-| Availability | Toggle      | Optional      | Boolean, defaults to true      |
+| Field        | Type        | Requirements             | Validation                                      |
+| ------------ | ----------- | ------------------------ | ----------------------------------------------- |
+| Type         | Radio       | Required                 | Product or Service                              |
+| Name         | Text        | Required                 | 3-100 characters, no HTML                       |
+| Description  | Textarea    | Optional                 | Max 1000 characters, sanitized                  |
+| Price        | Number      | Conditional              | Required if no variants & no quote system       |
+| Category     | Dropdown    | Required                 | Valid category enum (10 options)                |
+| Images       | File Upload | Required                 | 1-10 images, max 5MB each                       |
+| Stock        | Number      | Conditional              | Required for products without variants          |
+| Variants     | Array       | Optional                 | Up to 100 variants, variant-specific validation |
+| Quote        | Object      | Optional (Services only) | Quote settings validation                       |
+| Availability | Toggle      | Optional                 | Boolean, defaults to true                       |
 
 ### Form Wizard Steps
 
@@ -123,6 +129,85 @@ Step 1: Basic Info          Step 2: Details             Step 3: Review
 | Draft Save     | localStorage persistence   |
 | Validation     | Client + Server side       |
 | Error Handling | Error boundary components  |
+
+### Variant System (NEW)
+
+**Purpose:** Support multiple options for products and services
+
+**Availability:** Both products and services
+
+#### Variant Features
+
+| Feature          | Description                 |
+| ---------------- | --------------------------- |
+| Max Variants     | 100 per listing             |
+| Variant Name     | 1-100 characters            |
+| SKU Management   | Up to 50 characters         |
+| Pricing          | Variant-specific pricing    |
+| Stock            | Variant-specific (products) |
+| Images           | Up to 5 images per variant  |
+| Attributes       | Up to 10 custom attributes  |
+| Attribute Keys   | Max 30 characters           |
+| Attribute Values | Max 100 characters          |
+
+#### Variant Use Cases
+
+**Products:**
+
+- Clothing: Different sizes, colors
+- Electronics: Different storage, colors
+- Books: Hardcover vs Paperback
+
+**Services:**
+
+- Printing: Different paper sizes, binding types
+- Repair: Different device models
+- E-Hailing: Different vehicle types
+
+#### Variant Pricing Logic
+
+- If listing has variants → base price optional
+- Each variant has its own price
+- Stock managed per variant (products only)
+- Cart/checkout uses variant price
+
+---
+
+### Quote Request System (NEW)
+
+**Purpose:** Allow buyers to request custom quotes for services
+
+**Availability:** Services ONLY
+
+#### Quote Settings
+
+| Setting       | Description                    | Type    |
+| ------------- | ------------------------------ | ------- |
+| Enabled       | Turn quote system on/off       | Boolean |
+| Min Price     | Minimum quote price (optional) | Number  |
+| Max Price     | Maximum quote price (optional) | Number  |
+| Auto Accept   | Auto-approve quote requests    | Boolean |
+| Response Time | Expected response time text    | String  |
+| Deposit %     | Required deposit percentage    | Number  |
+| Custom Fields | Up to 10 custom form fields    | Array   |
+
+#### Custom Quote Fields
+
+| Property    | Description          | Limits        |
+| ----------- | -------------------- | ------------- |
+| Label       | Field label          | Max 100 chars |
+| Type        | text, textarea, etc. | Enum          |
+| Required    | Is field required    | Boolean       |
+| Options     | For select/radio     | Max 20        |
+| Option Text | Option label         | Max 100 chars |
+
+#### Quote-Based Pricing
+
+- When quote system enabled → fixed price NOT required
+- Buyer submits quote request with details
+- Seller reviews and provides custom quote
+- Buyer accepts/rejects quote
+- If accepted → proceeds to checkout with quoted price
 
 ---
 

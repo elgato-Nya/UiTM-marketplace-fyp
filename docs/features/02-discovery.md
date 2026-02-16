@@ -80,16 +80,18 @@ Home Page Layout:
 
 ### Categories
 
-| Icon | Category      | Description                |
-| ---- | ------------- | -------------------------- |
-| 📚   | Books & Notes | Textbooks, study materials |
-| 👕   | Fashion       | Clothing, accessories      |
-| 💻   | Electronics   | Devices, gadgets           |
-| 🎮   | Gaming        | Games, consoles            |
-| 📱   | Mobile        | Phones, tablets            |
-| 🏠   | Home & Living | Dorm essentials            |
-| 🎨   | Art & Crafts  | Handmade items             |
-| 🔧   | Services      | Tutoring, repairs          |
+| Icon | Category      | Type    | Description       |
+| ---- | ------------- | ------- | ----------------- |
+| �    | Electronics   | Product | Devices, gadgets  |
+| 👕   | Clothing      | Product | Apparel, fashion  |
+| �    | Books         | Product | Textbooks, novels |
+| �    | Food          | Product | Food items        |
+| �    | Other         | Product | Other products    |
+| 🖨️   | Printing      | Service | Print services    |
+| 🔧   | Repair        | Service | Repair services   |
+| 🚗   | E-Hailing     | Service | Transportation    |
+| �    | Delivery      | Service | Delivery services |
+| 🛠️   | Other Service | Service | Other services    |
 
 ### Technical Implementation
 

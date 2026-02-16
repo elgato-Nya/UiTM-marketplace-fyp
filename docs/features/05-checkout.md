@@ -105,12 +105,15 @@ The checkout module provides a secure, multi-step process for completing purchas
 
 #### Delivery Options
 
-| Method        | Fee   | Est. Time | Description         |
-| ------------- | ----- | --------- | ------------------- |
-| Standard      | RM 5  | 3-5 days  | Regular shipping    |
-| Express       | RM 15 | 1-2 days  | Priority shipping   |
-| Campus Pickup | Free  | 1-2 days  | Collect on campus   |
-| Meet-up Point | Free  | Flexible  | Arrange with seller |
+| Method          | Fee               | Description                        |
+| --------------- | ----------------- | ---------------------------------- |
+| Self Pickup     | Seller-configured | Pick up from seller location       |
+| Standard        | Seller-configured | Regular delivery                   |
+| Meet-up         | Seller-configured | Arrange meeting point              |
+| Campus Delivery | Seller-configured | Delivery within campus (in-campus) |
+| Room Delivery   | Seller-configured | Direct to dorm/room (in-campus)    |
+
+**Note:** Sellers configure delivery fees (RM 0-100) for each method in their shop settings. Fees can be set to RM 0 (free) at seller's discretion.
 
 #### UI Layout
 
@@ -121,13 +124,13 @@ The checkout module provides a secure, multi-step process for completing purchas
 │ Select delivery method:                                 │
 │                                                          │
 │ ┌─────────────────────────────────────────────────────┐ │
-│ │ ○ Standard Delivery                    RM 5.00     │ │
-│ │   Estimated: 3-5 business days                      │ │
+│ │ ○ Self Pickup                          RM 0.00     │ │
+│ │   Pick up from seller location                      │ │
 │ └─────────────────────────────────────────────────────┘ │
 │ ┌─────────────────────────────────────────────────────┐ │
-│ │ ● Campus Pickup (Selected)             FREE        │ │
+│ │ ● Campus Delivery (Selected)           RM 2.50     │ │
+│ │   Delivery within campus                            │ │
 │ │   Estimated: 1-2 business days                      │ │
-│ │   Pickup location will be provided                  │ │
 │ └─────────────────────────────────────────────────────┘ │
 │                                                          │
 │ Special Instructions (optional):                         │
@@ -145,26 +148,30 @@ The checkout module provides a secure, multi-step process for completing purchas
 
 #### Payment Options
 
-| Method               | Description           | Requirements  |
-| -------------------- | --------------------- | ------------- |
-| **Online Payment**   | Stripe secure payment | Valid card    |
-| **Cash on Delivery** | Pay when received     | Amount limits |
+| Method                  | Description             | Requirements    |
+| ----------------------- | ----------------------- | --------------- |
+| **Credit Card**         | Stripe secure payment   | Orders > RM 10  |
+| **Bank Transfer (FPX)** | Stripe FPX payment      | Orders > RM 10  |
+| **E-Wallet (GrabPay)**  | Stripe e-wallet payment | Orders > RM 10  |
+| **Cash on Delivery**    | Pay when received       | Orders ≤ RM 500 |
+
+**Note:** Online payment (Stripe) is required for orders above RM 10 to prevent seller losses from Stripe processing fees.
 
 #### Online Payment (Stripe)
 
-| Feature    | Description                  |
-| ---------- | ---------------------------- |
-| Card Input | Stripe Elements integration  |
-| Card Types | Visa, Mastercard, AMEX       |
-| Security   | PCI DSS compliant            |
-| 3D Secure  | Additional authentication    |
-| Save Card  | Remember for future (future) |
+| Feature       | Description               |
+| ------------- | ------------------------- |
+| Credit Card   | Visa, Mastercard, AMEX    |
+| Bank Transfer | FPX (Malaysian banks)     |
+| E-Wallet      | GrabPay                   |
+| Security      | PCI DSS compliant         |
+| 3D Secure     | Additional authentication |
+| Minimum Order | > RM 10 (fee protection)  |
 
 #### Cash on Delivery (COD)
 
 | Requirement   | Value                   |
 | ------------- | ----------------------- |
-| Minimum Order | RM 20                   |
 | Maximum Order | RM 500                  |
 | Confirmation  | Required acknowledgment |
 
@@ -177,17 +184,20 @@ The checkout module provides a secure, multi-step process for completing purchas
 │ Select payment method:                                  │
 │                                                          │
 │ ┌─────────────────────────────────────────────────────┐ │
-│ │ ● Online Payment (Selected)                         │ │
+│ │ ● Credit Card / FPX / E-Wallet (Selected)          │ │
 │ │   ┌─────────────────────────────────────────────┐   │ │
-│ │   │ Card Number: [4242 4242 4242 4242]          │   │ │
-│ │   │ Expiry: [12/28]  CVC: [***]                 │   │ │
+│ │   │ Payment via Stripe                          │   │ │
+│ │   │ • Credit Card (Visa, Mastercard, AMEX)      │   │ │
+│ │   │ • Bank Transfer (FPX)                       │   │ │
+│ │   │ • E-Wallet (GrabPay)                        │   │ │
 │ │   └─────────────────────────────────────────────┘   │ │
 │ │   🔒 Secured by Stripe                              │ │
+│ │   Note: Required for orders > RM 10                 │ │
 │ └─────────────────────────────────────────────────────┘ │
 │ ┌─────────────────────────────────────────────────────┐ │
 │ │ ○ Cash on Delivery (COD)                           │ │
 │ │   Pay when you receive your order                   │ │
-│ │   Available for orders RM 20 - RM 500               │ │
+│ │   Available for orders up to RM 500                 │ │
 │ └─────────────────────────────────────────────────────┘ │
 ├─────────────────────────────────────────────────────────┤
 │                    [← Back] [Next: Review →]            │

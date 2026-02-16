@@ -14,8 +14,8 @@ const socketConfig = {
     credentials: true,
     methods: ["GET", "POST"],
   },
-  // Start with polling then upgrade to WebSocket for reliability
-  transports: ["websocket", "polling"],
+  // Start with polling then upgrade to WebSocket for reliability behind proxies
+  transports: ["polling", "websocket"],
   // Ping/pong heartbeat settings
   pingInterval: 25000,
   pingTimeout: 20000,

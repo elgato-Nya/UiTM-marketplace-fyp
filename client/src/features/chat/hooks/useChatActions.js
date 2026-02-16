@@ -28,10 +28,12 @@ export function useChatActions() {
         const result = await dispatch(startConversation(data)).unwrap();
         return result;
       } catch (error) {
-        showSnackbar(
-          error?.message || "Failed to start conversation",
-          "error"
-        );
+        const isAuthError =
+          error?.type === "authentication" || error?.statusCode === 401;
+        const userMsg = isAuthError
+          ? "Your session has expired. Please log in again."
+          : error?.message || "Failed to start conversation";
+        showSnackbar(userMsg, "error");
         return null;
       } finally {
         setActionLoading(null);

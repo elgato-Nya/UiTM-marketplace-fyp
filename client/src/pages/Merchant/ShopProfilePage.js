@@ -146,18 +146,13 @@ function ShopProfilePage() {
     const merchantUserId = viewedShop?.merchant?._id;
     if (!merchantUserId) return;
 
-    try {
-      const result = await initiateChat({
-        recipientId: merchantUserId.toString(),
-      });
+    const result = await initiateChat({
+      recipientId: merchantUserId.toString(),
+    });
 
-      if (result) {
-        const convoId = result.conversation?._id || result._id;
-        navigate(ROUTES.CHAT.DETAIL(convoId));
-      }
-    } catch (err) {
-      // Error already handled by useChatActions snackbar
-      console.debug("Failed to message merchant:", err);
+    if (result) {
+      const convoId = result.conversation?._id || result._id;
+      navigate(ROUTES.CHAT.DETAIL(convoId));
     }
   };
 

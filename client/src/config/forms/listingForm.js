@@ -26,6 +26,7 @@ export const createListingFormConfig = {
     category: "",
     stock: "",
     isFree: false,
+    isQuoteOnly: false,
     isAvailable: true,
     images: [],
   },
@@ -82,6 +83,14 @@ export const createListingFormConfig = {
       type: "checkbox",
       label: "Is this listing free?",
       helperText: "Check if you want to offer this listing for free.",
+      showIf: (formValues) => formValues.type !== "service" || !formValues.isQuoteOnly,
+    },
+    {
+      name: "isQuoteOnly",
+      type: "checkbox",
+      label: "Quote-based pricing only",
+      helperText: "Enable this if you want customers to request quotes instead of showing a fixed price. Price will be based on your quote settings.",
+      showIf: (formValues) => formValues.type === "service" && !formValues.isFree,
     },
     {
       name: "price",
@@ -92,7 +101,7 @@ export const createListingFormConfig = {
       helperText: "Set the price for your listing.",
       min: 0,
       step: 0.01,
-      showIf: (formValues) => !formValues.isFree,
+      showIf: (formValues) => !formValues.isFree && !formValues.isQuoteOnly,
     },
     {
       name: "stock",

@@ -52,7 +52,7 @@ const CheckoutSuccessPage = () => {
   useEffect(() => {
     const handleStripeRedirect = async () => {
       const paymentIntentClientSecret = searchParams.get(
-        "payment_intent_client_secret"
+        "payment_intent_client_secret",
       );
       const sessionId = searchParams.get("session_id");
 
@@ -61,7 +61,7 @@ const CheckoutSuccessPage = () => {
         try {
           // Verify payment status with Stripe
           const { paymentIntent } = await stripe.retrievePaymentIntent(
-            paymentIntentClientSecret
+            paymentIntentClientSecret,
           );
 
           if (paymentIntent.status === "succeeded") {
@@ -250,7 +250,10 @@ const CheckoutSuccessPage = () => {
                           component="div"
                           color="text.secondary"
                         >
-                          Seller: {order.seller?.username || "Unknown"}
+                          Seller:{" "}
+                          {order.seller?.name ||
+                            order.seller?.username ||
+                            "Unknown"}
                         </Typography>
                         <Typography
                           variant="body2"

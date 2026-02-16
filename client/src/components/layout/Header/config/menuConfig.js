@@ -16,190 +16,82 @@ import {
   ContactMail,
   Code,
   LocationOn,
+  RequestQuote,
+  AccountBalance,
+  BarChart,
+  VerifiedUser,
 } from "@mui/icons-material";
-import { ROUTES } from "../../../../constants/routes";
+import {
+  ICON_NAMES,
+  GUEST_NAV,
+  getAuthMenuSections as getCentralizedAuthMenuSections,
+} from "../../../../config/navigation.config";
+
+// Icon mapping for centralized config
+const ICON_MAP = {
+  [ICON_NAMES.CATEGORY]: <Category />,
+  [ICON_NAMES.SHOPPING_BAG]: <ShoppingBag />,
+  [ICON_NAMES.STORE]: <Store />,
+  [ICON_NAMES.INFO]: <Info />,
+  [ICON_NAMES.HISTORY]: <History />,
+  [ICON_NAMES.CODE]: <Code />,
+  [ICON_NAMES.CONTACT_MAIL]: <ContactMail />,
+  [ICON_NAMES.PERSON]: <Person />,
+  [ICON_NAMES.LOCATION]: <LocationOn />,
+  [ICON_NAMES.NOTIFICATIONS]: <Notifications />,
+  [ICON_NAMES.SETTINGS]: <Settings />,
+  [ICON_NAMES.LOCAL_SHIPPING]: <LocalShipping />,
+  [ICON_NAMES.REQUEST_QUOTE]: <RequestQuote />,
+  [ICON_NAMES.DASHBOARD]: <Dashboard />,
+  [ICON_NAMES.INVENTORY]: <Inventory />,
+  [ICON_NAMES.ACCOUNT_BALANCE]: <AccountBalance />,
+  [ICON_NAMES.BAR_CHART]: <BarChart />,
+  [ICON_NAMES.PEOPLE]: <People />,
+  [ICON_NAMES.VERIFIED_USER]: <VerifiedUser />,
+};
+
+// Convert centralized config items to menuConfig format with JSX icons
+const convertToMenuFormat = (items) => {
+  return items.map((item) => ({
+    icon: ICON_MAP[item.icon] || <Category />,
+    text: item.label,
+    link: item.path,
+    show: item.show !== undefined ? item.show : true,
+  }));
+};
 
 // Guest menu configuration
-export const getGuestMenuItems = () => [
-  { icon: <Category />, text: "All Listings", link: ROUTES.LISTINGS.ALL },
-  { icon: <ShoppingBag />, text: "Products", link: ROUTES.LISTINGS.PRODUCTS },
-  { icon: <Store />, text: "Services", link: ROUTES.LISTINGS.SERVICES },
-  { icon: <Info />, text: "About Us", link: ROUTES.ABOUT.ABOUT_US },
-  { icon: <History />, text: "Our History", link: ROUTES.ABOUT.HISTORY },
-  { icon: <Code />, text: "Nekodez", link: ROUTES.ABOUT.NEKODEZ },
-  { icon: <ContactMail />, text: "Contact", link: ROUTES.CONTACT },
-];
+export const getGuestMenuItems = () => convertToMenuFormat(GUEST_NAV);
 
 // Authenticated user menu sections
 export const getAuthMenuSections = (roles) => {
-  const { isConsumer, isMerchant, isAdmin } = roles;
+  const centralizedSections = getCentralizedAuthMenuSections(roles);
 
+  // Convert each section's items to menu format
   return {
     browse: {
-      title: "Browse",
-      collapsible: true,
-      items: [
-        {
-          icon: <Category />,
-          text: "All Listings",
-          link: ROUTES.LISTINGS.ALL,
-          show: true,
-        },
-        {
-          icon: <ShoppingBag />,
-          text: "Products",
-          link: ROUTES.LISTINGS.PRODUCTS,
-          show: true,
-        },
-        {
-          icon: <Store />,
-          text: "Services",
-          link: ROUTES.LISTINGS.SERVICES,
-          show: true,
-        },
-      ],
+      ...centralizedSections.browse,
+      items: convertToMenuFormat(centralizedSections.browse.items),
     },
-
     account: {
-      title: "Account",
-      collapsible: true,
-      items: [
-        {
-          icon: <LocalShipping />,
-          text: "My Orders",
-          link: ROUTES.ORDERS.PURCHASES,
-          show: isConsumer,
-        },
-        {
-          icon: <Person />,
-          text: "Profile",
-          link: ROUTES.PROFILE.INDEX,
-          show: true,
-        },
-        {
-          icon: <LocationOn />,
-          text: "My Addresses",
-          link: ROUTES.PROFILE.ADDRESSES,
-          show: true,
-        },
-        {
-          icon: <Notifications />,
-          text: "Notifications",
-          link: ROUTES.NOTIFICATIONS,
-          show: true,
-        },
-      ],
+      ...centralizedSections.account,
+      items: convertToMenuFormat(centralizedSections.account.items),
     },
-
     merchant: {
-      title: "Merchant",
-      color: "secondary.main",
-      collapsible: true,
-      show: isMerchant,
-      items: [
-        {
-          icon: <Dashboard />,
-          text: "Dashboard",
-          link: ROUTES.MERCHANT.DASHBOARD,
-          show: isMerchant,
-        },
-        {
-          icon: <LocalShipping />,
-          text: "Sales Orders",
-          link: ROUTES.MERCHANT.ORDERS,
-          show: isMerchant,
-        },
-        {
-          icon: <Store />,
-          text: "My Store",
-          link: ROUTES.MERCHANT.STORE,
-          show: isMerchant,
-        },
-        {
-          icon: <Inventory />,
-          text: "My Listings",
-          link: ROUTES.MERCHANT.LISTINGS.MY_LISTINGS,
-          show: isMerchant,
-        },
-      ],
+      ...centralizedSections.merchant,
+      items: convertToMenuFormat(centralizedSections.merchant.items),
     },
-
     admin: {
-      title: "Admin",
-      color: "error.main",
-      collapsible: true,
-      show: isAdmin,
-      items: [
-        {
-          icon: <Dashboard />,
-          text: "Dashboard",
-          link: ROUTES.ADMIN.DASHBOARD,
-          show: isAdmin,
-        },
-        {
-          icon: <People />,
-          text: "Users",
-          link: ROUTES.ADMIN.USERS,
-          show: isAdmin,
-        },
-        {
-          icon: <Assessment />,
-          text: "Contacts",
-          link: ROUTES.ADMIN.CONTACTS,
-          show: isAdmin,
-        },
-        {
-          icon: <Settings />,
-          text: "Merchant Verification",
-          link: ROUTES.ADMIN.MERCHANT,
-          show: isAdmin,
-        },
-      ],
+      ...centralizedSections.admin,
+      items: convertToMenuFormat(centralizedSections.admin.items),
     },
-
     about: {
-      title: "About",
-      collapsible: true,
-      items: [
-        {
-          icon: <Info />,
-          text: "About Us",
-          link: ROUTES.ABOUT.ABOUT_US,
-          show: true,
-        },
-        {
-          icon: <History />,
-          text: "Our History",
-          link: ROUTES.ABOUT.HISTORY,
-          show: true,
-        },
-        {
-          icon: <Code />,
-          text: "Nekodez",
-          link: ROUTES.ABOUT.NEKODEZ,
-          show: true,
-        },
-        {
-          icon: <ContactMail />,
-          text: "Contact Us",
-          link: ROUTES.CONTACT,
-          show: true,
-        },
-      ],
+      ...centralizedSections.about,
+      items: convertToMenuFormat(centralizedSections.about.items),
     },
-
     settings: {
-      title: "Settings",
-      collapsible: false,
-      show: true,
-      items: [
-        {
-          icon: <Settings />,
-          text: "Settings",
-          link: ROUTES.SETTINGS,
-          show: true,
-        },
-      ],
+      ...centralizedSections.settings,
+      items: convertToMenuFormat(centralizedSections.settings.items),
     },
   };
 };

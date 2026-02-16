@@ -41,16 +41,20 @@ import {
   AttachMoney,
   ContactMail,
   Chat,
+  LocalShipping,
+  Inventory,
+  RequestQuote,
+  AccountBalance,
 } from "@mui/icons-material";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 
 import { useTheme } from "../../hooks/useTheme";
 import { useAuth } from "../../features/auth/hooks/useAuth";
+import { ROUTES } from "../../constants/routes";
 import {
-  ROUTES,
   MERCHANT_SIDEBAR,
   ADMIN_SIDEBAR,
-} from "../../constants/routes";
+} from "../../config/navigation.config";
 import ThemeToggle from "../common/ThemeToggle";
 import { useMerchant } from "../../features/merchant/hooks/useMerchant";
 
@@ -123,6 +127,7 @@ function DashboardLayout({ userRole }) {
     ShoppingBag: <ShoppingBag />,
     Store: <Store />,
     Analytics: <BarChart />,
+    BarChart: <BarChart />,
     Receipt: <Receipt />,
     Assessment: <Assessment />,
     Settings: <Settings />,
@@ -131,6 +136,10 @@ function DashboardLayout({ userRole }) {
     AttachMoney: <AttachMoney />,
     ContactMail: <ContactMail />,
     Chat: <Chat />,
+    LocalShipping: <LocalShipping />,
+    Inventory: <Inventory />,
+    RequestQuote: <RequestQuote />,
+    AccountBalance: <AccountBalance />,
   };
 
   // Toggle group expansion

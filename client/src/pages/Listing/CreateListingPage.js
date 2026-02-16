@@ -125,14 +125,14 @@ const CreateListingPage = () => {
       const imageUrls = uploadedImages.map((img) => img.main.url);
       addImages(imageUrls);
     },
-    [addImages]
+    [addImages],
   );
 
   const handleDeleteImage = useCallback(
     (url) => {
       removeImageByUrl(url);
     },
-    [removeImageByUrl]
+    [removeImageByUrl],
   );
 
   // Variant handlers
@@ -141,7 +141,7 @@ const CreateListingPage = () => {
       addVariant(variantData);
       return { success: true };
     },
-    [addVariant]
+    [addVariant],
   );
 
   const handleUpdateVariant = useCallback(
@@ -149,7 +149,7 @@ const CreateListingPage = () => {
       updateVariant(variantId, variantData);
       return { success: true };
     },
-    [updateVariant]
+    [updateVariant],
   );
 
   const handleDeleteVariant = useCallback(
@@ -157,7 +157,7 @@ const CreateListingPage = () => {
       removeVariant(variantId);
       return { success: true };
     },
-    [removeVariant]
+    [removeVariant],
   );
 
   // Variant toggle handlers
@@ -174,7 +174,7 @@ const CreateListingPage = () => {
         }
       }
     },
-    [enableVariants, disableVariants, variants.length]
+    [enableVariants, disableVariants, variants.length],
   );
 
   const handleConfirmDisableVariants = useCallback(() => {
@@ -234,12 +234,12 @@ const CreateListingPage = () => {
       subtitle: null,
       // Use top-level fields (single-step form)
       fields: (createListingFormConfig.fields || []).filter(
-        (field) => field.name !== "images"
+        (field) => field.name !== "images",
       ),
       // Clear steps to ensure single-step rendering
       steps: [],
     }),
-    []
+    [],
   );
 
   // Check if details section is complete
@@ -248,8 +248,12 @@ const CreateListingPage = () => {
     const hasType = !!formData.type;
     const hasDescription = !!formData.description;
     const hasCategory = !!formData.category;
+    // Price not required if free, quote-only, or has variants
     const hasPriceOrFree =
-      formData.isFree || (formData.price !== "" && formData.price >= 0);
+      formData.isFree ||
+      formData.isQuoteOnly ||
+      variantsEnabled ||
+      (formData.price !== "" && formData.price >= 0);
     const hasStockOrService =
       formData.type === "service" ||
       (formData.stock !== "" && formData.stock >= 0);
@@ -269,7 +273,9 @@ const CreateListingPage = () => {
     formData.category,
     formData.price,
     formData.isFree,
+    formData.isQuoteOnly,
     formData.stock,
+    variantsEnabled,
   ]);
 
   // Check if images section is complete

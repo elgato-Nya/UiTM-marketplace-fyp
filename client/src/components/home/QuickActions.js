@@ -47,11 +47,6 @@ function QuickActions() {
         path: ROUTES.MERCHANT.STORE,
       },
       {
-        icon: TrendingUp,
-        label: "Analytics",
-        path: ROUTES.MERCHANT.ANALYTICS,
-      },
-      {
         icon: Receipt,
         label: "Manage Orders",
         path: ROUTES.MERCHANT.ORDERS,

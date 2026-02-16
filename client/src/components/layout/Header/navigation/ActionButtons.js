@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Box, IconButton, Badge, Tooltip, Avatar } from "@mui/material";
 import {
   ShoppingCart,
@@ -8,6 +8,8 @@ import {
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { ROUTES } from "../../../../constants/routes";
+import { useNotificationContext } from "../../../../contexts/NotificationContext";
+import NotificationDropdown from "../../../notification/NotificationDropdown";
 
 function ActionButtons({
   isSmallScreen,
@@ -17,21 +19,37 @@ function ActionButtons({
   theme,
   user,
 }) {
+  const { unreadCount } = useNotificationContext();
+  const [notifAnchorEl, setNotifAnchorEl] = useState(null);
+
+  const handleNotifOpen = (event) => {
+    setNotifAnchorEl(event.currentTarget);
+  };
+
+  const handleNotifClose = () => {
+    setNotifAnchorEl(null);
+  };
+
   return (
     <>
       {/* Notifications */}
       <Tooltip title="Notifications">
         <IconButton
           color="inherit"
-          component={Link}
-          to={ROUTES.NOTIFICATIONS}
+          onClick={handleNotifOpen}
           size={isSmallScreen ? "small" : "medium"}
+          aria-label={`${unreadCount} unread notifications`}
         >
-          <Badge badgeContent={3} color="error">
+          <Badge badgeContent={unreadCount} color="error">
             <Notifications fontSize={isSmallScreen ? "small" : "medium"} />
           </Badge>
         </IconButton>
       </Tooltip>
+
+      <NotificationDropdown
+        anchorEl={notifAnchorEl}
+        onClose={handleNotifClose}
+      />
 
       {/* Shopping Cart */}
       <Tooltip title="Shopping Cart">

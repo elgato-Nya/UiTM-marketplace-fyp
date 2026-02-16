@@ -77,7 +77,7 @@ const ListingCard = ({
     if (availableVariants.length === 0) return price;
 
     const lowestPrice = Math.min(
-      ...availableVariants.map((v) => Number(v.price) || 0)
+      ...availableVariants.map((v) => Number(v.price) || 0),
     );
     return lowestPrice > 0 ? lowestPrice : price;
   }, [variants, price, isFree]);
@@ -185,13 +185,17 @@ const ListingCard = ({
   const cartItem = getCartItem(_id);
 
   return (
-    <>
+    <Box
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <Card
         sx={{
           width: "100%",
-          maxWidth: isMobile ? "100%" : 280,
-          height: isMobile ? 350 : 440,
-          margin: "0 auto",
+          flex: 1,
           display: "flex",
           flexDirection: "column",
           cursor: "pointer",
@@ -337,7 +341,7 @@ const ListingCard = ({
           </Box>
         </Box>
 
-        {/* Content Section - Flex Grow */}
+        {/* Content Section - Flex Grow with structured zones */}
         <CardContent
           sx={{
             flex: 1,
@@ -350,7 +354,7 @@ const ListingCard = ({
             minHeight: 0,
           }}
         >
-          {/* Title - 2 lines max with ellipsis */}
+          {/* Title - Fixed 2-line zone */}
           <Typography
             variant={isMobile ? "subtitle2" : "h6"}
             sx={{
@@ -361,19 +365,25 @@ const ListingCard = ({
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
               lineHeight: 1.3,
-              height: isMobile ? "2.6em" : "2.6em",
+              minHeight: isMobile
+                ? "calc(0.8rem * 1.3 * 2)"
+                : "calc(0.95rem * 1.3 * 2)",
+              maxHeight: isMobile
+                ? "calc(0.8rem * 1.3 * 2)"
+                : "calc(0.95rem * 1.3 * 2)",
               wordBreak: "break-word",
               overflowWrap: "break-word",
               hyphens: "auto",
               fontSize: isMobile ? "0.8rem" : "0.95rem",
               mb: isMobile ? 0.5 : 0.75,
+              flexShrink: 0,
             }}
             title={name}
           >
             {name}
           </Typography>
 
-          {/* Description - 2 lines max with ellipsis */}
+          {/* Description - Fixed 2-line zone */}
           <Typography
             variant="body2"
             color="text.secondary"
@@ -384,18 +394,24 @@ const ListingCard = ({
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
               lineHeight: 1.4,
-              height: "2.8em",
+              minHeight: isMobile
+                ? "calc(0.7rem * 1.4 * 2)"
+                : "calc(0.8rem * 1.4 * 2)",
+              maxHeight: isMobile
+                ? "calc(0.7rem * 1.4 * 2)"
+                : "calc(0.8rem * 1.4 * 2)",
               wordBreak: "break-word",
               overflowWrap: "break-word",
               fontSize: isMobile ? "0.7rem" : "0.8rem",
               mb: isMobile ? 0.5 : 0.75,
+              flexShrink: 0,
             }}
             title={description || "No description"}
           >
             {description || "\u00A0"}
           </Typography>
 
-          {/* Category - Single line with ellipsis */}
+          {/* Category - Fixed single-line zone */}
           <Typography
             variant="caption"
             color="text.secondary"
@@ -404,9 +420,14 @@ const ListingCard = ({
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
               fontSize: isMobile ? "0.65rem" : "0.75rem",
+              lineHeight: 1.4,
+              minHeight: isMobile
+                ? "calc(0.65rem * 1.4)"
+                : "calc(0.75rem * 1.4)",
               mb: isMobile ? 0.5 : 0.75,
               display: "block",
               maxWidth: "100%",
+              flexShrink: 0,
             }}
             title={CATEGORY_LABELS[category] || category}
           >
@@ -482,6 +503,7 @@ const ListingCard = ({
               display: "flex",
               gap: isMobile ? 0.5 : 1,
               flexWrap: "nowrap",
+              minHeight: isMobile ? 42 : 52,
             }}
           >
             {/* Edit Button - Compact on mobile */}
@@ -583,6 +605,7 @@ const ListingCard = ({
                 borderTop: "1px solid",
                 borderColor: "divider",
                 flexShrink: 0,
+                minHeight: isMobile ? 42 : 52,
               }}
             >
               <Button
@@ -636,7 +659,7 @@ const ListingCard = ({
         listing={listing}
         isWishlistContext={isWishlistContext}
       />
-    </>
+    </Box>
   );
 };
 

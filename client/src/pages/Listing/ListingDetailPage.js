@@ -37,6 +37,7 @@ import { ROUTES } from "../../constants/routes";
 import AddToCartDialog from "../../features/cart/components/AddToCartDialog";
 import BuyNowDialog from "../../features/cart/components/BuyNowDialog";
 import { createSessionFromListing } from "../../features/checkout/store/checkoutSlice";
+import { createQuoteRequest } from "../../features/quote/store/quoteSlice";
 
 const ListingDetailPage = () => {
   const { theme } = useTheme();
@@ -75,9 +76,7 @@ const ListingDetailPage = () => {
     async (quoteData) => {
       setQuoteLoading(true);
       try {
-        // TODO: Implement quote submission API call
-        // For now, just show success message
-        console.log("Quote request submitted:", quoteData);
+        await dispatch(createQuoteRequest(quoteData)).unwrap();
         success(
           "Quote request submitted successfully! The seller will respond soon."
         );
@@ -88,7 +87,7 @@ const ListingDetailPage = () => {
         setQuoteLoading(false);
       }
     },
-    [success, showError]
+    [dispatch, success, showError]
   );
 
   // Scroll to top when component mounts or listingId changes
@@ -195,39 +194,81 @@ const ListingDetailPage = () => {
 
   const inWishlist = isInWishlist(listingId);
 
-  // For listings with variants, we now allow opening the dialog without pre-selection
-  // The variant selection happens inside the modal
-  const canAddToCart = hasVariants
-    ? availableVariants.length > 0 // Can open dialog if there are available variants
-    : isAvailable && (type === "service" || stock > 0);
-
-  // For Buy Now, if listing has variants, we need to open a modal for selection
-  // For now, we'll disable direct Buy Now and require going through Add to Cart first
-  const canBuyNow = hasVariants
-    ? selectedVariant &&
-      selectedVariant.isAvailable !== false &&
-      (type === "service" || selectedVariant.stock > 0)
-    : isAvailable && (type === "service" || stock > 0);
+  // Check if listing is quote-only (no fixed price, requires quote request)
+  const isQuoteOnly = currentListing?.quoteSettings?.quoteOnly === true;
 
   // Check if listing supports quote requests
   const hasQuoteSettings =
     type === "service" && currentListing?.quoteSettings?.enabled;
 
+  // For listings with variants, we now allow opening the dialog without pre-selection
+  // The variant selection happens inside the modal
+  // Quote-only listings cannot be added to cart
+  const canAddToCart = isQuoteOnly
+    ? false
+    : hasVariants
+      ? availableVariants.length > 0 // Can open dialog if there are available variants
+      : isAvailable && (type === "service" || stock > 0);
+
+  // For Buy Now, if listing has variants, we need to open a modal for selection
+  // Quote-only listings cannot use Buy Now
+  const canBuyNow = isQuoteOnly
+    ? false
+    : hasVariants
+      ? selectedVariant &&
+        selectedVariant.isAvailable !== false &&
+        (type === "service" || selectedVariant.stock > 0)
+      : isAvailable && (type === "service" || stock > 0);
+
+  // Get price display text for quote-based listings
+  const getQuotePriceDisplay = () => {
+    const quoteSettings = currentListing?.quoteSettings;
+    if (!quoteSettings) return null;
+    
+    const minPrice = quoteSettings.minPrice;
+    const maxPrice = quoteSettings.maxPrice;
+    
+    if (minPrice && maxPrice && minPrice !== maxPrice) {
+      return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
+    } else if (minPrice) {
+      return `From ${formatPrice(minPrice)}`;
+    }
+    return null;
+  };
+
+  // Get variant price display (range or single)
+  const getVariantPriceDisplay = () => {
+    if (!hasVariants || availableVariants.length === 0) return null;
+    
+    const prices = availableVariants
+      .map((v) => Number(v.price) || 0)
+      .filter((p) => p > 0);
+    if (prices.length === 0) return null;
+    
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    
+    if (minPrice === maxPrice) {
+      return formatPrice(minPrice);
+    }
+    return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
+  };
+
   // Format price with spaces (e.g., 1 234 567.89)
-  const formatPrice = (price) => {
+  const formatPrice = (priceValue) => {
     if (isFree) return "FREE";
-    if (price >= 100000) {
+    if (priceValue >= 100000) {
       // Use prefix for 100k+
-      if (price >= 1000000000) {
-        return `RM ${(price / 1000000000).toFixed(1)}b`;
+      if (priceValue >= 1000000000) {
+        return `RM ${(priceValue / 1000000000).toFixed(1)}b`;
       }
-      if (price >= 1000000) {
-        return `RM ${(price / 1000000).toFixed(1)}m`;
+      if (priceValue >= 1000000) {
+        return `RM ${(priceValue / 1000000).toFixed(1)}m`;
       }
-      return `RM ${(price / 1000).toFixed(1)}k`;
+      return `RM ${(priceValue / 1000).toFixed(1)}k`;
     }
     // Format with spaces for numbers < 100k
-    const parts = price.toFixed(2).split(".");
+    const parts = priceValue.toFixed(2).split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
     return `RM ${parts.join(".")}`;
   };
@@ -364,7 +405,8 @@ const ListingDetailPage = () => {
             >
               FREE
             </Typography>
-          ) : (
+          ) : isQuoteOnly ? (
+            // Quote-only pricing display
             <Typography
               variant="h3"
               fontWeight="700"
@@ -374,10 +416,34 @@ const ListingDetailPage = () => {
                 fontSize: { xs: "1.75rem", md: "2.25rem" },
               }}
             >
-              {priceRange && !selectedVariant
-                ? `${formatPrice(priceRange.min)} - ${formatPrice(priceRange.max)}`
-                : formatPrice(effectivePrice)}
-              {hasVariants && !selectedVariant && !priceRange && (
+              {getQuotePriceDisplay() || "Quote Required"}
+            </Typography>
+          ) : hasVariants && !selectedVariant ? (
+            // Variant price range display
+            <Typography
+              variant="h3"
+              fontWeight="700"
+              color="primary.main"
+              sx={{
+                mb: 2,
+                fontSize: { xs: "1.75rem", md: "2.25rem" },
+              }}
+            >
+              {getVariantPriceDisplay() || formatPrice(effectivePrice)}
+            </Typography>
+          ) : (
+            // Regular price display
+            <Typography
+              variant="h3"
+              fontWeight="700"
+              color="primary.main"
+              sx={{
+                mb: 2,
+                fontSize: { xs: "1.75rem", md: "2.25rem" },
+              }}
+            >
+              {formatPrice(effectivePrice)}
+              {hasVariants && !selectedVariant && (
                 <Typography
                   component="span"
                   variant="body2"
@@ -439,89 +505,119 @@ const ListingDetailPage = () => {
           {/* Action Buttons */}
           {isAuthenticated ? (
             <>
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "row",
-                  gap: 1.5,
-                  mt: 3,
-                  mb: 0,
-                }}
-              >
-                {/* Buy Now - For variants, opens modal if no variant selected */}
-                <Button
-                  variant="contained"
-                  size="large"
-                  onClick={handleBuyNow}
-                  disabled={!canAddToCart || isBuyingNow}
+              {/* Show cart/buy buttons only if NOT quote-only */}
+              {!isQuoteOnly && (
+                <Box
                   sx={{
-                    py: 1.5,
-                    fontSize: { xs: "0.875rem", sm: "1rem" },
-                    fontWeight: 600,
-                    textTransform: "none",
-                    flex: 1,
+                    display: "flex",
+                    flexDirection: "row",
+                    gap: 1.5,
+                    mt: 3,
+                    mb: 0,
                   }}
                 >
-                  {isBuyingNow ? (
-                    <>
-                      <CircularProgress size={20} sx={{ mr: 1 }} />
-                      Processing...
-                    </>
-                  ) : !canAddToCart ? (
-                    "Unavailable"
-                  ) : hasVariants && !selectedVariant ? (
-                    "Buy Now"
-                  ) : (
-                    "Buy Now"
-                  )}
-                </Button>
-
-                {/* Add to Cart - For variants, opens modal for selection */}
-                <Button
-                  variant="outlined"
-                  size="large"
-                  onClick={handleAddToCartClick}
-                  disabled={!canAddToCart}
-                  sx={{
-                    py: 1.5,
-                    fontSize: { xs: "0.875rem", sm: "1rem" },
-                    fontWeight: 600,
-                    textTransform: "none",
-                    flex: 1,
-                  }}
-                >
-                  Add to Cart
-                </Button>
-
-                {/* Wishlist - Icon Only */}
-                <Tooltip
-                  title={
-                    inWishlist ? "Remove from wishlist" : "Add to wishlist"
-                  }
-                >
-                  <IconButton
-                    onClick={handleToggleWishlist}
+                  {/* Buy Now - For variants, opens modal if no variant selected */}
+                  <Button
+                    variant="contained"
                     size="large"
+                    onClick={handleBuyNow}
+                    disabled={!canAddToCart || isBuyingNow}
                     sx={{
-                      border: "2px solid",
-                      borderColor: inWishlist ? "error.main" : "divider",
-                      color: inWishlist ? "error.main" : "text.secondary",
-                      "&:hover": {
-                        borderColor: "error.main",
-                        color: "error.main",
-                      },
+                      py: 1.5,
+                      fontSize: { xs: "0.875rem", sm: "1rem" },
+                      fontWeight: 600,
+                      textTransform: "none",
+                      flex: 1,
                     }}
                   >
+                    {isBuyingNow ? (
+                      <>
+                        <CircularProgress size={20} sx={{ mr: 1 }} />
+                        Processing...
+                      </>
+                    ) : !canAddToCart ? (
+                      "Unavailable"
+                    ) : hasVariants && !selectedVariant ? (
+                      "Buy Now"
+                    ) : (
+                      "Buy Now"
+                    )}
+                  </Button>
+
+                  {/* Add to Cart - For variants, opens modal for selection */}
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    onClick={handleAddToCartClick}
+                    disabled={!canAddToCart}
+                    sx={{
+                      py: 1.5,
+                      fontSize: { xs: "0.875rem", sm: "1rem" },
+                      fontWeight: 600,
+                      textTransform: "none",
+                      flex: 1,
+                    }}
+                  >
+                    Add to Cart
+                  </Button>
+
+                  {/* Wishlist - Icon Only */}
+                  <Tooltip
+                    title={
+                      inWishlist ? "Remove from wishlist" : "Add to wishlist"
+                    }
+                  >
+                    <IconButton
+                      onClick={handleToggleWishlist}
+                      size="large"
+                      sx={{
+                        border: "2px solid",
+                        borderColor: inWishlist ? "error.main" : "divider",
+                        color: inWishlist ? "error.main" : "text.secondary",
+                        "&:hover": {
+                          borderColor: "error.main",
+                          color: "error.main",
+                        },
+                      }}
+                    >
                     {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
                   </IconButton>
                 </Tooltip>
               </Box>
+              )}
+
+              {/* Quote-only: Show only wishlist button if not showing buy/cart buttons */}
+              {isQuoteOnly && (
+                <Box sx={{ display: "flex", gap: 1.5, mt: 3, mb: 0 }}>
+                  <Tooltip
+                    title={
+                      inWishlist ? "Remove from wishlist" : "Add to wishlist"
+                    }
+                  >
+                    <IconButton
+                      onClick={handleToggleWishlist}
+                      size="large"
+                      sx={{
+                        border: "2px solid",
+                        borderColor: inWishlist ? "error.main" : "divider",
+                        color: inWishlist ? "error.main" : "text.secondary",
+                        "&:hover": {
+                          borderColor: "error.main",
+                          color: "error.main",
+                        },
+                      }}
+                    >
+                      {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              )}
 
               {/* Quote Request Button - For services with quote settings */}
               {hasQuoteSettings && (
                 <Button
-                  variant="outlined"
-                  color="secondary"
+                  variant={isQuoteOnly ? "contained" : "outlined"}
+                  color={isQuoteOnly ? "primary" : "secondary"}
                   size="large"
                   onClick={handleRequestQuote}
                   startIcon={<QuoteIcon />}
@@ -543,7 +639,7 @@ const ListingDetailPage = () => {
               severity="info"
               sx={{ mb: 0, fontSize: { xs: "0.8125rem", md: "0.875rem" } }}
             >
-              Please log in to purchase this item.
+              Please log in to {isQuoteOnly ? "request a quote" : "purchase this item"}.
             </Alert>
           )}
         </Box>

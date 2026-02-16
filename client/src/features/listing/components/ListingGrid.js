@@ -59,7 +59,11 @@ const ListingGrid = ({
 
   return (
     <Box>
-      <Grid container spacing={isMobile ? 0.5 : 3}>
+      <Grid
+        container
+        spacing={isMobile ? 0.5 : 3}
+        sx={{ alignItems: "stretch" }}
+      >
         {listings.map((listing) => (
           <Grid size={{ xs: 6, sm: 6, md: 4, lg: 3 }} key={listing._id}>
             <ListingCard

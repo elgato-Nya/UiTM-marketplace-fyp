@@ -5,9 +5,21 @@ import {
   Inventory,
   LocalShipping,
   Store,
+  RequestQuote,
+  AccountBalance,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
-import { ROUTES } from "../../../../constants/routes";
+import { MERCHANT_NAV, ICON_NAMES } from "../../../../config/navigation.config";
+
+// Icon map
+const ICON_MAP = {
+  [ICON_NAMES.DASHBOARD]: Dashboard,
+  [ICON_NAMES.LOCAL_SHIPPING]: LocalShipping,
+  [ICON_NAMES.REQUEST_QUOTE]: RequestQuote,
+  [ICON_NAMES.STORE]: Store,
+  [ICON_NAMES.INVENTORY]: Inventory,
+  [ICON_NAMES.ACCOUNT_BALANCE]: AccountBalance,
+};
 
 function MerchantMenu({ anchorEl, open, onClose }) {
   return (
@@ -25,38 +37,22 @@ function MerchantMenu({ anchorEl, open, onClose }) {
         },
       }}
     >
-      <MenuItem
-        component={Link}
-        to={ROUTES.MERCHANT.DASHBOARD}
-        onClick={onClose}
-      >
-        <ListItemIcon>
-          <Dashboard fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>Dashboard</ListItemText>
-      </MenuItem>
-      <MenuItem component={Link} to={ROUTES.MERCHANT.STORE} onClick={onClose}>
-        <ListItemIcon>
-          <Store fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>My Shop</ListItemText>
-      </MenuItem>
-      <MenuItem
-        component={Link}
-        to={ROUTES.MERCHANT.LISTINGS.MY_LISTINGS}
-        onClick={onClose}
-      >
-        <ListItemIcon>
-          <Inventory fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>My Listings</ListItemText>
-      </MenuItem>
-      <MenuItem component={Link} to={ROUTES.MERCHANT.ORDERS} onClick={onClose}>
-        <ListItemIcon>
-          <LocalShipping fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>Sales Orders</ListItemText>
-      </MenuItem>
+      {MERCHANT_NAV.map((item) => {
+        const IconComponent = ICON_MAP[item.icon];
+        return (
+          <MenuItem
+            key={item.path}
+            component={Link}
+            to={item.path}
+            onClick={onClose}
+          >
+            <ListItemIcon>
+              <IconComponent fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>{item.label}</ListItemText>
+          </MenuItem>
+        );
+      })}
     </Menu>
   );
 }

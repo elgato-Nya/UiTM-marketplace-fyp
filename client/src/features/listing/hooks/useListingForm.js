@@ -38,6 +38,7 @@ const useListingForm = (options = {}) => {
         price: initialData.price?.toString() || "",
         stock: initialData.stock?.toString() || "",
         isFree: initialData.isFree || false,
+        isQuoteOnly: initialData.quoteSettings?.quoteOnly || false,
         isAvailable: initialData.isAvailable ?? true,
       };
     }
@@ -49,6 +50,7 @@ const useListingForm = (options = {}) => {
       price: "",
       stock: "",
       isFree: false,
+      isQuoteOnly: false,
       isAvailable: true,
     };
   }, [initialData]);
@@ -132,11 +134,28 @@ const useListingForm = (options = {}) => {
         return {
           ...data,
           category: "", // Reset category when type changes
+          isQuoteOnly: false, // Reset quote-only when type changes
         };
       }
       return data;
     });
-  }, []);
+    
+    // Auto-enable quote settings when isQuoteOnly is checked
+    if (data.isQuoteOnly && !quoteSettings?.enabled) {
+      setQuoteSettings((prev) => ({
+        ...prev,
+        enabled: true,
+        quoteOnly: true,
+      }));
+    }
+    // Update quoteOnly in settings when it changes
+    if (data.isQuoteOnly !== undefined && quoteSettings) {
+      setQuoteSettings((prev) => ({
+        ...prev,
+        quoteOnly: data.isQuoteOnly,
+      }));
+    }
+  }, [quoteSettings]);
 
   // ========== Image Methods ==========
   const addImages = useCallback((newImages) => {
@@ -458,20 +477,24 @@ const useListingForm = (options = {}) => {
 
     // Add quote settings for services - always include if it's a service
     if (isService) {
-      if (quoteSettings?.enabled) {
+      // If isQuoteOnly is enabled, automatically enable quote settings
+      const isQuoteOnly = formData.isQuoteOnly || false;
+      
+      if (quoteSettings?.enabled || isQuoteOnly) {
         submitData.quoteSettings = {
           enabled: true,
-          autoAccept: quoteSettings.autoAccept || false,
-          minPrice: parseFloat(quoteSettings.minPrice) || 0,
-          maxPrice: parseFloat(quoteSettings.maxPrice) || 100000000,
-          responseTime: quoteSettings.responseTime || "24hr",
-          requiresDeposit: quoteSettings.requiresDeposit || false,
-          depositPercentage: parseInt(quoteSettings.depositPercentage) || 0,
-          customFields: quoteSettings.customFields || [],
+          quoteOnly: isQuoteOnly,
+          autoAccept: quoteSettings?.autoAccept || false,
+          minPrice: parseFloat(quoteSettings?.minPrice) || 0,
+          maxPrice: parseFloat(quoteSettings?.maxPrice) || 100000000,
+          responseTime: quoteSettings?.responseTime || "24hr",
+          requiresDeposit: quoteSettings?.requiresDeposit || false,
+          depositPercentage: parseInt(quoteSettings?.depositPercentage) || 0,
+          customFields: quoteSettings?.customFields || [],
         };
         submitData.isQuoteBased = true;
       } else {
-        submitData.quoteSettings = { enabled: false };
+        submitData.quoteSettings = { enabled: false, quoteOnly: false };
         submitData.isQuoteBased = false;
       }
     }

@@ -46,6 +46,8 @@ export const ROUTES = {
     STORE: "/merchant/store",
     PRODUCTS: "/merchant/products",
     ORDERS: "/merchant/orders",
+    QUOTES: "/merchant/quotes",
+    PAYOUTS: "/merchant/payouts",
     ANALYTICS: "/merchant/analytics",
     BECOME: "/merchant/become",
     VERIFY_EMAIL: "/merchant/verify-email",
@@ -57,6 +59,14 @@ export const ROUTES = {
     },
     // Order Management (Seller perspective)
     ORDER_DETAIL: (id) => `/merchant/orders/${id}`,
+    QUOTE_DETAIL: (id) => `/merchant/quotes/${id}`,
+  },
+
+  // Quote Routes (Buyer perspective)
+  QUOTES: {
+    INDEX: "/quotes",
+    MY_QUOTES: "/quotes/my-quotes",
+    DETAIL: (id) => `/quotes/${id}`,
   },
 
   // Cart & Wishlist
@@ -91,6 +101,7 @@ export const ROUTES = {
     DASHBOARD: "/admin/dashboard",
     USERS: "/admin/users",
     MERCHANT: "/admin/merchants/verification",
+    PAYOUTS: "/admin/payouts",
     CONTACTS: "/admin/contacts",
     REPORTS: "/admin/reports",
     LISTINGS: "/admin/listings",
@@ -115,76 +126,10 @@ export const ROUTES = {
 };
 
 // ================== NAVIGATION GROUPS ========================
+// REMOVED: Re-exports from navigation.config.js (caused circular dependency)
+// Import navigation configs directly from: config/navigation.config.js
 
-/**
- * Main Navigation Links (Header)
- */
-export const MAIN_NAV = [
-  { label: "Home", path: ROUTES.HOME },
-  { label: "Products", path: ROUTES.LISTINGS.PRODUCTS },
-  { label: "Services", path: ROUTES.LISTINGS.SERVICES },
-];
-
-/**
- * User Menu Links (Authenticated Users)
- */
-export const USER_MENU = {
-  CONSUMER: [
-    { icon: "Person", label: "My Profile", path: ROUTES.PROFILE.INDEX },
-    {
-      icon: "LocationOn",
-      label: "My Addresses",
-      path: ROUTES.PROFILE.ADDRESSES,
-    },
-    { icon: "ShoppingBag", label: "My Orders", path: ROUTES.ORDERS.PURCHASES },
-    {
-      icon: "Notifications",
-      label: "Notifications",
-      path: ROUTES.NOTIFICATIONS,
-    },
-    { icon: "Settings", label: "Account Settings", path: ROUTES.SETTINGS },
-  ],
-  MERCHANT: [
-    { icon: "Person", label: "My Profile", path: ROUTES.PROFILE.INDEX },
-    {
-      icon: "LocationOn",
-      label: "My Addresses",
-      path: ROUTES.PROFILE.ADDRESSES,
-    },
-    { icon: "Store", label: "My Store", path: ROUTES.MERCHANT.INDEX },
-    {
-      icon: "ShoppingBag",
-      label: "My Listings",
-      path: ROUTES.MERCHANT.LISTINGS.MY_LISTINGS,
-    },
-    { icon: "Receipt", label: "Sales Orders", path: ROUTES.MERCHANT.ORDERS },
-    {
-      icon: "Notifications",
-      label: "Notifications",
-      path: ROUTES.NOTIFICATIONS,
-    },
-    { icon: "Settings", label: "Account Settings", path: ROUTES.SETTINGS },
-  ],
-  ADMIN: [
-    { icon: "Person", label: "My Profile", path: ROUTES.PROFILE.INDEX },
-    {
-      icon: "LocationOn",
-      label: "My Addresses",
-      path: ROUTES.PROFILE.ADDRESSES,
-    },
-    { icon: "Dashboard", label: "Admin Dashboard", path: ROUTES.ADMIN.INDEX },
-    {
-      icon: "Notifications",
-      label: "Notifications",
-      path: ROUTES.NOTIFICATIONS,
-    },
-    { icon: "Settings", label: "Account Settings", path: ROUTES.SETTINGS },
-  ],
-};
-
-/**
- * Mobile Drawer Navigation (Guest)
- */
+// Legacy exports for backward compatibility (deprecated - use navigation.config.js)
 export const MOBILE_GUEST_NAV = [
   { icon: "Home", label: "Home", path: ROUTES.HOME },
   { icon: "ShoppingBag", label: "Products", path: ROUTES.LISTINGS.PRODUCTS },
@@ -192,9 +137,6 @@ export const MOBILE_GUEST_NAV = [
   { icon: "ContactMail", label: "Contact", path: ROUTES.CONTACT },
 ];
 
-/**
- * Mobile Drawer Navigation (Authenticated)
- */
 export const MOBILE_AUTH_NAV = {
   COMMON: [
     { icon: "Home", label: "Home", path: ROUTES.HOME },
@@ -216,6 +158,11 @@ export const MOBILE_AUTH_NAV = {
   ],
   CONSUMER_ONLY: [
     { icon: "ShoppingBag", label: "My Orders", path: ROUTES.ORDERS.PURCHASES },
+    {
+      icon: "RequestQuote",
+      label: "Quote Requests",
+      path: ROUTES.QUOTES.INDEX,
+    },
   ],
   MERCHANT_ONLY: [
     { icon: "Store", label: "My Store", path: ROUTES.MERCHANT.INDEX },
@@ -225,80 +172,16 @@ export const MOBILE_AUTH_NAV = {
       path: ROUTES.MERCHANT.LISTINGS.MY_LISTINGS,
     },
     { icon: "Receipt", label: "Sales Orders", path: ROUTES.MERCHANT.ORDERS },
+    {
+      icon: "RequestQuote",
+      label: "Quote Requests",
+      path: ROUTES.MERCHANT.QUOTES,
+    },
+    { icon: "AccountBalance", label: "Payouts", path: ROUTES.MERCHANT.PAYOUTS },
   ],
   ADMIN_ONLY: [
     { icon: "Dashboard", label: "Admin Panel", path: ROUTES.ADMIN.INDEX },
   ],
-};
-
-/**
- * Merchant Dashboard Sidebar
- */
-export const MERCHANT_SIDEBAR = [
-  { icon: "Dashboard", label: "Dashboard", path: ROUTES.MERCHANT.DASHBOARD },
-  { icon: "Store", label: "My Store", path: ROUTES.MERCHANT.STORE },
-  {
-    icon: "ShoppingBag",
-    label: "My Listings",
-    path: ROUTES.MERCHANT.LISTINGS.MY_LISTINGS,
-  },
-  { icon: "Receipt", label: "Orders", path: ROUTES.MERCHANT.ORDERS },
-];
-
-/**
- * Admin Dashboard Sidebar - Grouped Navigation with Collapsible Sections
- * Only showing functional/implemented features
- */
-export const ADMIN_SIDEBAR = [
-  {
-    group: "Overview",
-    items: [
-      { icon: "Dashboard", label: "Dashboard", path: ROUTES.ADMIN.DASHBOARD },
-    ],
-  },
-  {
-    group: "User Management",
-    collapsible: true,
-    defaultOpen: true,
-    items: [
-      { icon: "People", label: "Users", path: ROUTES.ADMIN.USERS },
-      {
-        icon: "VerifiedUser",
-        label: "Merchant Verification",
-        path: ROUTES.ADMIN.MERCHANT,
-      },
-    ],
-  },
-  {
-    group: "Communication",
-    collapsible: true,
-    defaultOpen: false,
-    items: [
-      {
-        icon: "ContactMail",
-        label: "Contact Messages",
-        path: ROUTES.ADMIN.CONTACTS,
-      },
-    ],
-  },
-];
-
-/**
- * Breadcrumb Mappings
- */
-export const BREADCRUMB_MAP = {
-  [ROUTES.HOME]: "Home",
-  [ROUTES.LISTINGS.PRODUCTS]: "Products",
-  [ROUTES.LISTINGS.SERVICES]: "Services",
-  [ROUTES.MERCHANT.LISTINGS.MY_LISTINGS]: "My Listings",
-  [ROUTES.MERCHANT.LISTINGS.CREATE]: "Create Listing",
-  [ROUTES.PROFILE.INDEX]: "Profile",
-  [ROUTES.PROFILE.ADDRESSES]: "Addresses",
-  [ROUTES.PROFILE.SECURITY]: "Security",
-  [ROUTES.ORDERS.PURCHASES]: "My Orders",
-  [ROUTES.MERCHANT.ORDERS]: "Sales Orders",
-  [ROUTES.MERCHANT.INDEX]: "Merchant Dashboard",
-  [ROUTES.ADMIN.INDEX]: "Admin Dashboard",
 };
 
 export default ROUTES;

@@ -175,7 +175,7 @@ function ShopProfilePage() {
       if (selectedCategory) params.category = selectedCategory;
 
       dispatch(
-        fetchSellerListings({ sellerId: viewedShop.merchant._id, params })
+        fetchSellerListings({ sellerId: viewedShop.merchant._id, params }),
       );
     }
   }, [
@@ -865,7 +865,7 @@ function ShopProfilePage() {
                 {pagination && pagination.totalItems > 0
                   ? `Showing ${(currentPage - 1) * pagination.limit + 1}-${Math.min(
                       currentPage * pagination.limit,
-                      pagination.totalItems
+                      pagination.totalItems,
                     )} of ${pagination.totalItems} listing${
                       pagination.totalItems !== 1 ? "s" : ""
                     }`

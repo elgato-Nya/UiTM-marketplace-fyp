@@ -2,7 +2,15 @@ import React from "react";
 import { Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
 import { Info, History, ContactMail, Code } from "@mui/icons-material";
 import { Link } from "react-router-dom";
-import { ROUTES } from "../../../../constants/routes";
+import { ABOUT_NAV, ICON_NAMES } from "../../../../config/navigation.config";
+
+// Icon map
+const ICON_MAP = {
+  [ICON_NAMES.INFO]: Info,
+  [ICON_NAMES.HISTORY]: History,
+  [ICON_NAMES.CONTACT_MAIL]: ContactMail,
+  [ICON_NAMES.CODE]: Code,
+};
 
 function AboutMenu({ anchorEl, open, onClose }) {
   return (
@@ -20,30 +28,22 @@ function AboutMenu({ anchorEl, open, onClose }) {
         },
       }}
     >
-      <MenuItem component={Link} to={ROUTES.ABOUT.ABOUT_US} onClick={onClose}>
-        <ListItemIcon>
-          <Info fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>About Us</ListItemText>
-      </MenuItem>
-      <MenuItem component={Link} to={ROUTES.ABOUT.HISTORY} onClick={onClose}>
-        <ListItemIcon>
-          <History fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>Our History</ListItemText>
-      </MenuItem>
-      <MenuItem component={Link} to={ROUTES.ABOUT.NEKODEZ} onClick={onClose}>
-        <ListItemIcon>
-          <Code fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>Nekodez</ListItemText>
-      </MenuItem>
-      <MenuItem component={Link} to={ROUTES.CONTACT} onClick={onClose}>
-        <ListItemIcon>
-          <ContactMail fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>Contact Us</ListItemText>
-      </MenuItem>
+      {ABOUT_NAV.map((item) => {
+        const IconComponent = ICON_MAP[item.icon];
+        return (
+          <MenuItem
+            key={item.path}
+            component={Link}
+            to={item.path}
+            onClick={onClose}
+          >
+            <ListItemIcon>
+              <IconComponent fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>{item.label}</ListItemText>
+          </MenuItem>
+        );
+      })}
     </Menu>
   );
 }

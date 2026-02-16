@@ -15,12 +15,44 @@ import {
   Drawer,
   IconButton,
 } from "@mui/material";
-import { Menu as MenuIcon, Close as CloseIcon } from "@mui/icons-material";
+import {
+  Menu as MenuIcon,
+  Close as CloseIcon,
+  Person,
+  ShoppingBag,
+  LocationOn,
+  Security,
+  Settings,
+  Store,
+  BarChart,
+  Notifications,
+  RequestQuote,
+  AccountBalance,
+  Help,
+} from "@mui/icons-material";
 import { Link, useLocation, Outlet } from "react-router-dom";
 
 import { useTheme } from "../../hooks/useTheme";
 import { useAuth } from "../../features/auth/hooks/useAuth";
-import { getProfileNavigation } from "../../config/profile/profileNavigation";
+import {
+  getProfileNavigation,
+  ICON_NAMES,
+} from "../../config/navigation.config";
+
+// Icon map to convert string names to React components
+const ICON_MAP = {
+  [ICON_NAMES.PERSON]: Person,
+  [ICON_NAMES.SHOPPING_BAG]: ShoppingBag,
+  [ICON_NAMES.LOCATION]: LocationOn,
+  [ICON_NAMES.SECURITY]: Security,
+  [ICON_NAMES.SETTINGS]: Settings,
+  [ICON_NAMES.STORE]: Store,
+  [ICON_NAMES.BAR_CHART]: BarChart,
+  [ICON_NAMES.NOTIFICATIONS]: Notifications,
+  [ICON_NAMES.REQUEST_QUOTE]: RequestQuote,
+  [ICON_NAMES.ACCOUNT_BALANCE]: AccountBalance,
+  [ICON_NAMES.HELP]: Help,
+};
 
 function ProfileLayout() {
   const { theme } = useTheme();
@@ -97,7 +129,8 @@ function ProfileLayout() {
           const isActive =
             currentPath === item.path ||
             (item.path !== "/profile" && currentPath.startsWith(item.path));
-          const Icon = item.icon;
+          // Convert string icon name to React component
+          const Icon = ICON_MAP[item.icon] || Person;
 
           return (
             <ListItem key={item.id} disablePadding sx={{ mb: 0.5 }}>

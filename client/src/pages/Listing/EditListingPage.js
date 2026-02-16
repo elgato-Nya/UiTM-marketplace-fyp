@@ -118,7 +118,7 @@ const EditListingPage = () => {
       try {
         const response = await listingService.addVariant(
           listingId,
-          variantData
+          variantData,
         );
         if (response.success) {
           showSuccess("Variant added successfully");
@@ -131,7 +131,7 @@ const EditListingPage = () => {
         setVariantLoading(false);
       }
     },
-    [listingId, showSuccess, showError, refetchListing]
+    [listingId, showSuccess, showError, refetchListing],
   );
 
   const handleUpdateVariant = useCallback(
@@ -141,7 +141,7 @@ const EditListingPage = () => {
         const response = await listingService.updateVariant(
           listingId,
           variantId,
-          variantData
+          variantData,
         );
         if (response.success) {
           showSuccess("Variant updated successfully");
@@ -154,7 +154,7 @@ const EditListingPage = () => {
         setVariantLoading(false);
       }
     },
-    [listingId, showSuccess, showError, refetchListing]
+    [listingId, showSuccess, showError, refetchListing],
   );
 
   const handleDeleteVariant = useCallback(
@@ -163,7 +163,7 @@ const EditListingPage = () => {
       try {
         const response = await listingService.deleteVariant(
           listingId,
-          variantId
+          variantId,
         );
         if (response.success) {
           showSuccess("Variant deleted successfully");
@@ -176,7 +176,7 @@ const EditListingPage = () => {
         setVariantLoading(false);
       }
     },
-    [listingId, showSuccess, showError, refetchListing]
+    [listingId, showSuccess, showError, refetchListing],
   );
 
   // Variant toggle handlers
@@ -193,7 +193,7 @@ const EditListingPage = () => {
         }
       }
     },
-    [enableVariants, disableVariants, variants.length]
+    [enableVariants, disableVariants, variants.length],
   );
 
   const handleConfirmDisableVariants = useCallback(() => {
@@ -228,12 +228,12 @@ const EditListingPage = () => {
       allowQuickSave: true,
       // Use top-level fields (single-step form)
       fields: (editListingFormConfig.fields || []).filter(
-        (field) => field.name !== "images"
+        (field) => field.name !== "images",
       ),
       // Clear steps to ensure single-step rendering
       steps: [],
     }),
-    []
+    [],
   );
 
   const handleSubmit = useCallback(async () => {
@@ -286,7 +286,7 @@ const EditListingPage = () => {
   // Compute all images
   const allImages = useMemo(
     () => [...images, ...newlyUploadedImages],
-    [images, newlyUploadedImages]
+    [images, newlyUploadedImages],
   );
 
   // Check if details section is complete
@@ -295,8 +295,12 @@ const EditListingPage = () => {
     const hasType = !!formData.type;
     const hasDescription = !!formData.description;
     const hasCategory = !!formData.category;
+    // Price not required if free, quote-only, or has variants
     const hasPriceOrFree =
-      formData.isFree || (formData.price !== "" && formData.price >= 0);
+      formData.isFree ||
+      formData.isQuoteOnly ||
+      variantsEnabled ||
+      (formData.price !== "" && formData.price >= 0);
     const hasStockOrService =
       formData.type === "service" ||
       (formData.stock !== "" && formData.stock >= 0);
@@ -316,7 +320,9 @@ const EditListingPage = () => {
     formData.category,
     formData.price,
     formData.isFree,
+    formData.isQuoteOnly,
     formData.stock,
+    variantsEnabled,
   ]);
 
   // Check if images section is complete

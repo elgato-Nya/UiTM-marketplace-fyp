@@ -11,6 +11,8 @@ import checkoutReducer from "../features/checkout/store/checkoutSlice";
 import analyticsReducer from "../features/analytic/store/analyticsSlice";
 import merchantReducer from "../features/merchant/store/merchantSlice";
 import uploadReducer from "./slice/uploadSlice";
+import quoteReducer from "../features/quote/store/quoteSlice";
+import payoutReducer from "../features/payout/store/payoutSlice";
 import { listingApi } from "../features/listing/api/listingApi";
 
 export const store = configureStore({
@@ -27,6 +29,8 @@ export const store = configureStore({
     analytics: analyticsReducer,
     merchant: merchantReducer,
     upload: uploadReducer,
+    quotes: quoteReducer,
+    payout: payoutReducer,
     // Add RTK Query API reducer
     [listingApi.reducerPath]: listingApi.reducer,
   },

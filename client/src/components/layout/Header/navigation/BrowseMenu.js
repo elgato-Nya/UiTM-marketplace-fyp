@@ -2,7 +2,14 @@ import React from "react";
 import { Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
 import { Category, ShoppingBag, Store } from "@mui/icons-material";
 import { Link } from "react-router-dom";
-import { ROUTES } from "../../../../constants/routes";
+import { BROWSE_NAV, ICON_NAMES } from "../../../../config/navigation.config";
+
+// Icon map
+const ICON_MAP = {
+  [ICON_NAMES.CATEGORY]: Category,
+  [ICON_NAMES.SHOPPING_BAG]: ShoppingBag,
+  [ICON_NAMES.STORE]: Store,
+};
 
 function BrowseMenu({ anchorEl, open, onClose }) {
   return (
@@ -20,32 +27,22 @@ function BrowseMenu({ anchorEl, open, onClose }) {
         },
       }}
     >
-      <MenuItem component={Link} to={ROUTES.LISTINGS.ALL} onClick={onClose}>
-        <ListItemIcon>
-          <Category fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>All Listings</ListItemText>
-      </MenuItem>
-      <MenuItem
-        component={Link}
-        to={ROUTES.LISTINGS.PRODUCTS}
-        onClick={onClose}
-      >
-        <ListItemIcon>
-          <ShoppingBag fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>Products</ListItemText>
-      </MenuItem>
-      <MenuItem
-        component={Link}
-        to={ROUTES.LISTINGS.SERVICES}
-        onClick={onClose}
-      >
-        <ListItemIcon>
-          <Store fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>Services</ListItemText>
-      </MenuItem>
+      {BROWSE_NAV.map((item) => {
+        const IconComponent = ICON_MAP[item.icon];
+        return (
+          <MenuItem
+            key={item.path}
+            component={Link}
+            to={item.path}
+            onClick={onClose}
+          >
+            <ListItemIcon>
+              <IconComponent fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>{item.label}</ListItemText>
+          </MenuItem>
+        );
+      })}
     </Menu>
   );
 }

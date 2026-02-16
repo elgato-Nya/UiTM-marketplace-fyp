@@ -3,11 +3,21 @@ import { Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
 import {
   Dashboard,
   People,
-  Assessment,
-  Settings as SettingsIcon,
+  VerifiedUser,
+  ContactMail,
+  AccountBalance,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
-import { ROUTES } from "../../../../constants/routes";
+import { ADMIN_NAV, ICON_NAMES } from "../../../../config/navigation.config";
+
+// Icon map
+const ICON_MAP = {
+  [ICON_NAMES.DASHBOARD]: Dashboard,
+  [ICON_NAMES.PEOPLE]: People,
+  [ICON_NAMES.VERIFIED_USER]: VerifiedUser,
+  [ICON_NAMES.CONTACT_MAIL]: ContactMail,
+  [ICON_NAMES.ACCOUNT_BALANCE]: AccountBalance,
+};
 
 function AdminMenu({ anchorEl, open, onClose }) {
   return (
@@ -25,30 +35,22 @@ function AdminMenu({ anchorEl, open, onClose }) {
         },
       }}
     >
-      <MenuItem component={Link} to={ROUTES.ADMIN.DASHBOARD} onClick={onClose}>
-        <ListItemIcon>
-          <Dashboard fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>Dashboard</ListItemText>
-      </MenuItem>
-      <MenuItem component={Link} to={ROUTES.ADMIN.USERS} onClick={onClose}>
-        <ListItemIcon>
-          <People fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>Users</ListItemText>
-      </MenuItem>
-      <MenuItem component={Link} to={ROUTES.ADMIN.CONTACTS} onClick={onClose}>
-        <ListItemIcon>
-          <Assessment fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>Contacts</ListItemText>
-      </MenuItem>
-      <MenuItem component={Link} to={ROUTES.ADMIN.MERCHANT} onClick={onClose}>
-        <ListItemIcon>
-          <SettingsIcon fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>Merchant Verification</ListItemText>
-      </MenuItem>
+      {ADMIN_NAV.map((item) => {
+        const IconComponent = ICON_MAP[item.icon];
+        return (
+          <MenuItem
+            key={item.path}
+            component={Link}
+            to={item.path}
+            onClick={onClose}
+          >
+            <ListItemIcon>
+              <IconComponent fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>{item.label}</ListItemText>
+          </MenuItem>
+        );
+      })}
     </Menu>
   );
 }

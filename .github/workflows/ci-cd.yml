@@ -170,6 +170,17 @@ jobs:
             git fetch origin main
             git reset --hard origin/main || echo "⚠️ Git reset failed, continuing..."
 
+            # ========== DISK CLEANUP ==========
+            echo "🧹 Cleaning up to preserve disk space..."
+            # Remove client node_modules (not needed - build is pre-compiled)
+            rm -rf $APP_DIR/client/node_modules
+            # Remove stale build artifacts
+            rm -rf $APP_DIR/client/build.old
+            # Flush old PM2 logs
+            pm2 flush || true
+            # Clean npm cache
+            npm cache clean --force 2>/dev/null || true
+
             # ========== BACKEND DEPLOYMENT ==========
             echo "🔧 Deploying backend..."
             cd $APP_DIR/server

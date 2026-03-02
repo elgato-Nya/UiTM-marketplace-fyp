@@ -40,25 +40,22 @@ export function useChatActions() {
         setActionLoading(null);
       }
     },
-    [dispatch, showSnackbar]
+    [dispatch, showSnackbar],
   );
 
   const handleSendMessage = useCallback(
     async (conversationId, data) => {
       try {
         const result = await dispatch(
-          sendMessage({ conversationId, data })
+          sendMessage({ conversationId, data }),
         ).unwrap();
         return result;
       } catch (error) {
-        showSnackbar(
-          error?.message || "Failed to send message",
-          "error"
-        );
+        showSnackbar(error?.message || "Failed to send message", "error");
         return null;
       }
     },
-    [dispatch, showSnackbar]
+    [dispatch, showSnackbar],
   );
 
   const handleMarkAsRead = useCallback(
@@ -72,7 +69,7 @@ export function useChatActions() {
         return false;
       }
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleDeleteConversation = useCallback(
@@ -85,36 +82,33 @@ export function useChatActions() {
       } catch (error) {
         showSnackbar(
           error?.message || "Failed to delete conversation",
-          "error"
+          "error",
         );
         return false;
       } finally {
         setActionLoading(null);
       }
     },
-    [dispatch, showSnackbar]
+    [dispatch, showSnackbar],
   );
 
   const handleDeleteMessage = useCallback(
     async (conversationId, messageId) => {
       try {
         const result = await dispatch(
-          deleteMessageThunk({ conversationId, messageId })
+          deleteMessageThunk({ conversationId, messageId }),
         ).unwrap();
         showSnackbar(
           result.deletedForEveryone ? "Message unsent" : "Message deleted",
-          "success"
+          "success",
         );
         return result;
       } catch (error) {
-        showSnackbar(
-          error?.message || "Failed to delete message",
-          "error"
-        );
+        showSnackbar(error?.message || "Failed to delete message", "error");
         return null;
       }
     },
-    [dispatch, showSnackbar]
+    [dispatch, showSnackbar],
   );
 
   return {

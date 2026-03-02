@@ -47,7 +47,7 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Track if a token refresh is already in progress
@@ -118,7 +118,7 @@ api.interceptors.response.use(
                 "Content-Type": "application/json",
                 Accept: "application/json",
               },
-            }
+            },
           );
 
           if (refreshResponse.data.success && refreshResponse.data.token) {
@@ -130,7 +130,7 @@ api.interceptors.response.use(
               setTokens({
                 token: token,
                 refreshToken: store.getState().auth?.refreshToken, // Keep existing refresh token
-              })
+              }),
             );
 
             // Also update the auth state with fresh user data
@@ -176,7 +176,7 @@ api.interceptors.response.use(
           ];
           const currentPath = window.location.pathname;
           const isPublicPage = publicPaths.some(
-            (path) => currentPath === path || currentPath.startsWith(path)
+            (path) => currentPath === path || currentPath.startsWith(path),
           );
 
           setTimeout(() => {
@@ -203,7 +203,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

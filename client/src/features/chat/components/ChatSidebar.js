@@ -40,11 +40,7 @@ function ChatSidebar({
     const nameMatch = convo.participants?.some((p) => {
       const profile = p.userId?.profile || {};
       const merchant = p.userId?.merchantDetails || {};
-      const combined = [
-        profile.username,
-        merchant.shopName,
-        p.userId?.email,
-      ]
+      const combined = [profile.username, merchant.shopName, p.userId?.email]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -136,7 +132,10 @@ function ChatSidebar({
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon fontSize="small" sx={{ color: "text.disabled" }} />
+                  <SearchIcon
+                    fontSize="small"
+                    sx={{ color: "text.disabled" }}
+                  />
                 </InputAdornment>
               ),
             },

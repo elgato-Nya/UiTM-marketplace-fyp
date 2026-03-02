@@ -82,7 +82,7 @@ const ListingDetailPage = () => {
       try {
         await dispatch(createQuoteRequest(quoteData)).unwrap();
         success(
-          "Quote request submitted successfully! The seller will respond soon."
+          "Quote request submitted successfully! The seller will respond soon.",
         );
         setQuoteDialogOpen(false);
       } catch (error) {
@@ -91,7 +91,7 @@ const ListingDetailPage = () => {
         setQuoteLoading(false);
       }
     },
-    [dispatch, success, showError]
+    [dispatch, success, showError],
   );
 
   // Scroll to top when component mounts or listingId changes
@@ -228,10 +228,10 @@ const ListingDetailPage = () => {
   const getQuotePriceDisplay = () => {
     const quoteSettings = currentListing?.quoteSettings;
     if (!quoteSettings) return null;
-    
+
     const minPrice = quoteSettings.minPrice;
     const maxPrice = quoteSettings.maxPrice;
-    
+
     if (minPrice && maxPrice && minPrice !== maxPrice) {
       return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
     } else if (minPrice) {
@@ -243,15 +243,15 @@ const ListingDetailPage = () => {
   // Get variant price display (range or single)
   const getVariantPriceDisplay = () => {
     if (!hasVariants || availableVariants.length === 0) return null;
-    
+
     const prices = availableVariants
       .map((v) => Number(v.price) || 0)
       .filter((p) => p > 0);
     if (prices.length === 0) return null;
-    
+
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
-    
+
     if (minPrice === maxPrice) {
       return formatPrice(minPrice);
     }
@@ -296,7 +296,7 @@ const ListingDetailPage = () => {
       }
 
       const result = await dispatch(
-        createSessionFromListing(sessionData)
+        createSessionFromListing(sessionData),
       ).unwrap();
 
       // Navigate to checkout page
@@ -610,10 +610,10 @@ const ListingDetailPage = () => {
                         },
                       }}
                     >
-                    {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-                  </IconButton>
-                </Tooltip>
-              </Box>
+                      {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                    </IconButton>
+                  </Tooltip>
+                </Box>
               )}
 
               {/* Quote-only: Show only wishlist button if not showing buy/cart buttons */}
@@ -669,7 +669,8 @@ const ListingDetailPage = () => {
               severity="info"
               sx={{ mb: 0, fontSize: { xs: "0.8125rem", md: "0.875rem" } }}
             >
-              Please log in to {isQuoteOnly ? "request a quote" : "purchase this item"}.
+              Please log in to{" "}
+              {isQuoteOnly ? "request a quote" : "purchase this item"}.
             </Alert>
           )}
         </Box>
@@ -733,7 +734,7 @@ const ListingDetailPage = () => {
               {isAuthenticated &&
                 String(user?._id) !==
                   String(
-                    seller?.userId?._id || seller?.userId || seller?._id
+                    seller?.userId?._id || seller?.userId || seller?._id,
                   ) && (
                   <Button
                     variant="contained"
@@ -746,9 +747,7 @@ const ListingDetailPage = () => {
                       fontSize: { xs: "0.875rem", md: "1rem" },
                     }}
                   >
-                    {chatLoading === "start"
-                      ? "Opening..."
-                      : "Message Seller"}
+                    {chatLoading === "start" ? "Opening..." : "Message Seller"}
                   </Button>
                 )}
               <Button
@@ -797,7 +796,7 @@ const ListingDetailPage = () => {
               success("Redirecting to checkout...");
             } catch (error) {
               showError(
-                error.message || "Failed to start checkout. Please try again."
+                error.message || "Failed to start checkout. Please try again.",
               );
             } finally {
               setIsBuyingNow(false);

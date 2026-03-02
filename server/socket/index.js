@@ -56,7 +56,7 @@ const authenticateSocket = async (socket, next) => {
 
     // Verify user still exists and is active
     const user = await User.findById(decoded.userId).select(
-      "_id email roles profile.username"
+      "_id email roles profile.username",
     );
     if (!user) {
       logger.warn("Socket connection rejected: user not found", {

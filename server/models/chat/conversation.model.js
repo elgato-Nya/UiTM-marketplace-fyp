@@ -35,7 +35,7 @@ const participantSchema = new mongoose.Schema(
       default: null,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const conversationSchema = new mongoose.Schema(
@@ -78,22 +78,17 @@ const conversationSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // ==================== INDEXES ====================
 
 // Prevent duplicate conversations for the same user pair + listing
 // Unique per user-pair only (listing is informational, not part of uniqueness)
-conversationSchema.index(
-  { "participants.userId": 1 },
-  { unique: false }
-);
+conversationSchema.index({ "participants.userId": 1 }, { unique: false });
 
 // Fast lookup: "get all conversations for user X, newest first"
-conversationSchema.index(
-  { "participants.userId": 1, updatedAt: -1 }
-);
+conversationSchema.index({ "participants.userId": 1, updatedAt: -1 });
 
 // ==================== INSTANCE METHODS ====================
 

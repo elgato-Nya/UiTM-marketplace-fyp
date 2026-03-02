@@ -42,10 +42,7 @@ const chatService = {
    * @returns {Promise} { message }
    */
   async sendMessage(conversationId, data) {
-    return api.post(
-      `/chat/conversations/${conversationId}/messages`,
-      data
-    );
+    return api.post(`/chat/conversations/${conversationId}/messages`, data);
   },
 
   /**
@@ -86,7 +83,7 @@ const chatService = {
    */
   async deleteMessage(conversationId, messageId) {
     return api.delete(
-      `/chat/conversations/${conversationId}/messages/${messageId}`
+      `/chat/conversations/${conversationId}/messages/${messageId}`,
     );
   },
 

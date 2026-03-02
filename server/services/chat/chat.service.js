@@ -1,9 +1,6 @@
 const { Conversation, Message, User, Listing } = require("../../models");
 const logger = require("../../utils/logger");
-const {
-  handleServiceError,
-  handleNotFoundError,
-} = require("../base.service");
+const { handleServiceError, handleNotFoundError } = require("../base.service");
 const {
   createValidationError,
   createForbiddenError,
@@ -24,27 +21,43 @@ const { NotificationType } = require("../../utils/enums/notification.enum");
  * @param {string|null} listingId - Optional listing context
  * @returns {Object} { conversation, created }
  */
-const getOrCreateConversation = async (initiatorId, recipientId, listingId = null) => {
+const getOrCreateConversation = async (
+  initiatorId,
+  recipientId,
+  listingId = null,
+) => {
   try {
     if (initiatorId.toString() === recipientId.toString()) {
       throw createValidationError("Cannot start a conversation with yourself");
     }
 
     // Verify recipient exists
-    const recipient = await User.findById(recipientId).select("_id profile.username email");
+    const recipient = await User.findById(recipientId).select(
+      "_id profile.username email",
+    );
     if (!recipient) {
-      handleNotFoundError("User", "USER_NOT_FOUND", "get_or_create_conversation", {
-        recipientId,
-      });
+      handleNotFoundError(
+        "User",
+        "USER_NOT_FOUND",
+        "get_or_create_conversation",
+        {
+          recipientId,
+        },
+      );
     }
 
     // Verify listing if provided
     if (listingId) {
       const listing = await Listing.findById(listingId).select("_id");
       if (!listing) {
-        handleNotFoundError("Listing", "LISTING_NOT_FOUND", "get_or_create_conversation", {
-          listingId,
-        });
+        handleNotFoundError(
+          "Listing",
+          "LISTING_NOT_FOUND",
+          "get_or_create_conversation",
+          {
+            listingId,
+          },
+        );
       }
     }
 
@@ -55,12 +68,16 @@ const getOrCreateConversation = async (initiatorId, recipientId, listingId = nul
     let conversation = await Conversation.findOne({
       "participants.userId": { $all: sortedIds.map((id) => id) },
       isActive: true,
-    }).populate("participants.userId", "profile.username profile.avatarUrl email roles merchantDetails.shopName merchantDetails.shopLogo");
+    }).populate(
+      "participants.userId",
+      "profile.username profile.avatarUrl email roles merchantDetails.shopName merchantDetails.shopLogo",
+    );
 
     if (conversation) {
       // Re-activate if the initiator had previously soft-deleted it
       const selfEntry = conversation.participants.find(
-        (p) => (p.userId?._id || p.userId).toString() === initiatorId.toString()
+        (p) =>
+          (p.userId?._id || p.userId).toString() === initiatorId.toString(),
       );
       if (selfEntry?.deletedAt) {
         selfEntry.deletedAt = null;
@@ -68,12 +85,19 @@ const getOrCreateConversation = async (initiatorId, recipientId, listingId = nul
       }
 
       // Update listing context if a new one is provided
-      if (listingId && (!conversation.listing || conversation.listing.toString() !== listingId.toString())) {
+      if (
+        listingId &&
+        (!conversation.listing ||
+          conversation.listing.toString() !== listingId.toString())
+      ) {
         conversation.listing = listingId;
         await conversation.save();
         // Re-populate listing
         conversation = await Conversation.findById(conversation._id)
-          .populate("participants.userId", "profile.username profile.avatarUrl email roles merchantDetails.shopName merchantDetails.shopLogo")
+          .populate(
+            "participants.userId",
+            "profile.username profile.avatarUrl email roles merchantDetails.shopName merchantDetails.shopLogo",
+          )
           .populate("listing", "name images price");
       }
 
@@ -82,16 +106,16 @@ const getOrCreateConversation = async (initiatorId, recipientId, listingId = nul
 
     // Create new conversation
     conversation = await Conversation.create({
-      participants: [
-        { userId: sortedIds[0] },
-        { userId: sortedIds[1] },
-      ],
+      participants: [{ userId: sortedIds[0] }, { userId: sortedIds[1] }],
       listing: listingId || null,
     });
 
     // Populate for the response
     conversation = await Conversation.findById(conversation._id)
-      .populate("participants.userId", "profile.username profile.avatarUrl email roles merchantDetails.shopName merchantDetails.shopLogo")
+      .populate(
+        "participants.userId",
+        "profile.username profile.avatarUrl email roles merchantDetails.shopName merchantDetails.shopLogo",
+      )
       .populate("listing", "name images price");
 
     logger.info("Conversation created", {
@@ -103,7 +127,10 @@ const getOrCreateConversation = async (initiatorId, recipientId, listingId = nul
 
     return { conversation, created: true };
   } catch (error) {
-    handleServiceError(error, "getOrCreateConversation", { initiatorId, recipientId });
+    handleServiceError(error, "getOrCreateConversation", {
+      initiatorId,
+      recipientId,
+    });
   }
 };
 
@@ -133,7 +160,10 @@ const getUserConversations = async (userId, options = {}) => {
 
     const [conversations, totalCount] = await Promise.all([
       Conversation.find(filter)
-        .populate("participants.userId", "profile.username profile.avatarUrl email roles merchantDetails.shopName merchantDetails.shopLogo")
+        .populate(
+          "participants.userId",
+          "profile.username profile.avatarUrl email roles merchantDetails.shopName merchantDetails.shopLogo",
+        )
         .populate("listing", "name images price")
         .sort({ updatedAt: -1 })
         .skip(skip)
@@ -162,22 +192,35 @@ const getUserConversations = async (userId, options = {}) => {
 const getConversationById = async (conversationId, userId) => {
   try {
     const conversation = await Conversation.findById(conversationId)
-      .populate("participants.userId", "profile.username profile.avatarUrl email roles merchantDetails.shopName merchantDetails.shopLogo")
+      .populate(
+        "participants.userId",
+        "profile.username profile.avatarUrl email roles merchantDetails.shopName merchantDetails.shopLogo",
+      )
       .populate("listing", "name images price");
 
     if (!conversation) {
-      handleNotFoundError("Conversation", "CONVERSATION_NOT_FOUND", "get_conversation", {
-        conversationId,
-      });
+      handleNotFoundError(
+        "Conversation",
+        "CONVERSATION_NOT_FOUND",
+        "get_conversation",
+        {
+          conversationId,
+        },
+      );
     }
 
     if (!conversation.isParticipant(userId)) {
-      throw createForbiddenError("You are not a participant of this conversation");
+      throw createForbiddenError(
+        "You are not a participant of this conversation",
+      );
     }
 
     return conversation;
   } catch (error) {
-    handleServiceError(error, "getConversationById", { conversationId, userId });
+    handleServiceError(error, "getConversationById", {
+      conversationId,
+      userId,
+    });
   }
 };
 
@@ -198,13 +241,20 @@ const sendMessage = async (conversationId, senderId, messageData) => {
     // Validate conversation access
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
-      handleNotFoundError("Conversation", "CONVERSATION_NOT_FOUND", "send_message", {
-        conversationId,
-      });
+      handleNotFoundError(
+        "Conversation",
+        "CONVERSATION_NOT_FOUND",
+        "send_message",
+        {
+          conversationId,
+        },
+      );
     }
 
     if (!conversation.isParticipant(senderId)) {
-      throw createForbiddenError("You are not a participant of this conversation");
+      throw createForbiddenError(
+        "You are not a participant of this conversation",
+      );
     }
 
     if (!conversation.isActive) {
@@ -309,13 +359,20 @@ const getMessages = async (conversationId, userId, options = {}) => {
     // Verify access
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
-      handleNotFoundError("Conversation", "CONVERSATION_NOT_FOUND", "get_messages", {
-        conversationId,
-      });
+      handleNotFoundError(
+        "Conversation",
+        "CONVERSATION_NOT_FOUND",
+        "get_messages",
+        {
+          conversationId,
+        },
+      );
     }
 
     if (!conversation.isParticipant(userId)) {
-      throw createForbiddenError("You are not a participant of this conversation");
+      throw createForbiddenError(
+        "You are not a participant of this conversation",
+      );
     }
 
     const filter = {
@@ -354,13 +411,20 @@ const markConversationAsRead = async (conversationId, userId) => {
   try {
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
-      handleNotFoundError("Conversation", "CONVERSATION_NOT_FOUND", "mark_read", {
-        conversationId,
-      });
+      handleNotFoundError(
+        "Conversation",
+        "CONVERSATION_NOT_FOUND",
+        "mark_read",
+        {
+          conversationId,
+        },
+      );
     }
 
     if (!conversation.isParticipant(userId)) {
-      throw createForbiddenError("You are not a participant of this conversation");
+      throw createForbiddenError(
+        "You are not a participant of this conversation",
+      );
     }
 
     // Reset unread count on the conversation
@@ -375,24 +439,31 @@ const markConversationAsRead = async (conversationId, userId) => {
       },
       {
         $push: { readBy: { userId, readAt: new Date() } },
-      }
+      },
     );
 
     // Notify the other user that their messages were read (real-time)
     const otherParticipant = conversation.getOtherParticipant(userId);
     if (otherParticipant) {
-      getEmitToUser()(otherParticipant.userId.toString(), "chat:messages_read", {
-        conversationId,
-        readBy: userId,
-        readAt: new Date(),
-      });
+      getEmitToUser()(
+        otherParticipant.userId.toString(),
+        "chat:messages_read",
+        {
+          conversationId,
+          readBy: userId,
+          readAt: new Date(),
+        },
+      );
     }
 
     logger.info("Conversation marked as read", { conversationId, userId });
 
     return { success: true, conversationId };
   } catch (error) {
-    handleServiceError(error, "markConversationAsRead", { conversationId, userId });
+    handleServiceError(error, "markConversationAsRead", {
+      conversationId,
+      userId,
+    });
   }
 };
 
@@ -404,26 +475,39 @@ const deleteConversationForUser = async (conversationId, userId) => {
   try {
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
-      handleNotFoundError("Conversation", "CONVERSATION_NOT_FOUND", "delete_conversation", {
-        conversationId,
-      });
+      handleNotFoundError(
+        "Conversation",
+        "CONVERSATION_NOT_FOUND",
+        "delete_conversation",
+        {
+          conversationId,
+        },
+      );
     }
 
     if (!conversation.isParticipant(userId)) {
-      throw createForbiddenError("You are not a participant of this conversation");
+      throw createForbiddenError(
+        "You are not a participant of this conversation",
+      );
     }
 
     const participant = conversation.participants.find(
-      (p) => (p.userId?._id || p.userId).toString() === userId.toString()
+      (p) => (p.userId?._id || p.userId).toString() === userId.toString(),
     );
     participant.deletedAt = new Date();
     await conversation.save();
 
-    logger.info("Conversation soft-deleted for user", { conversationId, userId });
+    logger.info("Conversation soft-deleted for user", {
+      conversationId,
+      userId,
+    });
 
     return { success: true };
   } catch (error) {
-    handleServiceError(error, "deleteConversationForUser", { conversationId, userId });
+    handleServiceError(error, "deleteConversationForUser", {
+      conversationId,
+      userId,
+    });
   }
 };
 
@@ -482,7 +566,9 @@ const deleteMessage = async (messageId, userId) => {
     // Verify the user belongs to this conversation
     const conversation = await Conversation.findById(message.conversationId);
     if (!conversation || !conversation.isParticipant(userId)) {
-      throw createForbiddenError("You are not a participant of this conversation");
+      throw createForbiddenError(
+        "You are not a participant of this conversation",
+      );
     }
 
     const senderId =
@@ -509,7 +595,10 @@ const deleteMessage = async (messageId, userId) => {
         });
       }
 
-      logger.info("Message unsent (deleted for everyone)", { messageId, userId });
+      logger.info("Message unsent (deleted for everyone)", {
+        messageId,
+        userId,
+      });
       return { success: true, deletedForEveryone: true };
     }
 

@@ -13,7 +13,9 @@
  * USAGE: node server/scripts/migrate-chat-index.js
  */
 
-require("dotenv").config({ path: require("path").join(__dirname, "..", ".env") });
+require("dotenv").config({
+  path: require("path").join(__dirname, "..", ".env"),
+});
 const mongoose = require("mongoose");
 const database = require("../config/database.config");
 
@@ -42,7 +44,7 @@ async function migrateChatIndex() {
       console.log(`✅ Successfully dropped index: ${INDEX_NAME}`);
     } else {
       console.log(
-        `Index "${INDEX_NAME}" not found — it may have already been dropped.`
+        `Index "${INDEX_NAME}" not found — it may have already been dropped.`,
       );
     }
 
@@ -50,7 +52,7 @@ async function migrateChatIndex() {
     const remaining = await collection.indexes();
     console.log(
       "\nCurrent indexes on conversations:",
-      remaining.map((i) => `${i.name} (${JSON.stringify(i.key)})`)
+      remaining.map((i) => `${i.name} (${JSON.stringify(i.key)})`),
     );
   } catch (err) {
     console.error("Migration failed:", err.message);

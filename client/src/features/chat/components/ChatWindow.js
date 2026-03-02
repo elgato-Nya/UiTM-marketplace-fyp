@@ -107,7 +107,7 @@ function ChatWindow({
 
   const participant = resolveOtherParticipant(
     conversation.participants,
-    currentUserId
+    currentUserId,
   );
   const listing = resolveListingInfo(conversation.listing);
 
@@ -245,10 +245,7 @@ function ChatWindow({
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => setConfirmDeleteOpen(false)}
-            color="inherit"
-          >
+          <Button onClick={() => setConfirmDeleteOpen(false)} color="inherit">
             Cancel
           </Button>
           <Button

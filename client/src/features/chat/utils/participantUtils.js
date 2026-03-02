@@ -46,15 +46,16 @@ export const resolveOtherParticipant = (participants, currentUserId) => {
   // Display name priority: shopName (for merchants) → username → email prefix → "User"
   const shopName = merchant.shopName || null;
   const username = profile.username || null;
-  const emailPrefix = userData.email
-    ? userData.email.split("@")[0]
-    : null;
+  const emailPrefix = userData.email ? userData.email.split("@")[0] : null;
 
-  const name = (isMerchant && shopName) ? shopName : username || emailPrefix || "User";
+  const name =
+    isMerchant && shopName ? shopName : username || emailPrefix || "User";
 
   // Avatar priority: shopLogo (for merchants) → profile avatarUrl → null
   const avatar =
-    (isMerchant && merchant.shopLogo) ? merchant.shopLogo : profile.avatarUrl || null;
+    isMerchant && merchant.shopLogo
+      ? merchant.shopLogo
+      : profile.avatarUrl || null;
 
   // Generate initials from name (max 2 characters)
   const initials = generateInitials(name);

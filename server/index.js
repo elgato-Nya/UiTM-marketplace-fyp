@@ -181,12 +181,14 @@ const startServer = async () => {
     stopAnalyticsScheduler = analyticsJob.stopAnalyticsScheduler;
 
     const notificationJob = require("./jobs/notification.job");
-    startNotificationCleanupScheduler = notificationJob.startNotificationCleanupScheduler;
-    stopNotificationCleanupScheduler = notificationJob.stopNotificationCleanupScheduler;
+    startNotificationCleanupScheduler =
+      notificationJob.startNotificationCleanupScheduler;
+    stopNotificationCleanupScheduler =
+      notificationJob.stopNotificationCleanupScheduler;
 
     // Connect to database and wait for it to be fully ready
     await database.connect();
-    
+
     // Wait for connection to be fully ready before starting server
     if (mongoose.connection.readyState !== 1) {
       logger.info("Waiting for MongoDB connection to be ready...");
@@ -194,7 +196,7 @@ const startServer = async () => {
         mongoose.connection.once("open", resolve);
       });
     }
-    
+
     logger.info("MongoDB connection ready");
 
     // Start analytics scheduler after successful connection

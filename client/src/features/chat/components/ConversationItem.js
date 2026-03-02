@@ -56,7 +56,7 @@ function ConversationItem({
 }) {
   const participant = resolveOtherParticipant(
     conversation.participants,
-    currentUserId
+    currentUserId,
   );
   const listing = resolveListingInfo(conversation.listing);
   const unread = getUnreadForUser(conversation.participants, currentUserId);

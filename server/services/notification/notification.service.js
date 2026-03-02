@@ -26,7 +26,7 @@ const createNotification = async (notifData) => {
       return createValidationError(
         "userId, type, title, and message are required to create a notification",
         { userId, type },
-        "INVALID_NOTIFICATION_DATA"
+        "INVALID_NOTIFICATION_DATA",
       );
     }
 
@@ -35,13 +35,13 @@ const createNotification = async (notifData) => {
       return createValidationError(
         `Unknown notification type: ${type}`,
         { type },
-        "INVALID_NOTIFICATION_TYPE"
+        "INVALID_NOTIFICATION_TYPE",
       );
     }
 
     // Check user notification preferences
     const user = await User.findById(userId).select(
-      "notificationPreferences email profile.username"
+      "notificationPreferences email profile.username",
     );
     if (user?.notificationPreferences) {
       const prefs = user.notificationPreferences;
@@ -137,7 +137,7 @@ const createNotification = async (notifData) => {
             userId: userId.toString(),
             type,
             error: emailErr.message,
-          })
+          }),
         );
       } else {
         logger.debug("Email notification skipped - user preference disabled", {
@@ -165,7 +165,7 @@ const createNotification = async (notifData) => {
 const createBulkNotifications = async (notifications) => {
   try {
     const results = await Promise.allSettled(
-      notifications.map((notifData) => createNotification(notifData))
+      notifications.map((notifData) => createNotification(notifData)),
     );
 
     const successful = results
@@ -198,12 +198,7 @@ const createBulkNotifications = async (notifications) => {
  */
 const getUserNotifications = async (userId, query = {}) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      category,
-      read,
-    } = query;
+    const { page = 1, limit = 20, category, read } = query;
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
@@ -229,11 +224,7 @@ const getUserNotifications = async (userId, query = {}) => {
     ]);
 
     const [notifications, totalCount, unreadCount] = await Promise.all([
-      Notification.find(filter)
-        .sort(sortObj)
-        .skip(skip)
-        .limit(limitNum)
-        .lean(),
+      Notification.find(filter).sort(sortObj).skip(skip).limit(limitNum).lean(),
       Notification.countDocuments(filter),
       Notification.getUnreadCount(userId),
     ]);
@@ -294,7 +285,7 @@ const markAsRead = async (userId, notificationId) => {
         "Notification",
         "NOTIFICATION_NOT_FOUND",
         "mark_as_read",
-        { userId: userId.toString(), notificationId }
+        { userId: userId.toString(), notificationId },
       );
     }
 
@@ -354,7 +345,7 @@ const deleteNotification = async (userId, notificationId) => {
         "Notification",
         "NOTIFICATION_NOT_FOUND",
         "delete_notification",
-        { userId: userId.toString(), notificationId }
+        { userId: userId.toString(), notificationId },
       );
     }
 
@@ -434,7 +425,7 @@ const getNotificationPreferences = async (userId) => {
         "User",
         "USER_NOT_FOUND",
         "get_notification_preferences",
-        { userId: userId.toString() }
+        { userId: userId.toString() },
       );
     }
 
@@ -470,7 +461,7 @@ const updateNotificationPreferences = async (userId, preferences) => {
         "User",
         "USER_NOT_FOUND",
         "update_notification_preferences",
-        { userId: userId.toString() }
+        { userId: userId.toString() },
       );
     }
 

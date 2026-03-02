@@ -90,7 +90,7 @@ router.post("/conversations", validateStartConversation, startConversation);
 router.get(
   "/conversations/:conversationId",
   validateConversationIdParam,
-  getConversation
+  getConversation,
 );
 
 /**
@@ -101,7 +101,7 @@ router.get(
 router.delete(
   "/conversations/:conversationId",
   validateConversationIdParam,
-  deleteConversation
+  deleteConversation,
 );
 
 // ---------- Messages ----------
@@ -116,7 +116,7 @@ router.delete(
 router.get(
   "/conversations/:conversationId/messages",
   validateGetMessages,
-  getMessages
+  getMessages,
 );
 
 /**
@@ -129,7 +129,7 @@ router.get(
 router.post(
   "/conversations/:conversationId/messages",
   validateSendMessage,
-  sendMessage
+  sendMessage,
 );
 
 /**
@@ -142,7 +142,7 @@ router.post(
 router.delete(
   "/conversations/:conversationId/messages/:messageId",
   validateDeleteMessage,
-  deleteMessage
+  deleteMessage,
 );
 
 // ---------- Read Receipts ----------
@@ -155,7 +155,7 @@ router.delete(
 router.patch(
   "/conversations/:conversationId/read",
   validateConversationIdParam,
-  markAsRead
+  markAsRead,
 );
 
 module.exports = router;

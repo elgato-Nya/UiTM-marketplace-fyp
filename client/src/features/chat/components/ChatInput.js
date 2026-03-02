@@ -68,7 +68,7 @@ function ChatInput({
         handleSend();
       }
     },
-    [handleSend]
+    [handleSend],
   );
 
   const handleChange = useCallback(
@@ -76,7 +76,7 @@ function ChatInput({
       setContent(e.target.value);
       handleTypingStart();
     },
-    [handleTypingStart]
+    [handleTypingStart],
   );
 
   const canSend = content.trim().length > 0 && !disabled && !isSubmitting;
@@ -126,7 +126,9 @@ function ChatInput({
           },
         }}
       />
-      <Tooltip title={canSend ? "Send message (Enter)" : "Type a message to send"}>
+      <Tooltip
+        title={canSend ? "Send message (Enter)" : "Type a message to send"}
+      >
         <span>
           <IconButton
             type="submit"

@@ -42,10 +42,10 @@ export const fetchConversations = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        extractThunkError(error, "Failed to load conversations")
+        extractThunkError(error, "Failed to load conversations"),
       );
     }
-  }
+  },
 );
 
 export const fetchConversation = createAsyncThunk(
@@ -56,10 +56,10 @@ export const fetchConversation = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        extractThunkError(error, "Failed to load conversation")
+        extractThunkError(error, "Failed to load conversation"),
       );
     }
-  }
+  },
 );
 
 export const startConversation = createAsyncThunk(
@@ -70,10 +70,10 @@ export const startConversation = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        extractThunkError(error, "Failed to start conversation")
+        extractThunkError(error, "Failed to start conversation"),
       );
     }
-  }
+  },
 );
 
 export const sendMessage = createAsyncThunk(
@@ -84,10 +84,10 @@ export const sendMessage = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        extractThunkError(error, "Failed to send message")
+        extractThunkError(error, "Failed to send message"),
       );
     }
-  }
+  },
 );
 
 export const fetchMessages = createAsyncThunk(
@@ -98,10 +98,10 @@ export const fetchMessages = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        extractThunkError(error, "Failed to load messages")
+        extractThunkError(error, "Failed to load messages"),
       );
     }
-  }
+  },
 );
 
 export const markConversationAsRead = createAsyncThunk(
@@ -112,10 +112,10 @@ export const markConversationAsRead = createAsyncThunk(
       return { ...response.data, conversationId };
     } catch (error) {
       return rejectWithValue(
-        extractThunkError(error, "Failed to mark conversation as read")
+        extractThunkError(error, "Failed to mark conversation as read"),
       );
     }
-  }
+  },
 );
 
 export const deleteConversation = createAsyncThunk(
@@ -126,10 +126,10 @@ export const deleteConversation = createAsyncThunk(
       return { conversationId };
     } catch (error) {
       return rejectWithValue(
-        extractThunkError(error, "Failed to delete conversation")
+        extractThunkError(error, "Failed to delete conversation"),
       );
     }
-  }
+  },
 );
 
 export const fetchUnreadCount = createAsyncThunk(
@@ -140,10 +140,10 @@ export const fetchUnreadCount = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        extractThunkError(error, "Failed to load unread count")
+        extractThunkError(error, "Failed to load unread count"),
       );
     }
-  }
+  },
 );
 
 export const deleteMessageThunk = createAsyncThunk(
@@ -152,15 +152,15 @@ export const deleteMessageThunk = createAsyncThunk(
     try {
       const response = await chatService.deleteMessage(
         conversationId,
-        messageId
+        messageId,
       );
       return { ...response.data, conversationId, messageId };
     } catch (error) {
       return rejectWithValue(
-        extractThunkError(error, "Failed to delete message")
+        extractThunkError(error, "Failed to delete message"),
       );
     }
-  }
+  },
 );
 
 // --- Slice ---
@@ -199,7 +199,7 @@ const chatSlice = createSlice({
 
       // Update conversation's lastMessage in the inbox
       const convoIdx = state.conversations.findIndex(
-        (c) => c._id === msg.conversationId
+        (c) => c._id === msg.conversationId,
       );
       if (convoIdx !== -1) {
         state.conversations[convoIdx].lastMessage = {
@@ -225,7 +225,7 @@ const chatSlice = createSlice({
       const convo = state.conversations.find((c) => c._id === conversationId);
       if (convo) {
         const participant = convo.participants?.find(
-          (p) => (p.userId?._id || p.userId) === userId
+          (p) => (p.userId?._id || p.userId) === userId,
         );
         if (participant) {
           participant.unreadCount = 0;
@@ -292,13 +292,12 @@ const chatSlice = createSlice({
       })
       .addCase(startConversation.fulfilled, (state, action) => {
         state.isSubmitting = false;
-        const conversation =
-          action.payload.conversation || action.payload;
+        const conversation = action.payload.conversation || action.payload;
         state.activeConversation = conversation;
 
         // Prepend to inbox if not already there
         const existsInList = state.conversations.some(
-          (c) => c._id === conversation._id
+          (c) => c._id === conversation._id,
         );
         if (!existsInList) {
           state.conversations.unshift(conversation);
@@ -324,7 +323,7 @@ const chatSlice = createSlice({
 
         // Update lastMessage for the conversation in inbox
         const convoIdx = state.conversations.findIndex(
-          (c) => c._id === message.conversationId
+          (c) => c._id === message.conversationId,
         );
         if (convoIdx !== -1) {
           state.conversations[convoIdx].lastMessage = {
@@ -365,9 +364,7 @@ const chatSlice = createSlice({
       // markConversationAsRead
       .addCase(markConversationAsRead.fulfilled, (state, action) => {
         const { conversationId } = action.payload;
-        const convo = state.conversations.find(
-          (c) => c._id === conversationId
-        );
+        const convo = state.conversations.find((c) => c._id === conversationId);
         if (convo) {
           convo.participants?.forEach((p) => {
             if (p.unreadCount !== undefined) {
@@ -386,7 +383,7 @@ const chatSlice = createSlice({
         state.isSubmitting = false;
         const { conversationId } = action.payload;
         state.conversations = state.conversations.filter(
-          (c) => c._id !== conversationId
+          (c) => c._id !== conversationId,
         );
         if (state.activeConversation?._id === conversationId) {
           state.activeConversation = null;
@@ -410,9 +407,7 @@ const chatSlice = createSlice({
           state.activeConversation &&
           state.activeConversation._id === conversationId
         ) {
-          state.messages = state.messages.filter(
-            (m) => m._id !== messageId
-          );
+          state.messages = state.messages.filter((m) => m._id !== messageId);
         }
       });
   },
@@ -435,8 +430,7 @@ export const selectChatPagination = (state) => state.chat.pagination;
 export const selectActiveConversation = (state) =>
   state.chat.activeConversation;
 export const selectMessages = (state) => state.chat.messages;
-export const selectMessagePagination = (state) =>
-  state.chat.messagePagination;
+export const selectMessagePagination = (state) => state.chat.messagePagination;
 export const selectTotalUnread = (state) => state.chat.totalUnread;
 export const selectChatLoading = (state) => state.chat.isLoading;
 export const selectChatSubmitting = (state) => state.chat.isSubmitting;

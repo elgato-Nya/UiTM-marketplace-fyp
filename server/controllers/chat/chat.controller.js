@@ -17,7 +17,7 @@ const startConversation = asyncHandler(async (req, res) => {
   const { conversation, created } = await chatService.getOrCreateConversation(
     userId,
     recipientId,
-    listingId || null
+    listingId || null,
   );
 
   baseController.logAction("start_conversation", req, {
@@ -31,7 +31,7 @@ const startConversation = asyncHandler(async (req, res) => {
     res,
     { conversation },
     created ? "Conversation created" : "Conversation retrieved",
-    created ? 201 : 200
+    created ? 201 : 200,
   );
 }, "start_conversation");
 
@@ -57,7 +57,7 @@ const getConversations = asyncHandler(async (req, res) => {
   return baseController.sendSuccess(
     res,
     result,
-    "Conversations retrieved successfully"
+    "Conversations retrieved successfully",
   );
 }, "get_conversations");
 
@@ -71,13 +71,13 @@ const getConversation = asyncHandler(async (req, res) => {
 
   const conversation = await chatService.getConversationById(
     conversationId,
-    userId
+    userId,
   );
 
   return baseController.sendSuccess(
     res,
     { conversation },
-    "Conversation retrieved successfully"
+    "Conversation retrieved successfully",
   );
 }, "get_conversation");
 
@@ -107,7 +107,7 @@ const sendMessage = asyncHandler(async (req, res) => {
     res,
     { message },
     "Message sent successfully",
-    201
+    201,
   );
 }, "send_message");
 
@@ -129,7 +129,7 @@ const getMessages = asyncHandler(async (req, res) => {
   return baseController.sendSuccess(
     res,
     result,
-    "Messages retrieved successfully"
+    "Messages retrieved successfully",
   );
 }, "get_messages");
 
@@ -148,11 +148,7 @@ const markAsRead = asyncHandler(async (req, res) => {
     conversationId,
   });
 
-  return baseController.sendSuccess(
-    res,
-    null,
-    "Conversation marked as read"
-  );
+  return baseController.sendSuccess(res, null, "Conversation marked as read");
 }, "mark_conversation_read");
 
 /**
@@ -170,11 +166,7 @@ const deleteConversation = asyncHandler(async (req, res) => {
     conversationId,
   });
 
-  return baseController.sendSuccess(
-    res,
-    null,
-    "Conversation deleted"
-  );
+  return baseController.sendSuccess(res, null, "Conversation deleted");
 }, "delete_conversation");
 
 /**
@@ -186,11 +178,7 @@ const getUnreadCount = asyncHandler(async (req, res) => {
 
   const result = await chatService.getTotalUnreadCount(userId);
 
-  return baseController.sendSuccess(
-    res,
-    result,
-    "Unread count retrieved"
-  );
+  return baseController.sendSuccess(res, result, "Unread count retrieved");
 }, "get_unread_count");
 
 /**
@@ -215,7 +203,7 @@ const deleteMessage = asyncHandler(async (req, res) => {
   return baseController.sendSuccess(
     res,
     result,
-    result.deletedForEveryone ? "Message unsent" : "Message deleted"
+    result.deletedForEveryone ? "Message unsent" : "Message deleted",
   );
 }, "delete_message");
 

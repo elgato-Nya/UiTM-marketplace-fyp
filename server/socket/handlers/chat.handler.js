@@ -31,7 +31,7 @@ const registerChatHandlers = (socket) => {
       // Verify the user is actually a participant
       const conversation = await chatService.getConversationById(
         conversationId,
-        userId
+        userId,
       );
       if (!conversation) return;
 
@@ -101,38 +101,41 @@ const registerChatHandlers = (socket) => {
    * Server responds: socket.emit('chat:message_sent', { message }) on success
    *                  socket.emit('chat:error', { message }) on failure
    */
-  socket.on("chat:send", async ({ conversationId, content, type, imageUrl }) => {
-    try {
-      if (!conversationId || !content) {
-        socket.emit("chat:error", {
-          message: "conversationId and content are required",
+  socket.on(
+    "chat:send",
+    async ({ conversationId, content, type, imageUrl }) => {
+      try {
+        if (!conversationId || !content) {
+          socket.emit("chat:error", {
+            message: "conversationId and content are required",
+          });
+          return;
+        }
+
+        const message = await chatService.sendMessage(conversationId, userId, {
+          content: content.substring(0, 2000), // Enforce max length
+          type: type || "text",
+          imageUrl: imageUrl || null,
         });
-        return;
+
+        // Acknowledge back to the sender
+        socket.emit("chat:message_sent", { message, conversationId });
+
+        // Also broadcast to the conversation room (so both parties see it live)
+        const roomName = `conversation:${conversationId}`;
+        socket.to(roomName).emit("chat:message", { message, conversationId });
+      } catch (err) {
+        logger.error("Socket chat:send failed", {
+          userId,
+          conversationId,
+          error: err.message,
+        });
+        socket.emit("chat:error", {
+          message: "Failed to send message",
+        });
       }
-
-      const message = await chatService.sendMessage(conversationId, userId, {
-        content: content.substring(0, 2000), // Enforce max length
-        type: type || "text",
-        imageUrl: imageUrl || null,
-      });
-
-      // Acknowledge back to the sender
-      socket.emit("chat:message_sent", { message, conversationId });
-
-      // Also broadcast to the conversation room (so both parties see it live)
-      const roomName = `conversation:${conversationId}`;
-      socket.to(roomName).emit("chat:message", { message, conversationId });
-    } catch (err) {
-      logger.error("Socket chat:send failed", {
-        userId,
-        conversationId,
-        error: err.message,
-      });
-      socket.emit("chat:error", {
-        message: "Failed to send message",
-      });
-    }
-  });
+    },
+  );
 
   /**
    * Mark a conversation as read via socket

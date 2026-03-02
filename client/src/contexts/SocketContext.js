@@ -27,8 +27,7 @@ const SocketContext = createContext(null);
 
 // Derive server root from the API URL (strip trailing /api)
 const resolveServerUrl = () => {
-  const apiUrl =
-    process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+  const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
   return apiUrl.replace(/\/api\/?$/, "");
 };
 
@@ -108,9 +107,7 @@ export const SocketProvider = ({ children }) => {
   };
 
   return (
-    <SocketContext.Provider value={value}>
-      {children}
-    </SocketContext.Provider>
+    <SocketContext.Provider value={value}>{children}</SocketContext.Provider>
   );
 };
 

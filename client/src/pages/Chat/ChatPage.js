@@ -1,11 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  Box,
-  Paper,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
+import { Box, Paper, useMediaQuery, useTheme } from "@mui/material";
 import { useDispatch } from "react-redux";
 import { useChat } from "../../features/chat/hooks/useChat";
 import { useChatActions } from "../../features/chat/hooks/useChatActions";
@@ -125,7 +120,7 @@ const ChatPage = () => {
       selectConversation(convo);
       navigate(ROUTES.CHAT.DETAIL(convo._id), { replace: true });
     },
-    [selectConversation, navigate]
+    [selectConversation, navigate],
   );
 
   const handleBack = useCallback(() => {
@@ -139,7 +134,7 @@ const ChatPage = () => {
       if (!activeConversation?._id) return;
       await sendMessage(activeConversation._id, { content });
     },
-    [activeConversation, sendMessage]
+    [activeConversation, sendMessage],
   );
 
   const handleDeleteConversation = useCallback(
@@ -150,14 +145,14 @@ const ChatPage = () => {
         if (isMobile) setShowSidebar(true);
       }
     },
-    [deleteConversation, activeConversation, deselectConversation, isMobile]
+    [deleteConversation, activeConversation, deselectConversation, isMobile],
   );
 
   const handleDeleteMessage = useCallback(
     async (conversationId, messageId) => {
       await deleteMessage(conversationId, messageId);
     },
-    [deleteMessage]
+    [deleteMessage],
   );
 
   const handleRefresh = useCallback(() => {

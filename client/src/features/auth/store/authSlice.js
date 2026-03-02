@@ -45,11 +45,11 @@ export const login = createAsyncThunk(
       return rejectWithValue(
         extractThunkError(
           error,
-          "Unable to complete login. Please check your credentials and try again."
-        )
+          "Unable to complete login. Please check your credentials and try again.",
+        ),
       );
     }
-  }
+  },
 );
 
 export const register = createAsyncThunk(
@@ -68,11 +68,11 @@ export const register = createAsyncThunk(
       return rejectWithValue(
         extractThunkError(
           error,
-          "Unable to complete registration. Please check your information and try again."
-        )
+          "Unable to complete registration. Please check your information and try again.",
+        ),
       );
     }
-  }
+  },
 );
 
 export const handleRefreshToken = createAsyncThunk(
@@ -90,11 +90,11 @@ export const handleRefreshToken = createAsyncThunk(
       return rejectWithValue(
         extractThunkError(
           error,
-          "Your session has expired. Please log in again."
-        )
+          "Your session has expired. Please log in again.",
+        ),
       );
     }
-  }
+  },
 );
 
 export const logout = createAsyncThunk(
@@ -111,10 +111,10 @@ export const logout = createAsyncThunk(
     } catch (error) {
       // Even on logout error, we want to clear local state
       return rejectWithValue(
-        extractThunkError(error, "Logout completed locally")
+        extractThunkError(error, "Logout completed locally"),
       );
     }
-  }
+  },
 );
 
 export const resetPassword = createAsyncThunk(
@@ -130,11 +130,11 @@ export const resetPassword = createAsyncThunk(
       return rejectWithValue(
         extractThunkError(
           error,
-          "Unable to send password reset email. Please try again."
-        )
+          "Unable to send password reset email. Please try again.",
+        ),
       );
     }
-  }
+  },
 );
 
 const authSlice = createSlice({

@@ -453,8 +453,7 @@ function ShopProfilePage() {
 
                 {/* In-App Message Button */}
                 {isAuthenticated &&
-                  String(user?._id) !==
-                    String(viewedShop?.merchant?._id) && (
+                  String(user?._id) !== String(viewedShop?.merchant?._id) && (
                     <Button
                       fullWidth
                       variant="outlined"
@@ -463,9 +462,7 @@ function ShopProfilePage() {
                       onClick={handleMessageMerchant}
                       disabled={chatLoading === "start"}
                     >
-                      {chatLoading === "start"
-                        ? "Opening..."
-                        : "Send Message"}
+                      {chatLoading === "start" ? "Opening..." : "Send Message"}
                     </Button>
                   )}
               </Box>
@@ -624,8 +621,7 @@ function ShopProfilePage() {
 
                 {/* In-App Message Button */}
                 {isAuthenticated &&
-                  String(user?._id) !==
-                    String(viewedShop?.merchant?._id) && (
+                  String(user?._id) !== String(viewedShop?.merchant?._id) && (
                     <Button
                       variant="outlined"
                       startIcon={<ChatIcon />}
@@ -633,9 +629,7 @@ function ShopProfilePage() {
                       disabled={chatLoading === "start"}
                       sx={{ ml: merchant?.profile?.phoneNumber ? 1 : 0 }}
                     >
-                      {chatLoading === "start"
-                        ? "Opening..."
-                        : "Send Message"}
+                      {chatLoading === "start" ? "Opening..." : "Send Message"}
                     </Button>
                   )}
               </Box>

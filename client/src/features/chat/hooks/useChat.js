@@ -61,49 +61,49 @@ export function useChat(options = {}) {
     (params = {}) => {
       dispatch(fetchConversations(params));
     },
-    [dispatch]
+    [dispatch],
   );
 
   const loadConversation = useCallback(
     (conversationId) => {
       return dispatch(fetchConversation(conversationId));
     },
-    [dispatch]
+    [dispatch],
   );
 
   const loadMessages = useCallback(
     (conversationId, params = {}) => {
       return dispatch(fetchMessages({ conversationId, params }));
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleStartConversation = useCallback(
     (data) => {
       return dispatch(startConversation(data));
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleSendMessage = useCallback(
     (conversationId, data) => {
       return dispatch(sendMessage({ conversationId, data }));
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleMarkAsRead = useCallback(
     (conversationId) => {
       return dispatch(markConversationAsRead(conversationId));
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleDeleteConversation = useCallback(
     (conversationId) => {
       return dispatch(deleteConversation(conversationId));
     },
-    [dispatch]
+    [dispatch],
   );
 
   const loadUnreadCount = useCallback(() => {
@@ -114,7 +114,7 @@ export function useChat(options = {}) {
     (conversation) => {
       dispatch(setActiveConversation(conversation));
     },
-    [dispatch]
+    [dispatch],
   );
 
   const deselectConversation = useCallback(() => {
@@ -150,7 +150,7 @@ export function useChat(options = {}) {
         markMessagesReadLocal({
           conversationId: data.conversationId,
           userId: data.userId,
-        })
+        }),
       );
     };
 

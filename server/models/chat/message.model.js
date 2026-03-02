@@ -70,7 +70,7 @@ const messageSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // ==================== INDEXES ====================
@@ -79,7 +79,10 @@ const messageSchema = new mongoose.Schema(
 messageSchema.index({ conversationId: 1, createdAt: -1 });
 
 // Auto-purge messages after 180 days
-messageSchema.index({ createdAt: 1 }, { expireAfterSeconds: 180 * 24 * 60 * 60 });
+messageSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: 180 * 24 * 60 * 60 },
+);
 
 // ==================== INSTANCE METHODS ====================
 
@@ -89,7 +92,7 @@ messageSchema.index({ createdAt: 1 }, { expireAfterSeconds: 180 * 24 * 60 * 60 }
 messageSchema.methods.markReadBy = async function (userId) {
   const uid = userId.toString();
   const alreadyRead = this.readBy.some(
-    (entry) => entry.userId.toString() === uid
+    (entry) => entry.userId.toString() === uid,
   );
   if (!alreadyRead) {
     this.readBy.push({ userId, readAt: new Date() });

@@ -61,7 +61,7 @@ const sendStatusToken = async (user, statusCode, res) => {
     res,
     userData,
     "Tokens generated successfully",
-    statusCode
+    statusCode,
   );
 };
 
@@ -122,7 +122,7 @@ const register = asyncHandler(async (req, res) => {
     res,
     {},
     "Registration successful. Please check your email to verify your account.",
-    201
+    201,
   );
 }, "register_user");
 
@@ -182,14 +182,14 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
   const cleanEmail = email?.trim().toLowerCase();
 
   const user = await User.findOne({ email: cleanEmail }).select(
-    "email profile emailVerification"
+    "email profile emailVerification",
   );
   if (!user || user.emailVerification?.isVerified) {
     return baseController.sendSuccess(
       res,
       {},
       "If that email is registered and not yet verified, a verification email has been sent. No further action is needed, if you are already verified.",
-      200
+      200,
     );
   }
 
@@ -248,9 +248,8 @@ const handleForgotPassword = asyncHandler(async (req, res) => {
   // Only trim and lowercase email (don't sanitize it)
   const cleanEmail = email?.trim().toLowerCase();
 
-  const { status, message } = await authService.generatePasswordResetToken(
-    cleanEmail
-  );
+  const { status, message } =
+    await authService.generatePasswordResetToken(cleanEmail);
 
   baseController.logAction("forgot_password", req, {
     email: cleanEmail,
@@ -265,7 +264,7 @@ const handleForgotPassword = asyncHandler(async (req, res) => {
       { status, rateLimited: true },
       message ||
         "Email was already sent, please wait for 5 minutes before requesting again",
-      200
+      200,
     );
   }
 
@@ -273,7 +272,7 @@ const handleForgotPassword = asyncHandler(async (req, res) => {
     res,
     { status },
     "If your email is registered, you will receive a password reset link shortly. Please wait up to 5 minutes before requesting again.",
-    200
+    200,
   );
 }, "password_reset");
 
@@ -295,7 +294,7 @@ const handleValidateResetToken = asyncHandler(async (req, res) => {
         email: cleanEmail || "missing",
         token: token || "missing",
       },
-      "RESET_TOKEN_INVALID"
+      "RESET_TOKEN_INVALID",
     );
   }
 
@@ -325,7 +324,7 @@ const handleResetPassword = asyncHandler(async (req, res) => {
         token: sanitizedToken || "missing",
         newPassword: newPassword ? "provided" : "missing",
       },
-      "RESET_TOKEN_INVALID"
+      "RESET_TOKEN_INVALID",
     );
   }
 

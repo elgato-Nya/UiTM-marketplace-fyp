@@ -79,7 +79,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
                 body: {},
               },
               api,
-              extraOptions
+              extraOptions,
             );
 
             if (refreshResult.data?.success && refreshResult.data?.token) {
@@ -90,7 +90,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
                 setTokens({
                   token: token,
                   refreshToken: api.getState().auth?.refreshToken,
-                })
+                }),
               );
 
               // Also update the auth state with fresh user data
@@ -123,7 +123,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
             ];
             const currentPath = window.location.pathname;
             const isPublicPage = publicPaths.some(
-              (path) => currentPath === path || currentPath.startsWith(path)
+              (path) => currentPath === path || currentPath.startsWith(path),
             );
 
             if (!isPublicPage) {

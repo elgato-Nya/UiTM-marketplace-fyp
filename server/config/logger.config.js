@@ -1,6 +1,7 @@
 const winston = require("winston");
 const DailyRotateFile = require("winston-daily-rotate-file");
 const path = require("path");
+const fs = require("fs");
 
 /**
  * Winston Logger Configuration
@@ -9,6 +10,7 @@ const path = require("path");
  * - Colored console output with optional JSON format
  * - JSON object keys with color highlighting
  * - Daily log rotation with size limits
+ * - Automatic cleanup of old log directories on startup
  * - Environment variables:
  *   - CONSOLE_JSON=true: Enable colored JSON format for console
  *   - ENABLE_FILE_LOGGING=true: Enable file logging in non-production
@@ -71,19 +73,62 @@ const colorizeJsonKeys = (obj, indent = 0) => {
   return `{\n${entries}\n${spaces}}`;
 };
 
-// Create logs directory path with date-based folders (Malaysia timezone)
+// Log directory (flat structure - no date subdirectories)
+const LOG_DIR = path.join(__dirname, "../logs");
+
+// Max age in days for log retention
+const LOG_RETENTION_DAYS = 14;
+
+// Create flat log path (winston-daily-rotate-file handles date via %DATE%)
 const createLogPath = (filename) => {
-  const today = new Date()
-    .toLocaleString("en-CA", {
-      timeZone: "Asia/Kuala_Lumpur",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    })
-    .split(",")[0]; // YYYY-MM-DD in Malaysia timezone
-  const dailyDir = path.join(__dirname, "../logs", today);
-  return path.join(dailyDir, filename);
+  return path.join(LOG_DIR, filename);
 };
+
+/**
+ * Cleanup legacy date-based log subdirectories and stale log files
+ * Runs on startup to reclaim disk space
+ */
+const cleanupOldLogs = () => {
+  try {
+    if (!fs.existsSync(LOG_DIR)) return;
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - LOG_RETENTION_DAYS);
+
+    const entries = fs.readdirSync(LOG_DIR, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const entryPath = path.join(LOG_DIR, entry.name);
+
+      if (entry.isDirectory()) {
+        // Remove legacy date-based subdirectories (format: YYYY-MM-DD)
+        const dateMatch = entry.name.match(/^\d{4}-\d{2}-\d{2}$/);
+        if (dateMatch) {
+          const dirDate = new Date(entry.name);
+          if (!isNaN(dirDate.getTime()) && dirDate < cutoffDate) {
+            fs.rmSync(entryPath, { recursive: true, force: true });
+          }
+        }
+      } else if (entry.isFile()) {
+        // Clean old flat log files beyond retention period
+        try {
+          const stat = fs.statSync(entryPath);
+          if (stat.mtime < cutoffDate && entry.name.endsWith(".log")) {
+            fs.unlinkSync(entryPath);
+          }
+        } catch {
+          // Skip files that can't be accessed
+        }
+      }
+    }
+  } catch (err) {
+    // Use console directly since logger may not be ready
+    console.error("[Logger] Failed to cleanup old logs:", err.message);
+  }
+};
+
+// Run cleanup on module load (server startup)
+cleanupOldLogs();
 
 // Malaysian timestamp formatter
 const malaysianTimestamp = () => {
@@ -162,12 +207,10 @@ if (
     new DailyRotateFile({
       filename: createLogPath("application-%DATE%.log"),
       datePattern: "YYYY-MM-DD",
-      maxSize: "20m",
-      maxFiles: "14d",
+      maxSize: "10m",
+      maxFiles: "7d",
       format: plainFileFormat,
       level: "info",
-      createSymlink: true,
-      symlinkName: "application-current.log",
     })
   );
 
@@ -176,12 +219,10 @@ if (
     new DailyRotateFile({
       filename: createLogPath("error-%DATE%.log"),
       datePattern: "YYYY-MM-DD",
-      maxSize: "20m",
-      maxFiles: "30d",
+      maxSize: "10m",
+      maxFiles: "14d",
       format: plainFileFormat,
       level: "error",
-      createSymlink: true,
-      symlinkName: "error-current.log",
     })
   );
 
@@ -190,12 +231,10 @@ if (
     new DailyRotateFile({
       filename: createLogPath("http-%DATE%.log"),
       datePattern: "YYYY-MM-DD",
-      maxSize: "20m",
-      maxFiles: "7d",
+      maxSize: "10m",
+      maxFiles: "3d",
       format: plainFileFormat,
       level: "http",
-      createSymlink: true,
-      symlinkName: "http-current.log",
     })
   );
 
@@ -205,7 +244,7 @@ if (
       filename: createLogPath("security-%DATE%.log"),
       datePattern: "YYYY-MM-DD",
       maxSize: "10m",
-      maxFiles: "90d",
+      maxFiles: "30d",
       format: plainFileFormat,
       level: "warn",
     })

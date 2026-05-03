@@ -42,6 +42,8 @@ function OrderListItem({
   orderRole = "buyer",
   onViewDetails,
   onUpdateStatus,
+  onContinuePayment,
+  isRetryingPayment = false,
 }) {
   const { theme } = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -49,6 +51,12 @@ function OrderListItem({
   if (!order) return null;
 
   const canUpdate = orderRole === "seller" && canUpdateStatus(order, orderRole);
+  const canContinuePayment =
+    orderRole === "buyer" &&
+    String(order?.paymentMethod || "").toLowerCase() === "toyyibpay" &&
+    ["pending_payment", "payment_failed", "failed", "cancelled", "expired"].includes(
+      String(order?.paymentStatus || "").toLowerCase(),
+    );
   const firstItem = order.items?.[0];
 
   const handleClick = () => {
@@ -71,6 +79,13 @@ function OrderListItem({
     }
   };
 
+  const handleContinuePaymentClick = (e) => {
+    e.stopPropagation();
+    if (onContinuePayment) {
+      onContinuePayment(order);
+    }
+  };
+
   return (
     <>
       <ListItem
@@ -85,6 +100,19 @@ function OrderListItem({
         secondaryAction={
           !isMobile && (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {canContinuePayment && (
+                <Tooltip title="Continue Payment" arrow>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={handleContinuePaymentClick}
+                    disabled={isRetryingPayment}
+                    sx={{ fontSize: "0.75rem", fontWeight: 700 }}
+                  >
+                    {isRetryingPayment ? "Opening..." : "Pay Now"}
+                  </Button>
+                </Tooltip>
+              )}
               {canUpdate && (
                 <Tooltip title="Update Status" arrow>
                   <IconButton
@@ -199,20 +227,36 @@ function OrderListItem({
                 <OrderInfoGrid order={order} orderRole={orderRole} />
 
                 {/* Mobile Actions */}
-                {isMobile && canUpdate && (
+                {isMobile && (canUpdate || canContinuePayment) && (
                   <Box
                     sx={{ mt: 1, pt: 1, borderTop: 1, borderColor: "divider" }}
                   >
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="primary"
-                      startIcon={<Edit fontSize="small" />}
-                      onClick={handleUpdateClick}
-                      sx={{ fontSize: "0.75rem" }}
-                    >
-                      Update Status
-                    </Button>
+                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                      {canContinuePayment ? (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="primary"
+                          onClick={handleContinuePaymentClick}
+                          disabled={isRetryingPayment}
+                          sx={{ fontSize: "0.75rem", fontWeight: 700 }}
+                        >
+                          {isRetryingPayment ? "Opening..." : "Pay Now"}
+                        </Button>
+                      ) : null}
+                      {canUpdate ? (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          startIcon={<Edit fontSize="small" />}
+                          onClick={handleUpdateClick}
+                          sx={{ fontSize: "0.75rem" }}
+                        >
+                          Update Status
+                        </Button>
+                      ) : null}
+                    </Box>
                   </Box>
                 )}
               </Box>

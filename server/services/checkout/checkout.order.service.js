@@ -1,337 +1,468 @@
+const mongoose = require("mongoose");
 const { User, Cart, Order } = require("../../models");
 const Listing = require("../../models/listing/listing.model");
 const { CheckoutSession } = require("../../models/checkout");
-const { createOrder } = require("../order/order.service");
+const { validateCheckoutItems, groupItemsBySeller, calculateCheckoutSummary } = require("./checkout.helpers");
 const { handleServiceError, handleNotFoundError } = require("../base.service");
 const { createValidationError } = require("../../utils/errors");
 const logger = require("../../utils/logger");
 const { getStripe, isStripeReady } = require("../../config/stripe.config");
 
+const PAYMENT_STATUS = {
+  PENDING_PAYMENT: "pending_payment",
+  PAID: "paid",
+};
+
 /**
- * Checkout Order Service
+ * Confirm checkout and create orders atomically.
  *
- * PURPOSE: Handle order creation from checkout session
- * PATTERN: Follows your service pattern with proper error handling
- * SCOPE: Order creation, cart cleanup, checkout confirmation
+ * Atomicity guarantee:
+ * - Session lock (pending -> processing), price revalidation, stock deduction,
+ *   order creation, and checkout session completion are in ONE Mongo transaction.
+ *
+ * Idempotency guarantee:
+ * - Same checkout session + same idempotency key returns existing created orders.
  */
+const confirmCheckoutAndCreateOrders = async (sessionId, userId, idempotencyKey) => {
+  const mongoSession = await mongoose.startSession();
+  let finalResult = null;
+  logger.info("checkout.confirm.started", {
+    sessionId: String(sessionId),
+    userId: String(userId),
+  });
 
-/**
- * Confirm checkout and create orders
- * @param {ObjectId} sessionId - Session ID
- * @param {ObjectId} userId - User ID
- * @returns {Object} { success: true, orders: [] }
- */
-const confirmCheckoutAndCreateOrders = async (sessionId, userId) => {
   try {
-    const session = await CheckoutSession.findOne({
-      _id: sessionId,
-      userId,
-    });
+    await mongoSession.withTransaction(async () => {
+      let checkoutSession = await CheckoutSession.findOne({
+        _id: sessionId,
+        userId,
+      }).session(mongoSession);
 
-    if (!session) {
-      handleNotFoundError(
-        "Checkout session",
-        "SESSION_NOT_FOUND",
-        "confirm_checkout",
-        { sessionId, userId }
-      );
-    }
-
-    if (session.isExpired) {
-      createValidationError(
-        "Checkout session has expired",
-        { sessionId },
-        "SESSION_EXPIRED"
-      );
-    }
-
-    if (!session.deliveryMethod || !session.deliveryAddress) {
-      createValidationError(
-        "Delivery details are required",
-        { sessionId },
-        "MISSING_DELIVERY_DETAILS"
-      );
-    }
-
-    if (!session.paymentMethod) {
-      createValidationError(
-        "Payment method is required",
-        { sessionId },
-        "MISSING_PAYMENT_METHOD"
-      );
-    }
-
-    // Determine payment status based on payment method
-    let paymentStatus = "pending";
-    let paymentDetails = { paidAt: null, transactionId: null };
-
-    // For online payments (credit_card, e_wallet), verify Stripe payment status
-    if (["credit_card", "e_wallet"].includes(session.paymentMethod)) {
-      if (!session.stripePaymentIntentId) {
-        createValidationError(
-          "Payment intent not created",
-          { sessionId },
-          "PAYMENT_INTENT_REQUIRED"
+      if (!checkoutSession) {
+        handleNotFoundError(
+          "Checkout session",
+          "SESSION_NOT_FOUND",
+          "confirm_checkout",
+          { sessionId, userId },
         );
       }
 
-      // Verify payment with Stripe
-      if (isStripeReady()) {
-        try {
-          const stripe = getStripe();
-          const paymentIntent = await stripe.paymentIntents.retrieve(
-            session.stripePaymentIntentId
-          );
+      if (checkoutSession.isExpired) {
+        createValidationError(
+          "Checkout session has expired",
+          { sessionId },
+          "SESSION_EXPIRED",
+        );
+      }
 
-          logger.info("Stripe payment intent status retrieved", {
-            sessionId,
-            paymentIntentId: paymentIntent.id,
-            status: paymentIntent.status,
-          });
+      if (!idempotencyKey || String(idempotencyKey) !== String(checkoutSession.checkoutSessionKey)) {
+        createValidationError(
+          "Invalid checkout confirmation key. Please refresh checkout and try again.",
+          { sessionId },
+          "CHECKOUT_IDEMPOTENCY_KEY_INVALID",
+        );
+      }
 
-          // Check if payment succeeded
-          if (paymentIntent.status === "succeeded") {
-            paymentStatus = "paid";
-            paymentDetails = {
-              paidAt: new Date(),
-              transactionId: paymentIntent.id,
-            };
-          } else if (
-            paymentIntent.status === "requires_action" ||
-            paymentIntent.status === "processing"
-          ) {
-            // Payment still in progress (e.g., GrabPay redirect)
-            paymentStatus = "pending";
-          } else if (
-            paymentIntent.status === "canceled" ||
-            paymentIntent.status === "requires_payment_method"
-          ) {
-            createValidationError(
-              "Payment was not completed. Please try again.",
-              { sessionId, stripeStatus: paymentIntent.status },
-              "PAYMENT_FAILED"
-            );
-          }
-        } catch (stripeError) {
-          logger.error("Failed to verify Stripe payment", {
-            sessionId,
-            paymentIntentId: session.stripePaymentIntentId,
-            error: stripeError.message,
+      if (checkoutSession.status === "completed") {
+        const existingOrders = await Order.find({
+          _id: { $in: checkoutSession.createdOrders || [] },
+        }).session(mongoSession);
+        finalResult = {
+          success: true,
+          idempotentReplay: true,
+          orders: existingOrders,
+          orderIds: existingOrders.map((order) => order._id),
+        };
+        logger.info("checkout.confirm.idempotent_replay", {
+          sessionId: String(sessionId),
+          userId: String(userId),
+          orderIds: finalResult.orderIds.map((id) => String(id)),
+        });
+        return;
+      }
+
+      if (checkoutSession.status !== "pending") {
+        createValidationError(
+          "Checkout confirmation is already in progress. Please wait.",
+          { sessionId, status: checkoutSession.status },
+          "CHECKOUT_CONFIRM_IN_PROGRESS",
+        );
+      }
+
+      const lockedSession = await CheckoutSession.findOneAndUpdate(
+        {
+          _id: sessionId,
+          userId,
+          status: "pending",
+          checkoutSessionKey: String(idempotencyKey),
+        },
+        { $set: { status: "processing" } },
+        { new: true, session: mongoSession },
+      );
+
+      if (!lockedSession) {
+        const latestSession = await CheckoutSession.findOne({
+          _id: sessionId,
+          userId,
+        }).session(mongoSession);
+
+        if (latestSession?.status === "completed") {
+          const existingOrders = await Order.find({
+            _id: { $in: latestSession.createdOrders || [] },
+          }).session(mongoSession);
+          finalResult = {
+            success: true,
+            idempotentReplay: true,
+            orders: existingOrders,
+            orderIds: existingOrders.map((order) => order._id),
+          };
+          logger.info("checkout.confirm.idempotent_replay", {
+            sessionId: String(sessionId),
+            userId: String(userId),
+            orderIds: finalResult.orderIds.map((id) => String(id)),
           });
-          // Continue with pending status if Stripe verification fails
+          return;
         }
+
+        createValidationError(
+          "Checkout confirmation is already in progress. Please wait.",
+          { sessionId },
+          "CHECKOUT_CONFIRM_IN_PROGRESS",
+        );
       }
-    }
-    // COD remains pending until delivery
+      checkoutSession = lockedSession;
 
-    // Create orders (one per seller) with payment status
-    const { createdOrders, failedOrders } = await createOrdersFromSession(
-      session,
-      userId,
-      { paymentStatus, paymentDetails }
-    );
+      if (!checkoutSession.deliveryMethod || !checkoutSession.deliveryAddress) {
+        createValidationError(
+          "Delivery details are required",
+          { sessionId },
+          "MISSING_DELIVERY_DETAILS",
+        );
+      }
 
-    if (createdOrders.length === 0) {
-      const errorDetails = {
-        sessionId,
-        sellerCount: session.sellerGroups.length,
-        failedCount: failedOrders.length,
+      if (!checkoutSession.paymentMethod) {
+        createValidationError(
+          "Payment method is required",
+          { sessionId },
+          "MISSING_PAYMENT_METHOD",
+        );
+      }
+
+      // Recalculate prices and validate stock server-side right before order creation.
+      const checkoutItems = (checkoutSession.items || []).map((item) => ({
+        listingId: item.listingId,
+        quantity: item.quantity,
+        variantId: item.variantId || null,
+      }));
+      const validation = await validateCheckoutItems(checkoutItems);
+      if (!validation.valid) {
+        createValidationError(
+          "Some items are no longer available or in stock.",
+          { errors: validation.errors },
+          "CHECKOUT_ITEMS_REVALIDATION_FAILED",
+        );
+      }
+
+      const sellerGroups = await groupItemsBySeller(
+        validation.validatedItems,
+        checkoutSession.deliveryMethod,
+        checkoutSession.paymentMethod,
+      );
+      const pricing = calculateCheckoutSummary(sellerGroups);
+      checkoutSession.sellerGroups = sellerGroups;
+      checkoutSession.pricing = pricing;
+
+      let paymentStatus = PAYMENT_STATUS.PENDING_PAYMENT;
+      let paymentDetails = { paidAt: null, transactionId: null };
+
+      if (["credit_card", "e_wallet"].includes(checkoutSession.paymentMethod)) {
+        if (!checkoutSession.stripePaymentIntentId) {
+          createValidationError(
+            "Payment intent not created",
+            { sessionId },
+            "PAYMENT_INTENT_REQUIRED",
+          );
+        }
+
+        if (isStripeReady()) {
+          try {
+            const stripe = getStripe();
+            const paymentIntent = await stripe.paymentIntents.retrieve(
+              checkoutSession.stripePaymentIntentId,
+            );
+            if (paymentIntent.status === "succeeded") {
+              paymentStatus = PAYMENT_STATUS.PAID;
+              paymentDetails = {
+                paidAt: new Date(),
+                transactionId: paymentIntent.id,
+              };
+            } else if (
+              paymentIntent.status === "requires_action" ||
+              paymentIntent.status === "processing"
+            ) {
+              paymentStatus = PAYMENT_STATUS.PENDING_PAYMENT;
+            } else {
+              createValidationError(
+                "Payment was not completed. Please try again.",
+                { sessionId, stripeStatus: paymentIntent.status },
+                "PAYMENT_FAILED",
+              );
+            }
+          } catch (stripeError) {
+            logger.error("Failed to verify Stripe payment", {
+              sessionId,
+              paymentIntentId: checkoutSession.stripePaymentIntentId,
+              error: stripeError.message,
+            });
+          }
+        }
+      } else if (checkoutSession.paymentMethod === "toyyibpay") {
+        paymentDetails = {
+          ...paymentDetails,
+          paymentProvider: "toyyibpay",
+        };
+      }
+
+      const createdOrders = await createOrdersFromSessionTransactional({
+        checkoutSession,
+        userId,
+        paymentStatus,
+        paymentDetails,
+        dbSession: mongoSession,
+      });
+
+      if (createdOrders.length === 0) {
+        createValidationError(
+          "Failed to create orders.",
+          { sessionId },
+          "ORDER_CREATION_FAILED",
+        );
+      }
+
+      checkoutSession.markCompleted(createdOrders.map((order) => order._id));
+      await checkoutSession.save({ session: mongoSession });
+
+      finalResult = {
+        success: true,
+        orders: createdOrders,
+        orderIds: createdOrders.map((order) => order._id),
       };
+    });
 
-      if (failedOrders.length > 0) {
-        errorDetails.failures = failedOrders;
-      }
-
+    if (!finalResult) {
       createValidationError(
-        "Failed to create orders. Please check if all items are still available and your delivery address is complete.",
-        errorDetails,
-        "ORDER_CREATION_FAILED"
+        "Failed to confirm checkout.",
+        { sessionId },
+        "CHECKOUT_CONFIRM_FAILED",
       );
     }
 
-    // Mark session as completed
-    session.markCompleted(createdOrders.map((order) => order._id));
-    await session.save();
-
-    // Clear cart items if this was a cart checkout
-    if (session.sessionType === "cart") {
-      await clearCartAfterCheckout(userId, session.items);
+    // Do not clear cart for ToyyibPay until payment success callback.
+    const firstOrder = finalResult.orders?.[0];
+    if (firstOrder?.paymentMethod !== "toyyibpay") {
+      const completedSession = await CheckoutSession.findById(sessionId);
+      if (completedSession?.sessionType === "cart") {
+        await clearCartAfterCheckout(userId, completedSession.items);
+      }
     }
 
-    logger.info("Checkout confirmed and orders created", {
-      sessionId: session._id,
+    logger.info("Checkout confirmed and orders created atomically", {
+      sessionId,
       userId,
-      orderCount: createdOrders.length,
-      orderIds: createdOrders.map((o) => o._id),
-      totalAmount: session.pricing.totalAmount,
-      paymentMethod: session.paymentMethod,
-      paymentStatus,
-      action: "confirm_checkout",
+      orderCount: finalResult.orders.length,
+      orderIds: finalResult.orderIds,
+      action: "confirm_checkout_atomic",
+    });
+    logger.info("checkout.confirm.completed", {
+      sessionId: String(sessionId),
+      userId: String(userId),
+      orderIds: (finalResult.orderIds || []).map((id) => String(id)),
     });
 
-    return {
-      success: true,
-      orders: createdOrders,
-      orderIds: createdOrders.map((o) => o._id),
-    };
+    return finalResult;
   } catch (error) {
+    await CheckoutSession.updateOne(
+      { _id: sessionId, userId, status: "processing" },
+      { $set: { status: "pending" } },
+    ).catch(() => null);
     return handleServiceError(error, "confirmCheckoutAndCreateOrders", {
       sessionId,
       userId,
     });
+  } finally {
+    await mongoSession.endSession();
   }
 };
 
-/**
- * Create orders from checkout session (one per seller)
- * @param {CheckoutSession} session - Checkout session
- * @param {ObjectId} userId - User ID
- * @param {Object} paymentInfo - Payment status info { paymentStatus, paymentDetails }
- * @returns {Array} Created orders
- */
-const createOrdersFromSession = async (session, userId, paymentInfo = {}) => {
+const createOrdersFromSessionTransactional = async ({
+  checkoutSession,
+  userId,
+  paymentStatus,
+  paymentDetails,
+  dbSession,
+}) => {
+  const buyer = await User.findById(userId)
+    .select("+email profile roles")
+    .session(dbSession);
+  if (!buyer) {
+    handleNotFoundError("User", "USER_NOT_FOUND", "confirm_checkout_atomic", { userId });
+  }
+
   const createdOrders = [];
-  const failedOrders = [];
-  const { paymentStatus = "pending", paymentDetails = {} } = paymentInfo;
-
-  for (const sellerGroup of session.sellerGroups) {
-    try {
-      // Prepare order data
-      const orderData = {
-        items: sellerGroup.items.map((item) => ({
-          listingId: item.listingId.toString(),
-          quantity: item.quantity,
-        })),
-        deliveryAddress: session.deliveryAddress,
-        deliveryMethod: session.deliveryMethod,
-        paymentMethod: session.paymentMethod,
-      };
-
-      // Create order using existing order service
-      const order = await createOrder(userId, orderData);
-
-      // Check if order creation returned an error object
-      if (order && order.error) {
-        logger.error("Order creation returned error", {
-          sessionId: session._id,
-          sellerId: sellerGroup.sellerId,
-          errorCode: order.error.code,
-          errorMessage: order.error.message,
-          errorDetails: order.error.details,
-        });
-        failedOrders.push({
-          sellerId: sellerGroup.sellerId,
-          error: order.error.message,
-        });
-        continue;
-      }
-
-      if (order && order._id) {
-        // Update payment status if payment was confirmed
-        if (paymentStatus === "paid" && order._id) {
-          await Order.findByIdAndUpdate(order._id, {
-            paymentStatus: "paid",
-            paymentDetails: {
-              paidAt: paymentDetails.paidAt || new Date(),
-              transactionId: paymentDetails.transactionId || null,
-            },
-          });
-          order.paymentStatus = "paid";
-          order.paymentDetails = paymentDetails;
-        }
-
-        createdOrders.push(order);
-
-        // Note: Stock deduction is already handled by createOrder service
-        logger.info("Order created from checkout session", {
-          orderId: order._id,
-          sessionId: session._id,
-          sellerId: sellerGroup.sellerId,
-          paymentStatus,
-          itemCount: sellerGroup.items.length,
-          totalAmount: sellerGroup.totalAmount,
-        });
-      } else {
-        logger.error("Order creation returned unexpected result", {
-          sessionId: session._id,
-          sellerId: sellerGroup.sellerId,
-          orderResult: order,
-        });
-        failedOrders.push({
-          sellerId: sellerGroup.sellerId,
-          error: "Unexpected order creation result",
-        });
-      }
-    } catch (error) {
-      logger.error("Failed to create order for seller group", {
-        sessionId: session._id,
+  for (const sellerGroup of checkoutSession.sellerGroups) {
+    const seller = await User.findById(sellerGroup.sellerId)
+      .select("+email profile roles merchantDetails")
+      .session(dbSession);
+    if (!seller) {
+      handleNotFoundError("Seller", "SELLER_NOT_FOUND", "confirm_checkout_atomic", {
         sellerId: sellerGroup.sellerId,
-        error: error.message,
-        stack: error.stack,
       });
-      failedOrders.push({
-        sellerId: sellerGroup.sellerId,
-        error: error.message,
-      });
-      // Continue with other sellers even if one fails
     }
-  }
 
-  // Log summary
-  if (failedOrders.length > 0) {
-    logger.warn("Some orders failed to create", {
-      sessionId: session._id,
-      successCount: createdOrders.length,
-      failedCount: failedOrders.length,
-      failedOrders,
+    const sellerDisplayName = seller.roles.includes("merchant")
+      ? seller.merchantDetails?.shopName || seller.profile.username
+      : seller.profile.username;
+
+    const processedItems = [];
+    for (const item of sellerGroup.items) {
+      const listing = await Listing.findById(item.listingId).session(dbSession);
+      if (!listing || !listing.isAvailable) {
+        createValidationError(
+          "Listing unavailable during checkout confirmation.",
+          { listingId: item.listingId },
+          "LISTING_UNAVAILABLE",
+        );
+      }
+
+      if (listing.type === "product") {
+        if (item.variantId) {
+          const updated = await Listing.updateOne(
+            {
+              _id: item.listingId,
+              "variants._id": item.variantId,
+              "variants.stock": { $gte: item.quantity },
+              "variants.isAvailable": true,
+            },
+            { $inc: { "variants.$.stock": -item.quantity } },
+            { session: dbSession },
+          );
+          if (updated.modifiedCount !== 1) {
+            createValidationError(
+              "Insufficient variant stock during checkout confirmation.",
+              { listingId: item.listingId, variantId: item.variantId },
+              "INSUFFICIENT_STOCK",
+            );
+          }
+        } else {
+          const updated = await Listing.updateOne(
+            {
+              _id: item.listingId,
+              stock: { $gte: item.quantity },
+              isAvailable: true,
+            },
+            { $inc: { stock: -item.quantity } },
+            { session: dbSession },
+          );
+          if (updated.modifiedCount !== 1) {
+            createValidationError(
+              "Insufficient stock during checkout confirmation.",
+              { listingId: item.listingId },
+              "INSUFFICIENT_STOCK",
+            );
+          }
+        }
+      }
+
+      const processedItem = {
+        listingId: item.listingId,
+        name: item.name,
+        description: listing.description || "",
+        price: item.price,
+        quantity: item.quantity,
+        images: listing.images || [],
+        discount: 0,
+        type: listing.type,
+      };
+      if (item.variantId) {
+        processedItem.variantId = item.variantId;
+      }
+      if (item.variantSnapshot) {
+        processedItem.variantSnapshot = item.variantSnapshot;
+      }
+      processedItems.push(processedItem);
+    }
+
+    const order = new Order({
+      buyer: {
+        userId: buyer._id,
+        username: buyer.profile.username,
+        email: buyer.email,
+        phone: buyer.profile.phoneNumber,
+      },
+      seller: {
+        userId: seller._id,
+        name: sellerDisplayName,
+        email: seller.email,
+        phone: seller.profile.phoneNumber || "0123456789",
+      },
+      items: processedItems,
+      itemsTotal: sellerGroup.subtotal,
+      shippingFee: sellerGroup.deliveryFee,
+      totalDiscount: 0,
+      totalAmount: sellerGroup.totalAmount,
+      paymentMethod: checkoutSession.paymentMethod,
+      paymentStatus,
+      paymentDetails,
+      deliveryMethod: checkoutSession.deliveryMethod,
+      deliveryAddress: checkoutSession.deliveryAddress,
+      status: paymentStatus === PAYMENT_STATUS.PAID ? "confirmed" : "pending",
+      checkoutSessionId: checkoutSession._id,
+      confirmedAt: paymentStatus === PAYMENT_STATUS.PAID ? new Date() : null,
     });
+
+    await order.save({ session: dbSession });
+    createdOrders.push(order);
   }
 
-  return { createdOrders, failedOrders };
+  return createdOrders;
 };
 
 /**
- * Clear cart items after successful checkout
- * @param {ObjectId} userId - User ID
- * @param {Array} checkoutItems - Items that were checked out
+ * Clear cart items after successful checkout/payment.
  */
 const clearCartAfterCheckout = async (userId, checkoutItems) => {
   try {
     const cart = await Cart.findOne({ userId });
+    if (!cart) return;
 
-    if (!cart) {
-      return;
-    }
-
-    // TODO: [SELECTED CHECKOUT] Only remove selected items
-    // For now, remove all items that were in the checkout
-    const checkoutListingIds = checkoutItems.map((item) =>
-      item.listingId.toString()
-    );
-
+    const checkoutListingIds = checkoutItems.map((item) => item.listingId.toString());
     cart.items = cart.items.filter(
-      (item) => !checkoutListingIds.includes(item.listing.toString())
+      (item) => !checkoutListingIds.includes(item.listing.toString()),
     );
-
     await cart.save();
 
-    logger.info("Cart cleared after checkout", {
+    logger.info("Cart cleared after checkout/payment", {
       userId,
       removedItemCount: checkoutListingIds.length,
       remainingItemCount: cart.items.length,
       action: "clear_cart_after_checkout",
     });
   } catch (error) {
-    logger.error("Failed to clear cart after checkout", {
+    logger.error("Failed to clear cart after checkout/payment", {
       userId,
       error: error.message,
     });
-    // Don't throw error - cart clearing failure shouldn't fail checkout
   }
+};
+
+const clearCartForOrderPaymentSuccess = async (order) => {
+  if (!order?.buyer?.userId || !Array.isArray(order.items)) return;
+  const checkoutItems = order.items.map((item) => ({ listingId: item.listingId }));
+  await clearCartAfterCheckout(order.buyer.userId, checkoutItems);
 };
 
 module.exports = {
   confirmCheckoutAndCreateOrders,
-  createOrdersFromSession,
   clearCartAfterCheckout,
+  clearCartForOrderPaymentSuccess,
 };

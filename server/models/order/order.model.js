@@ -82,7 +82,7 @@ const orderSchema = new mongoose.Schema(
             this.itemsTotal,
             this.shippingFee,
             this.totalDiscount,
-            value
+            value,
           );
         },
         message: orderErrorMessages.amounts.calculationError,
@@ -105,7 +105,7 @@ const orderSchema = new mongoose.Schema(
         values: Object.values(PaymentStatus),
         message: orderErrorMessages.paymentStatus.invalid,
       },
-      default: "pending",
+      default: "pending_payment",
     },
 
     paymentDetails: {
@@ -117,6 +117,63 @@ const orderSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
       },
+      paymentProvider: {
+        type: String,
+        enum: ["stripe", "toyyibpay", "cod", "manual"],
+      },
+      toyyibPayBillCode: {
+        type: String,
+      },
+      toyyibPayBillUrl: String,
+      toyyibPayExternalReferenceNo: {
+        type: String,
+        index: true,
+        sparse: true,
+      },
+      toyyibPayCallbackStatus: String,
+      toyyibPayCallbackReceivedAt: Date,
+      toyyibPayCallbackProcessedAt: Date,
+      toyyibPayCallbackHashValid: Boolean,
+      toyyibPayCallbackRefNo: String,
+      toyyibPayAttempts: [
+        {
+          billCode: {
+            type: String,
+          },
+          billUrl: String,
+          status: {
+            type: String,
+            enum: [
+              "active",
+              "obsolete",
+              "paid",
+              "failed",
+              "late_success",
+              "ignored",
+              "expired",
+              "cancelled",
+              "pending",
+            ],
+            default: "active",
+          },
+          createdAt: {
+            type: Date,
+            default: Date.now,
+          },
+          paidAt: Date,
+          transactionRef: String,
+          rawCallbackPayload: mongoose.Schema.Types.Mixed,
+        },
+      ],
+      toyyibPayRetryLockedUntil: Date,
+      stockRestoredAt: Date,
+      paymentExpiredAt: Date,
+    },
+    checkoutSessionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "CheckoutSession",
+      index: true,
+      sparse: true,
     },
 
     status: {
@@ -176,7 +233,11 @@ const orderSchema = new mongoose.Schema(
     completedAt: Date,
     cancelledAt: Date,
   },
-  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
 );
 
 // Indexes for performance
@@ -184,6 +245,17 @@ orderSchema.index({ "buyer.userId": 1, status: 1, createdAt: -1 });
 orderSchema.index({ "seller.userId": 1, status: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 orderSchema.index({ paymentStatus: 1 });
+orderSchema.index({ "paymentDetails.toyyibPayAttempts.billCode": 1 });
+orderSchema.index(
+  { checkoutSessionId: 1, "seller.userId": 1 },
+  { unique: true, sparse: true },
+);
+
+// Unique constraint on ToyyibPay bill code for idempotent callback processing
+orderSchema.index(
+  { "paymentDetails.toyyibPayBillCode": 1 },
+  { unique: true, sparse: true },
+);
 
 /**
  * Generates a unique order number in the format ORD-YYYYMMDD-XXXXXX.
@@ -250,7 +322,7 @@ orderSchema.methods.updateStatus = function (newStatus, note, updatedBy) {
     });
     return createForbiddenError(
       `Invalid status transition from ${this.status} to ${newStatus}`,
-      "INVALID_ORDER_STATUS"
+      "INVALID_ORDER_STATUS",
     );
   }
 

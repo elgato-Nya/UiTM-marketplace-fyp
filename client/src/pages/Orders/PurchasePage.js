@@ -8,8 +8,9 @@ import {
   Pagination,
   Chip,
   Stack,
+  Alert,
 } from "@mui/material";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ShoppingBag } from "@mui/icons-material";
 
 import { useAuth } from "../../features/auth/hooks/useAuth";
@@ -26,9 +27,13 @@ import CancelOrderDialog from "../../features/orders/components/CancelOrderDialo
 // Hooks
 import { useOrders } from "../../features/orders/hooks/useOrders";
 import { useOrderActions } from "../../features/orders/hooks/useOrderActions";
+import { checkoutService } from "../../features/checkout/service/checkoutService";
+import { ROUTES } from "../../constants/routes";
 
 function PurchasesPage() {
   const { isAuthenticated } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams(); // Removed unused setSearchParams
 
   const {
@@ -57,6 +62,7 @@ function PurchasesPage() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [retryingPaymentOrderId, setRetryingPaymentOrderId] = useState(null);
 
   // Load orders on mount (only if authenticated)
   useEffect(() => {
@@ -118,6 +124,43 @@ function PurchasesPage() {
   const handlePageChange = (event, page) => {
     changePage(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleContinuePayment = async (order) => {
+    if (!order?._id || retryingPaymentOrderId) return;
+    setRetryingPaymentOrderId(order._id);
+
+    try {
+      const response = await checkoutService.retryOrderPayment(order._id);
+      const alreadyPaid =
+        response?.data?.data?.alreadyPaid || response?.data?.alreadyPaid;
+
+      if (alreadyPaid) {
+        showSuccess("This order is already paid.");
+        loadOrders();
+        return;
+      }
+
+      const billUrl = response?.data?.data?.billUrl || response?.data?.billUrl;
+      if (!billUrl) {
+        throw new Error("Unable to create payment link now. Please try again.");
+      }
+
+      navigate(ROUTES.CHECKOUT.REDIRECTING_PAYMENT, {
+        state: {
+          billUrl,
+          orderId: order._id,
+        },
+      });
+    } catch (err) {
+      showError(
+        err?.response?.data?.message ||
+          err.message ||
+          "Unable to continue payment now. Please try again."
+      );
+    } finally {
+      setRetryingPaymentOrderId(null);
+    }
   };
 
   // Authentication guard
@@ -225,6 +268,12 @@ function PurchasesPage() {
 
       {/* Main Content */}
       <Box component="section" aria-label="My purchases">
+        {location.state?.notice ? (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            {location.state.notice}
+          </Alert>
+        ) : null}
+
         {/* Empty State */}
         {!isLoading && orders.length === 0 && (
           <EmptyOrderState
@@ -257,6 +306,8 @@ function PurchasesPage() {
                   orderRole="buyer"
                   onViewDetails={handleViewDetails}
                   onCancel={handleCancelOrder}
+                  onContinuePayment={handleContinuePayment}
+                  isRetryingPayment={retryingPaymentOrderId === order._id}
                 />
               ))}
             </List>

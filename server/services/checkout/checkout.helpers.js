@@ -198,7 +198,9 @@ const groupItemsBySeller = async (
       const feeBreakdown = calculateFeeBreakdown(group.subtotal, deliveryFee);
 
       const platformFee = feeBreakdown.platformFee;
-      const stripeFee = paymentMethod === "cod" ? 0 : feeBreakdown.stripeFee;
+      const stripeFee = ["cod", "toyyibpay"].includes(paymentMethod)
+        ? 0
+        : feeBreakdown.stripeFee;
       const totalAmount = group.subtotal + deliveryFee;
       const sellerReceives = totalAmount - platformFee - stripeFee;
 
@@ -340,6 +342,10 @@ const validateDeliveryAddress = (deliveryMethod, deliveryAddress) => {
  */
 const checkPaymentMethodAllowed = (paymentMethod, totalAmount) => {
   if (paymentMethod === "cod") {
+    return { allowed: true, reason: null };
+  }
+
+  if (paymentMethod === "toyyibpay") {
     return { allowed: true, reason: null };
   }
 

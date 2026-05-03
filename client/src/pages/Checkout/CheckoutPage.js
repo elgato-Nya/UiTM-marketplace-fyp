@@ -9,46 +9,41 @@ import {
   CircularProgress,
   useMediaQuery,
 } from "@mui/material";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { useStripe, useElements, CardElement } from "@stripe/react-stripe-js";
-
 import { useTheme } from "../../hooks/useTheme";
-import { ROUTES } from "../../constants/routes";
 import {
   createSessionFromCart,
   createSessionFromListing,
-  createPaymentIntent,
   confirmCheckout,
+  getActiveSession,
   updateSession,
   selectCheckoutSession,
   selectCheckoutLoading,
   selectCheckoutError,
   selectSessionExpired,
   selectHasActiveSession,
-  selectPaymentIntent,
 } from "../../features/checkout/store/checkoutSlice";
 import { selectAddresses } from "../../features/profile/store/addressSlice";
 import { validateCheckoutForm } from "../../validation/checkoutValidator";
 import { PAYMENT_METHOD, DELIVERY_METHOD } from "../../constants/orderConstant";
+import { ROUTES } from "../../constants/routes";
 import SessionTimer from "../../features/checkout/components/SessionTimer";
 import AddressSection from "../../features/checkout/components/AddressSection";
 import DeliveryMethodSection from "../../features/checkout/components/DeliveryMethodSection";
 import PaymentMethodSection from "../../features/checkout/components/PaymentMethodSection";
 import OrderSummary from "../../features/checkout/components/OrderSummary";
+import { checkoutService } from "../../features/checkout/service/checkoutService";
 
 const CheckoutPage = () => {
   const { theme } = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
-  const stripe = useStripe();
-  const elements = useElements();
 
   // Redux selectors
   const session = useSelector(selectCheckoutSession);
-  const paymentIntent = useSelector(selectPaymentIntent);
   const isLoading = useSelector(selectCheckoutLoading);
   const error = useSelector(selectCheckoutError);
   const hasActiveSession = useSelector(selectHasActiveSession);
@@ -60,21 +55,22 @@ const CheckoutPage = () => {
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [selectedAddressType, setSelectedAddressType] = useState("campus");
   const [deliveryMethod, setDeliveryMethod] = useState(
-    DELIVERY_METHOD.CAMPUS_DELIVERY
+    DELIVERY_METHOD.CAMPUS_DELIVERY,
   );
-  const [paymentMethod, setPaymentMethod] = useState(
-    PAYMENT_METHOD.CREDIT_CARD
-  );
-  const [cardReady, setCardReady] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHOD.TOYYIBPAY);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isRedirectingToPayment, setIsRedirectingToPayment] = useState(false);
+  const [hasSubmittedOrder, setHasSubmittedOrder] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [isInitialized, setIsInitialized] = useState(false);
+  const [recoveryAttempted, setRecoveryAttempted] = useState(false);
 
   // Get checkout source from location state
   const { source, listingId, quantity } = location.state || {};
 
   // Initialize checkout session
   useEffect(() => {
+    if (isConfirming || isRedirectingToPayment || hasSubmittedOrder) return;
     if (!hasActiveSession && !isLoading) {
       if (source === "cart") {
         dispatch(createSessionFromCart());
@@ -83,22 +79,60 @@ const CheckoutPage = () => {
           createSessionFromListing({
             listingId,
             quantity: quantity || 1,
-          })
+          }),
         );
+      } else if (!recoveryAttempted) {
+        setRecoveryAttempted(true);
+        dispatch(getActiveSession())
+          .unwrap()
+          .then((payload) => {
+            if (!payload?.session) {
+              setValidationErrors({
+                general:
+                  "No active checkout session found. Your order may already be created. Please continue from Purchases.",
+              });
+            }
+          })
+          .catch(() => {
+            setValidationErrors({
+              general:
+                "No active checkout session found. Please start checkout from your cart.",
+            });
+          });
       } else {
-        // No valid source, redirect to cart
-        navigate(ROUTES.CART, { replace: true });
+        setValidationErrors({
+          general:
+            "No active checkout session found. Your order may already be created. Please continue from Purchases.",
+        });
       }
     }
   }, [
     dispatch,
     hasActiveSession,
+    hasSubmittedOrder,
+    isConfirming,
     isLoading,
+    isRedirectingToPayment,
     source,
     listingId,
     quantity,
     navigate,
+    recoveryAttempted,
   ]);
+
+  useEffect(() => {
+    if (isLoading || session) return;
+    if (source === "cart" || (source === "listing" && listingId)) return;
+    if (!recoveryAttempted) return;
+
+    navigate(ROUTES.ORDERS.PURCHASES, {
+      replace: true,
+      state: {
+        notice:
+          "No active checkout session found. If you already created an order, continue payment from Purchases.",
+      },
+    });
+  }, [isLoading, session, source, listingId, recoveryAttempted, navigate]);
 
   // Set initial values from session and mark as initialized
   useEffect(() => {
@@ -135,7 +169,7 @@ const CheckoutPage = () => {
           data: {
             deliveryMethod,
           },
-        })
+        }),
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -143,15 +177,13 @@ const CheckoutPage = () => {
 
   // Handle session expiration
   useEffect(() => {
-    if (sessionExpired) {
-      navigate(ROUTES.CART, {
-        replace: true,
-        state: {
-          message: "Your checkout session has expired. Please try again.",
-        },
+    if (sessionExpired && !isConfirming && !isRedirectingToPayment) {
+      setValidationErrors({
+        general:
+          "Your checkout session expired. Please refresh checkout from cart.",
       });
     }
-  }, [sessionExpired, navigate]);
+  }, [sessionExpired, isConfirming, isRedirectingToPayment]);
 
   // Handle address type change - auto-select appropriate delivery method
   const handleAddressTypeChange = useCallback(
@@ -170,9 +202,13 @@ const CheckoutPage = () => {
         setDeliveryMethod(newDeliveryMethod);
       }
     },
-    [deliveryMethod]
+    [deliveryMethod],
   );
 
+  /**
+   * Confirm checkout and create the payment bill when ToyyibPay is selected.
+   * @returns {Promise<void>}
+   */
   const handleConfirmOrder = async () => {
     // Validate form using centralized validation utility
     const { isValid, errors } = validateCheckoutForm(
@@ -180,9 +216,8 @@ const CheckoutPage = () => {
         selectedAddressId,
         deliveryMethod,
         paymentMethod,
-        cardReady,
       },
-      session
+      session,
     );
 
     if (!isValid) {
@@ -195,7 +230,7 @@ const CheckoutPage = () => {
     try {
       // Find the selected address object
       const selectedAddress = addresses.find(
-        (addr) => addr._id === selectedAddressId
+        (addr) => addr._id === selectedAddressId,
       );
 
       if (!selectedAddress) {
@@ -212,87 +247,80 @@ const CheckoutPage = () => {
             deliveryMethod,
             paymentMethod,
           },
-        })
+        }),
       ).unwrap();
 
-      // Create payment intent if using card payment
-      if (paymentMethod === PAYMENT_METHOD.CREDIT_CARD) {
-        if (!stripe || !elements) {
-          throw new Error("Stripe is not loaded");
+      // Confirm checkout (only sessionId is needed - other details already in session)
+      setHasSubmittedOrder(true);
+      const result = await dispatch(
+        confirmCheckout({
+          sessionId: session._id,
+          idempotencyKey: session.checkoutSessionKey,
+        }),
+      ).unwrap();
+
+      if (paymentMethod === PAYMENT_METHOD.TOYYIBPAY) {
+        setIsRedirectingToPayment(true);
+        const order = result.orders?.[0];
+
+        if (!order?._id) {
+          throw new Error("Unable to create ToyyibPay bill for this order");
         }
 
-        // Create payment intent
-        const result = await dispatch(
-          createPaymentIntent(session._id)
-        ).unwrap();
-
-        const intentData = result.paymentIntent;
-
-        // Confirm card payment with Stripe
-        const { error: stripeError, paymentIntent: confirmedIntent } =
-          await stripe.confirmCardPayment(intentData.clientSecret, {
-            payment_method: {
-              card: elements.getElement(CardElement),
-              billing_details: {
-                name:
-                  selectedAddress?.recipientName ||
-                  selectedAddress?.fullName ||
-                  session.shippingAddress?.recipientName ||
-                  "Customer",
-              },
-            },
+        // Create ToyyibPay bill. Do NOT send a localhost `returnUrl` (ToyyibPay rejects non-public URLs).
+        // Let the server use its configured `TOYYIBPAY_RETURN_URL` (env) which must be a public HTTPS URL.
+        let billResponse;
+        try {
+          billResponse = await checkoutService.createOrderBill(order._id);
+        } catch (err) {
+          console.error("ToyyibPay bill creation failed:", err);
+          setValidationErrors({
+            general:
+              (err?.response &&
+                err.response.data &&
+                err.response.data.message) ||
+              err.message ||
+              "Failed to create payment bill. Order was created — you can pay later from your orders.",
           });
 
-        if (stripeError) {
-          throw new Error(stripeError.message);
+          return;
         }
 
-        if (confirmedIntent.status !== "succeeded") {
-          throw new Error("Payment confirmation failed");
+        const billUrl =
+          billResponse?.data?.data?.billUrl || billResponse?.data?.billUrl;
+
+        if (!billUrl) {
+          // If bill URL is missing, fallback to success page with an error message
+          console.error("ToyyibPay response missing billUrl", billResponse);
+          setValidationErrors({
+            general:
+              "Payment provider did not return a payment URL. Order created — view your orders to complete payment.",
+          });
+          return;
         }
-      } else if (paymentMethod === PAYMENT_METHOD.E_WALLET) {
-        if (!stripe) {
-          throw new Error("Stripe is not loaded");
+
+        try {
+          sessionStorage.setItem(
+            "checkout_last_orders",
+            JSON.stringify(result.orders || []),
+          );
+        } catch (storageError) {
+          console.warn("Unable to persist checkout orders", storageError);
         }
 
-        // Create payment intent for GrabPay
-        const result = await dispatch(
-          createPaymentIntent(session._id)
-        ).unwrap();
-
-        const intentData = result.paymentIntent;
-
-        // Debug: Log payment intent info
-        console.log("🔄 GrabPay payment intent:", {
-          paymentIntentId: intentData.paymentIntentId,
-          clientSecretPrefix: intentData.clientSecret?.substring(0, 25) + "...",
+        navigate(ROUTES.CHECKOUT.REDIRECTING_PAYMENT, {
+          replace: true,
+          state: {
+            billUrl,
+            orderId: order._id,
+          },
         });
-
-        // Confirm payment with GrabPay - will redirect to GrabPay app
-        const { error: stripeError } = await stripe.confirmGrabPayPayment(
-          intentData.clientSecret,
-          {
-            return_url: `${window.location.origin}/checkout/success?session_id=${session._id}`,
-          }
-        );
-
-        // If error, throw it (otherwise user was redirected)
-        if (stripeError) {
-          console.error("GrabPay error details:", stripeError);
-          throw new Error(stripeError.message);
-        }
-
-        // User will be redirected to GrabPay, then back to return_url
         return;
       }
 
-      // Confirm checkout (only sessionId is needed - other details already in session)
-      const result = await dispatch(confirmCheckout(session._id)).unwrap();
-
-      // Navigate to success page
-      navigate(ROUTES.CHECKOUT.SUCCESS, {
-        replace: true,
-        state: { orders: result.orders },
+      setValidationErrors({
+        general:
+          "Order created successfully. Please complete payment from your Purchases page.",
       });
     } catch (err) {
       console.error("Checkout confirmation error:", err);
@@ -301,15 +329,17 @@ const CheckoutPage = () => {
       });
     } finally {
       setIsConfirming(false);
+      if (paymentMethod !== PAYMENT_METHOD.TOYYIBPAY) {
+        setIsRedirectingToPayment(false);
+      }
     }
   };
 
   const handleSessionExpired = () => {
-    navigate(ROUTES.CART, {
-      replace: true,
-      state: {
-        message: "Your checkout session has expired. Please try again.",
-      },
+    if (isConfirming || isRedirectingToPayment) return;
+    setValidationErrors({
+      general:
+        "Your checkout session expired. Please reload checkout from your cart.",
     });
   };
 
@@ -341,7 +371,14 @@ const CheckoutPage = () => {
           onClick={() => navigate(ROUTES.CART)}
           sx={{ mt: 2 }}
         >
-          Return to Cart
+          Go to Cart
+        </Button>
+        <Button
+          variant="outlined"
+          onClick={() => navigate(ROUTES.ORDERS.PURCHASES)}
+          sx={{ mt: 2, ml: 2 }}
+        >
+          Go to Purchases
         </Button>
       </Container>
     );
@@ -405,7 +442,6 @@ const CheckoutPage = () => {
                 onMethodSelect={setPaymentMethod}
                 deliveryMethod={deliveryMethod}
                 totalAmount={session.pricing?.totalAmount || 0}
-                onCardReady={() => setCardReady(true)}
                 error={validationErrors.payment}
               />
             </Box>
@@ -435,14 +471,15 @@ const CheckoutPage = () => {
                 disabled={
                   isConfirming ||
                   isLoading ||
-                  (paymentMethod !== PAYMENT_METHOD.COD && !stripe)
+                  isRedirectingToPayment ||
+                  hasSubmittedOrder
                 }
                 sx={{ mt: 2 }}
               >
                 {isConfirming ? (
                   <>
                     <CircularProgress size={20} sx={{ mr: 1 }} />
-                    Processing...
+                    Creating secure payment link...
                   </>
                 ) : (
                   `Confirm Order (RM ${(session.pricing?.totalAmount || 0).toFixed(2)})`

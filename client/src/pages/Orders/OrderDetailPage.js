@@ -117,6 +117,12 @@ function OrderDetailPage() {
   };
 
   const userRole = getUserRole();
+  const safeErrorMessage =
+    typeof error === "string"
+      ? error
+      : error?.message ||
+        error?.details?.message ||
+        "Failed to load order details.";
 
   /**
    * Handle cancel order
@@ -190,7 +196,7 @@ function OrderDetailPage() {
   if (error) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="error">{error}</Alert>
+        <Alert severity="error">{safeErrorMessage}</Alert>
         <BackButton sx={{ mt: 2 }} />
       </Container>
     );
@@ -230,7 +236,7 @@ function OrderDetailPage() {
             to={
               userRole === "buyer"
                 ? ROUTES.ORDERS.PURCHASES
-                : ROUTES.ORDERS.SALES
+                : ROUTES.MERCHANT.ORDERS
             }
             underline="hover"
             color="inherit"

@@ -3,13 +3,18 @@ const PaymentMethod = Object.freeze({
   BANK_TRANSFER: "bank_transfer",
   E_WALLET: "e_wallet",
   CREDIT_CARD: "credit_card",
+  TOYYIBPAY: "toyyibpay",
 });
 
 const PaymentStatus = Object.freeze({
+  PENDING_PAYMENT: "pending_payment",
   COD_CONFIRMED: "cod_confirmed",
   COD_DECLINED: "cod_declined",
   PENDING: "pending",
   PAID: "paid",
+  PAYMENT_FAILED: "payment_failed",
+  CANCELLED: "cancelled",
+  EXPIRED: "expired",
   FAILED: "failed",
   REFUNDED: "refunded",
 });

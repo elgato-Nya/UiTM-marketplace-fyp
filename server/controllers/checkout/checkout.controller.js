@@ -183,8 +183,9 @@ const handleGetPaymentStatus = asyncHandler(async (req, res) => {
 const handleConfirmCheckout = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { id: sessionId } = req.params;
+  const idempotencyKey = req.body?.idempotencyKey;
 
-  const result = await confirmCheckoutAndCreateOrders(sessionId, userId);
+  const result = await confirmCheckoutAndCreateOrders(sessionId, userId, idempotencyKey);
 
   baseController.logAction("confirm_checkout", req, {
     userId: userId.toString(),

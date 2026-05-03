@@ -77,6 +77,8 @@ export const ROUTES = {
   CHECKOUT: {
     INDEX: "/checkout",
     SUCCESS: "/checkout/success",
+    PAYMENT_RETURN: "/checkout/payment-return",
+    REDIRECTING_PAYMENT: "/checkout/redirecting-payment",
   },
 
   // Profile Routes
@@ -91,7 +93,8 @@ export const ROUTES = {
   ORDERS: {
     INDEX: "/orders",
     PURCHASES: "/orders/purchases",
-    SALES: "/orders/sales",
+    // Seller flow lives under merchant dashboard routes.
+    SALES: "/merchant/orders",
     DETAIL: (id) => `/orders/${id}`,
   },
 

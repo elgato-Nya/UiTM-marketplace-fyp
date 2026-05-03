@@ -5,16 +5,14 @@ const {
   handleGetActiveSession,
   handleUpdateCheckoutSession,
   handleCancelCheckoutSession,
-  handleCreatePaymentIntent,
-  handleGetPaymentStatus,
   handleConfirmCheckout,
 } = require("../../controllers/checkout/checkout.controller");
 const { protect } = require("../../middleware/auth/auth.middleware");
 const {
   validateCreateDirectCheckout,
   validateUpdateCheckoutSession,
-  validateCreatePaymentIntent,
   validateSessionIdParam,
+  validateConfirmCheckout,
 } = require("../../middleware/validations/checkout/checkout.validation");
 const { checkoutLimiter } = require("../../middleware/limiters.middleware");
 
@@ -32,8 +30,6 @@ const { checkoutLimiter } = require("../../middleware/limiters.middleware");
  * - GET /api/checkout/session (get active session)
  * - PUT /api/checkout/session/:id (update/cancel session)
  * - DELETE /api/checkout/session/:id (cancel session)
- * - POST /api/checkout/payment-intent (create Stripe payment intent)
- * - GET /api/checkout/payment-status/:id (get payment status)
  * - POST /api/checkout/confirm/:id (confirm and create orders)
  *
  * BUSINESS RULES:
@@ -42,7 +38,7 @@ const { checkoutLimiter } = require("../../middleware/limiters.middleware");
  * - Sessions expire after 10 minutes
  * - Stock is virtually reserved during session
  * - Multi-vendor orders supported (one order per seller)
- * - COD and Stripe payments supported
+ * - COD and ToyyibPay payments supported
  *
  * @see docs/RATE-LIMITING-ENHANCEMENT-PLAN.md
  */
@@ -118,34 +114,6 @@ router.delete(
 );
 
 /**
- * @route   POST /api/checkout/payment-intent
- * @desc    Create Stripe payment intent for online payment
- * @access  Private
- * @body    { sessionId }
- * @returns { clientSecret, paymentIntentId }
- * @note    Only for online payments (credit card), not COD
- */
-router.post(
-  "/payment-intent",
-  validateCreatePaymentIntent,
-  handleCreatePaymentIntent
-);
-
-/**
- * @route   GET /api/checkout/payment-status/:id
- * @desc    Get payment status for checkout session
- * @access  Private
- * @params  id - Session ID
- * @returns Payment status from Stripe
- * @note    Returns status, amount, currency if payment intent exists
- */
-router.get(
-  "/payment-status/:id",
-  validateSessionIdParam,
-  handleGetPaymentStatus
-);
-
-/**
  * @route   POST /api/checkout/confirm/:id
  * @desc    Confirm checkout and create orders
  * @access  Private
@@ -153,6 +121,11 @@ router.get(
  * @returns { success: true, orders: [], orderIds: [] }
  * @note    Creates one order per seller, deducts stock, clears cart
  */
-router.post("/confirm/:id", validateSessionIdParam, handleConfirmCheckout);
+router.post(
+  "/confirm/:id",
+  validateSessionIdParam,
+  validateConfirmCheckout,
+  handleConfirmCheckout
+);
 
 module.exports = router;

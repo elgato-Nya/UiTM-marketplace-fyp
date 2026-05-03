@@ -1,7 +1,6 @@
 const { User } = require("../../models");
 const logger = require("../../utils/logger");
 const { DeliveryMethod, AddressType } = require("../../utils/enums/order.enum");
-const payoutService = require("../payout");
 const {
   createNotification,
 } = require("../notification/notification.service");
@@ -269,53 +268,11 @@ const handleStatusSideEffects = async (order, newStatus) => {
         break;
 
       case "completed":
-        // Update merchant revenue and sales metrics
+        // Update merchant revenue and sales metrics.
+        // Wallet credit is now handled by the ToyyibPay callback flow.
         const sellerId = order.seller?.userId;
         if (sellerId) {
           const orderTotal = order.totalAmount || 0;
-          const platformFeeRate = 0.05; // 5% platform fee
-
-          // Add earnings to seller balance (payout system)
-          try {
-            await payoutService.addEarnings(
-              sellerId,
-              order._id,
-              order.orderNumber,
-              orderTotal,
-              platformFeeRate,
-            );
-            logger.info("Seller earnings added to balance", {
-              orderId: order._id,
-              orderNumber: order.orderNumber,
-              sellerId: sellerId.toString(),
-              grossAmount: orderTotal,
-              platformFeeRate,
-              netAmount: orderTotal * (1 - platformFeeRate),
-              action: "status_side_effect",
-            });
-
-            // Notify seller that earnings have been credited
-            createNotification({
-              userId: sellerId,
-              type: NotificationType.PAYOUT_PROCESSED,
-              title: "Earnings Credited 💳",
-              message: `RM ${(orderTotal * (1 - platformFeeRate)).toFixed(2)} credited from order #${order.orderNumber}`,
-              data: {
-                referenceId: order._id,
-                referenceModel: "Order",
-                actionUrl: `/merchant/dashboard`,
-                extra: { orderNumber: order.orderNumber, net: orderTotal * (1 - platformFeeRate) },
-              },
-            }).catch((err) => logger.error("Failed to send earnings notification", { error: err.message }));
-          } catch (earningsError) {
-            logger.error("Failed to add earnings to seller balance", {
-              orderId: order._id,
-              sellerId: sellerId.toString(),
-              error: earningsError.message,
-              action: "status_side_effect",
-            });
-          }
-
           // Update merchant shop metrics
           const seller = await User.findById(sellerId);
           if (seller && seller.merchantDetails?.shopMetrics) {

@@ -15,6 +15,13 @@ const { QuoteRequest } = require("./quote");
 const { SellerBalance, SellerPayout, BalanceTransaction } = require("./payout");
 const { Notification } = require("./notification");
 const { Conversation, Message } = require("./chat");
+const { SellerWallet } = require("./wallet/sellerWallet.model");
+const { WalletTransaction } = require("./wallet/walletTransaction.model");
+const { BankAccount } = require("./bank/bankAccount.model");
+const { WithdrawalRequest } = require("./withdrawal/withdrawalRequest.model");
+const { SellerPlan } = require("./plan/sellerPlan.model");
+const { FeaturedListing } = require("./plan/featuredListing.model");
+const { PaymentReference } = require("./payment/paymentReference.model");
 
 module.exports = {
   // User exports
@@ -60,4 +67,13 @@ module.exports = {
   // Chat exports
   Conversation,
   Message,
+
+  // Phase 1 exports
+  SellerWallet,
+  WalletTransaction,
+  BankAccount,
+  WithdrawalRequest,
+  SellerPlan,
+  FeaturedListing,
+  PaymentReference,
 };

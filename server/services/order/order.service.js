@@ -27,7 +27,7 @@ const {
 
 const createOrder = async (userId, orderData) => {
   try {
-    const { items, deliveryAddress, deliveryMethod, paymentMethod } = orderData;
+    const { items, deliveryAddress, deliveryMethod, paymentMethod, checkoutSessionId } = orderData;
 
     const buyer = await User.findById(userId).select("+email profile roles");
     if (!buyer) {
@@ -306,6 +306,7 @@ const createOrder = async (userId, orderData) => {
       deliveryMethod: deliveryMethod,
       deliveryAddress: deliveryAddress,
       status: "pending",
+      checkoutSessionId: checkoutSessionId || null,
     };
 
     const order = new Order(orderObject);
@@ -643,6 +644,14 @@ const cancelOrder = async (orderId, userId, reason, description = "") => {
         userId,
         orderId,
       });
+    }
+
+    if (order.paymentStatus === "paid") {
+      throw createValidationError(
+        "Paid orders cannot be cancelled automatically.",
+        { userId, orderId, paymentStatus: order.paymentStatus },
+        "PAID_ORDER_CANCELLATION_BLOCKED"
+      );
     }
 
     if (!["pending", "confirmed"].includes(order.status)) {

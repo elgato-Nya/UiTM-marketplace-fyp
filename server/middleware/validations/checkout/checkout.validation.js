@@ -213,11 +213,25 @@ const validateSessionIdParam = [
   handleValidationErrors,
 ];
 
+const validateConfirmCheckout = [
+  body("idempotencyKey")
+    .notEmpty()
+    .withMessage("Checkout idempotency key is required")
+    .bail()
+    .isString()
+    .withMessage("Checkout idempotency key must be a string")
+    .bail()
+    .isLength({ min: 8, max: 128 })
+    .withMessage("Checkout idempotency key is invalid"),
+  handleValidationErrors,
+];
+
 module.exports = {
   validateCreateDirectCheckout,
   validateUpdateCheckoutSession,
   validateCreatePaymentIntent,
   validateSessionIdParam,
+  validateConfirmCheckout,
   // Export individual validators for reuse
   listingIdValidation,
   quantityValidation,

@@ -1,4 +1,5 @@
 const { Cart } = require("../../models");
+const crypto = require("crypto");
 const CheckoutSession = require("../../models/checkout/checkoutSession.model");
 const {
   validateCheckoutItems,
@@ -20,6 +21,8 @@ const {
   checkoutErrorMessages,
 } = require("../../validators/checkout/checkout.validator");
 const logger = require("../../utils/logger");
+
+const generateCheckoutSessionKey = () => crypto.randomUUID();
 
 /**
  * Checkout Service - Session Management
@@ -131,6 +134,7 @@ const createCartCheckoutSession = async (userId) => {
       sellerGroups,
       pricing,
       stockReservations,
+      checkoutSessionKey: generateCheckoutSessionKey(),
       status: "pending",
     });
 
@@ -239,6 +243,7 @@ const createDirectCheckoutSession = async (
       sellerGroups,
       pricing,
       stockReservations,
+      checkoutSessionKey: generateCheckoutSessionKey(),
       status: "pending",
     });
 

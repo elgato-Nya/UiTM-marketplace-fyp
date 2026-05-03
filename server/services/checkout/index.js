@@ -10,8 +10,8 @@ const { createPaymentIntent, getPaymentStatus } = require("./payment.service");
 
 const {
   confirmCheckoutAndCreateOrders,
-  createOrdersFromSession,
   clearCartAfterCheckout,
+  clearCartForOrderPaymentSuccess,
 } = require("./checkout.order.service");
 
 const {
@@ -38,8 +38,8 @@ module.exports = {
 
   // Order creation
   confirmCheckoutAndCreateOrders,
-  createOrdersFromSession,
   clearCartAfterCheckout,
+  clearCartForOrderPaymentSuccess,
 
   // Helpers
   validateCheckoutItems,

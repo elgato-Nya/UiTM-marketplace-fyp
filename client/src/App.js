@@ -47,6 +47,8 @@ import CartPage from "./pages/Cart/CartPage";
 import WishlistPage from "./pages/Wishlist/WishlistPage";
 import CheckoutPageWrapper from "./pages/Checkout/CheckoutPageWrapper";
 import CheckoutSuccessPageWrapper from "./pages/Checkout/CheckoutSuccessPageWrapper";
+import CheckoutPaymentReturnPage from "./pages/Checkout/CheckoutPaymentReturnPage";
+import CheckoutRedirectingPaymentPage from "./pages/Checkout/CheckoutRedirectingPaymentPage";
 import MerchantAnalyticsPage from "./pages/Merchant/MerchantAnalyticsPage";
 import AdminDashboardPage from "./pages/Admin/AdminDashboardPage";
 import MerchantVerificationPage from "./pages/Admin/MerchantVerificationPage";
@@ -159,6 +161,22 @@ function AppContent() {
                       element={
                         <ProtectedRoute>
                           <CheckoutSuccessPageWrapper />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTES.CHECKOUT.PAYMENT_RETURN}
+                      element={
+                        <ProtectedRoute>
+                          <CheckoutPaymentReturnPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path={ROUTES.CHECKOUT.REDIRECTING_PAYMENT}
+                      element={
+                        <ProtectedRoute>
+                          <CheckoutRedirectingPaymentPage />
                         </ProtectedRoute>
                       }
                     />
@@ -281,6 +299,16 @@ function AppContent() {
                       <Route path="purchases" element={<PurchasesPage />} />
                       <Route path=":orderId" element={<OrderDetailPage />} />
                     </Route>
+
+                    {/* Legacy seller orders path redirect */}
+                    <Route
+                      path="/orders/sales"
+                      element={
+                        <ProtectedRoute>
+                          <Navigate to={ROUTES.MERCHANT.ORDERS} replace />
+                        </ProtectedRoute>
+                      }
+                    />
 
                     {/* Protected Quote Routes - Buyer Only */}
                     <Route

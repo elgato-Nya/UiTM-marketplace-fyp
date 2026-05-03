@@ -113,7 +113,7 @@ jobs:
           REACT_APP_STRIPE_PUBLISHABLE_KEY: pk_live_51S8W3bJ7ZnGFQqSh0pvOVQM2j6x3wqLicBqaeJj4dTgeJNtUXjRtnUYF9dvlz52mj8y8xtcPOHwxHS2CLlXUfcOp00nTXu6BDF
 
       - name: Upload build artifacts
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: actions/upload-artifact@v4
         with:
           name: client-build
@@ -130,7 +130,7 @@ jobs:
     name: Deploy to AWS EC2
     runs-on: ubuntu-latest
     needs: [lint-and-test, security-scan, build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
 
     steps:
       - name: Checkout code
@@ -186,7 +186,7 @@ jobs:
             cd $APP_DIR/server
 
             if ! command -v node &> /dev/null; then
-              echo "‚ù?Node.js not found! Please install Node.js first."
+              echo "ÔøΩ?Node.js not found! Please install Node.js first."
               exit 1
             fi
 
@@ -205,18 +205,18 @@ jobs:
 
             if pm2 describe uitm-marketplace-server > /dev/null 2>&1; then
               pm2 restart uitm-marketplace-server
-              echo "‚ú?Backend restarted"
+              echo "ÔøΩ?Backend restarted"
             else
               pm2 start index.js --name uitm-marketplace-server --env production
-              echo "‚ú?Backend started"
+              echo "ÔøΩ?Backend started"
             fi
             pm2 save
 
-            echo "‚è?Waiting for backend to start..."
+            echo "ÔøΩ?Waiting for backend to start..."
             sleep 5
 
             if pm2 describe uitm-marketplace-server | grep -q "online"; then
-              echo "‚ú?Backend is online"
+              echo "ÔøΩ?Backend is online"
             else
               echo "‚ö†Ô∏è Backend may not be running properly"
               pm2 logs uitm-marketplace-server --lines 20 --nostream
@@ -227,7 +227,7 @@ jobs:
             cd $APP_DIR/client
 
             if [ ! -d "build" ]; then
-              echo "‚ù?Build folder not found! SCP upload may have failed."
+              echo "ÔøΩ?Build folder not found! SCP upload may have failed."
               exit 1
             fi
 
@@ -243,10 +243,10 @@ jobs:
             pm2 start "serve -s build -l tcp://0.0.0.0:3000" --name uitm-marketplace-client
             pm2 save
 
-            echo "‚è?Waiting for frontend to start..."
+            echo "ÔøΩ?Waiting for frontend to start..."
             sleep 5
 
-            echo "‚ú?Deployment completed successfully!"
+            echo "ÔøΩ?Deployment completed successfully!"
             pm2 status
 
             echo ""
@@ -306,4 +306,4 @@ jobs:
       - name: Notify on failure
         if: failure()
         run: |
-          echo "‚ù?Deployment failed! Check the logs above for details."
+          echo "ÔøΩ?Deployment failed! Check the logs above for details."

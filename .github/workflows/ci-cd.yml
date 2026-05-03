@@ -154,11 +154,15 @@ jobs:
 
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@master
+        env:
+          SERVER_ENV_FILE: ${{ secrets.SERVER_ENV_FILE }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
+          envs: SERVER_ENV_FILE
+          script_stop: true
           script: |
             set -e
             APP_DIR="/home/ubuntu/uitm-marketplace"
@@ -185,8 +189,22 @@ jobs:
             echo "ğŸ”§ Deploying backend..."
             cd $APP_DIR/server
 
+            # Optional: sync server .env from GitHub secret if provided
+            if [ -n "$SERVER_ENV_FILE" ]; then
+              echo "Updating server .env from GitHub secret..."
+              if [ -f .env ]; then
+                cp .env ".env.backup.$(date +%Y%m%d%H%M%S)"
+              fi
+              printf "%s" "$SERVER_ENV_FILE" > .env
+              chmod 600 .env
+              echo ".env updated from secret"
+            else
+              echo "SERVER_ENV_FILE secret not set, using existing .env on server"
+            fi
+
+
             if ! command -v node &> /dev/null; then
-              echo "ï¿½?Node.js not found! Please install Node.js first."
+              echo "ï¿?Node.js not found! Please install Node.js first."
               exit 1
             fi
 
@@ -205,18 +223,18 @@ jobs:
 
             if pm2 describe uitm-marketplace-server > /dev/null 2>&1; then
               pm2 restart uitm-marketplace-server
-              echo "ï¿½?Backend restarted"
+              echo "ï¿?Backend restarted"
             else
               pm2 start index.js --name uitm-marketplace-server --env production
-              echo "ï¿½?Backend started"
+              echo "ï¿?Backend started"
             fi
             pm2 save
 
-            echo "ï¿½?Waiting for backend to start..."
+            echo "ï¿?Waiting for backend to start..."
             sleep 5
 
             if pm2 describe uitm-marketplace-server | grep -q "online"; then
-              echo "ï¿½?Backend is online"
+              echo "ï¿?Backend is online"
             else
               echo "âš ï¸ Backend may not be running properly"
               pm2 logs uitm-marketplace-server --lines 20 --nostream
@@ -227,7 +245,7 @@ jobs:
             cd $APP_DIR/client
 
             if [ ! -d "build" ]; then
-              echo "ï¿½?Build folder not found! SCP upload may have failed."
+              echo "ï¿?Build folder not found! SCP upload may have failed."
               exit 1
             fi
 
@@ -243,10 +261,10 @@ jobs:
             pm2 start "serve -s build -l tcp://0.0.0.0:3000" --name uitm-marketplace-client
             pm2 save
 
-            echo "ï¿½?Waiting for frontend to start..."
+            echo "ï¿?Waiting for frontend to start..."
             sleep 5
 
-            echo "ï¿½?Deployment completed successfully!"
+            echo "ï¿?Deployment completed successfully!"
             pm2 status
 
             echo ""
@@ -306,4 +324,4 @@ jobs:
       - name: Notify on failure
         if: failure()
         run: |
-          echo "ï¿½?Deployment failed! Check the logs above for details."
+          echo "ï¿?Deployment failed! Check the logs above for details."

@@ -67,6 +67,7 @@ describe("Order Model Integration Tests", () => {
   describe("Order Creation", () => {
     it("should create order and auto-generate orderNumber", async () => {
       const order = await Order.create({
+        checkoutSessionId: new mongoose.Types.ObjectId(),
         buyer: {
           userId: buyer._id,
           username: buyer.profile.username,
@@ -104,11 +105,12 @@ describe("Order Model Integration Tests", () => {
 
       expect(order.orderNumber).toMatch(/^ORD-\d{8}-[A-Z0-9]{6}$/);
       expect(order.status).toBe("pending");
-      expect(order.paymentStatus).toBe("pending");
+      expect(order.paymentStatus).toBe("pending_payment");
     });
 
     it("should generate unique orderNumbers", async () => {
       const order1 = await Order.create({
+        checkoutSessionId: new mongoose.Types.ObjectId(),
         buyer: {
           userId: buyer._id,
           username: buyer.profile.username,
@@ -145,6 +147,7 @@ describe("Order Model Integration Tests", () => {
       });
 
       const order2 = await Order.create({
+        checkoutSessionId: new mongoose.Types.ObjectId(),
         buyer: {
           userId: buyer._id,
           username: buyer.profile.username,
@@ -230,6 +233,7 @@ describe("Order Model Integration Tests", () => {
 
       for (const method of validMethods) {
         const order = await Order.create({
+          checkoutSessionId: new mongoose.Types.ObjectId(),
           buyer: {
             userId: buyer._id,
             username: buyer.profile.username,
@@ -281,6 +285,7 @@ describe("Order Model Integration Tests", () => {
 
       for (const method of validMethods) {
         const order = await Order.create({
+          checkoutSessionId: new mongoose.Types.ObjectId(),
           buyer: {
             userId: buyer._id,
             username: buyer.profile.username,
@@ -324,6 +329,7 @@ describe("Order Model Integration Tests", () => {
   describe("Timestamps", () => {
     it("should auto-generate timestamps", async () => {
       const order = await Order.create({
+        checkoutSessionId: new mongoose.Types.ObjectId(),
         buyer: {
           userId: buyer._id,
           username: buyer.profile.username,

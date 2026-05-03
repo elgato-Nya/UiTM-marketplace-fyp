@@ -140,9 +140,12 @@ export const createPaymentIntent = createAsyncThunk(
  */
 export const confirmCheckout = createAsyncThunk(
   "checkout/confirmCheckout",
-  async (sessionId, { rejectWithValue }) => {
+  async ({ sessionId, idempotencyKey }, { rejectWithValue }) => {
     try {
-      const response = await checkoutService.confirmCheckout(sessionId);
+      const response = await checkoutService.confirmCheckout(
+        sessionId,
+        idempotencyKey
+      );
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -313,7 +316,7 @@ export const { clearCheckout, markSessionExpired, clearError, clearSuccess } =
 // ==================== SELECTORS ====================
 
 export const selectCheckoutSession = (state) => state.checkout.session;
-export const selectCheckoutLoading = (state) => state.checkout.loading;
+export const selectCheckoutLoading = (state) => state.checkout.isLoading;
 export const selectCheckoutError = (state) => state.checkout.error;
 export const selectPaymentIntent = (state) => state.checkout.paymentIntent;
 export const selectCheckoutOrders = (state) => state.checkout.orders;

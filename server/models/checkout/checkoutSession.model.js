@@ -65,6 +65,11 @@ const checkoutSessionSchema = new mongoose.Schema(
       type: String,
       enum: Object.values(PaymentMethod),
     },
+    checkoutSessionKey: {
+      type: String,
+      required: true,
+      index: true,
+    },
     stripePaymentIntentId: {
       type: String,
       sparse: true,
@@ -79,6 +84,7 @@ const checkoutSessionSchema = new mongoose.Schema(
       type: String,
       enum: [
         "pending",
+        "processing",
         "payment_intent_created",
         "completed",
         "expired",

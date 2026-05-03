@@ -33,11 +33,11 @@ class CorsService {
         "http://127.0.0.1:5173",
       ],
       staging: [
-        "https://staging.yourdomain.com",
+        "https://staging.nekodez.com",
         "http://localhost:3000", // For testing
         "http://localhost:3001", // For testing
       ],
-      production: ["https://yourdomain.com", "https://www.yourdomain.com"],
+      production: ["https://nekodez.com", "https://www.nekodez.com"],
       test: ["http://localhost:3000", "http://localhost:3001"],
     };
 

@@ -6,6 +6,9 @@ const cartServices = require("./cart");
 const wishlistServices = require("./wishlist");
 const quoteServices = require("./quote");
 const payoutServices = require("./payout");
+const paymentServices = require("./payment");
+const planServices = require("./plan/plan.service");
+const walletServices = require("./wallet/wallet.service");
 
 module.exports = {
   user: userServices,
@@ -15,4 +18,7 @@ module.exports = {
   wishlist: wishlistServices,
   quote: quoteServices,
   payout: payoutServices,
+  payment: paymentServices,
+  plan: planServices,
+  wallet: walletServices,
 };

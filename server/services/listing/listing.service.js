@@ -19,6 +19,7 @@ const {
 } = require("../base.service");
 const logger = require("../../utils/logger");
 const Fuse = require("fuse.js");
+const { getActiveSellerPlan } = require("../plan/plan.service");
 
 /**
  *  Create new listing
@@ -29,6 +30,21 @@ const Fuse = require("fuse.js");
 const createListing = async (userId, listingData) => {
   try {
     const sanitizedData = sanitizeObject(listingData);
+
+    const activeListingCount = await Listing.countDocuments({
+      "seller.userId": userId,
+      isAvailable: true,
+    });
+
+    const sellerPlan = await getActiveSellerPlan(userId);
+    const listingLimit = sellerPlan.rules?.listingLimit ?? 5;
+
+    if (activeListingCount >= listingLimit) {
+      throw createForbiddenError(
+        `Your current plan allows a maximum of ${listingLimit} active listings`,
+        "LISTING_LIMIT_REACHED",
+      );
+    }
 
     const listing = new Listing({
       ...sanitizedData,

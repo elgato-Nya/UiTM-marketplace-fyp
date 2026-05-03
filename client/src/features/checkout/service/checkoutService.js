@@ -63,6 +63,29 @@ export const checkoutService = {
   },
 
   /**
+   * Create a ToyyibPay bill for an order
+   * @param {String} orderId - Order ID
+   * @param {Object} data - Bill payload overrides
+   * @returns {Promise} Bill creation response
+   */
+  createOrderBill: (orderId, data = {}) => {
+    return api.post(`/payments/orders/${orderId}/bill`, data);
+  },
+
+  /**
+   * Retry a ToyyibPay payment by creating a fresh bill attempt
+   * @param {String} orderId - Order ID
+   * @returns {Promise} Retry bill response
+   */
+  retryOrderPayment: (orderId) => {
+    return api.post(`/payments/orders/${orderId}/retry`);
+  },
+
+  getOrderPaymentStatus: (orderId) => {
+    return api.get(`/payments/orders/${orderId}/status`);
+  },
+
+  /**
    * Get payment status
    * @param {String} sessionId - Session ID
    * @returns {Promise} Payment status data
@@ -76,7 +99,7 @@ export const checkoutService = {
    * @param {String} sessionId - Session ID
    * @returns {Promise} { orders: Array, clearedFromCart: Boolean }
    */
-  confirmCheckout: (sessionId) => {
-    return api.post(`/checkout/confirm/${sessionId}`);
+  confirmCheckout: (sessionId, idempotencyKey) => {
+    return api.post(`/checkout/confirm/${sessionId}`, { idempotencyKey });
   },
 };

@@ -83,14 +83,17 @@ export const createListingFormConfig = {
       type: "checkbox",
       label: "Is this listing free?",
       helperText: "Check if you want to offer this listing for free.",
-      showIf: (formValues) => formValues.type !== "service" || !formValues.isQuoteOnly,
+      showIf: (formValues) =>
+        formValues.type !== "service" || !formValues.isQuoteOnly,
     },
     {
       name: "isQuoteOnly",
       type: "checkbox",
       label: "Quote-based pricing only",
-      helperText: "Enable this if you want customers to request quotes instead of showing a fixed price. Price will be based on your quote settings.",
-      showIf: (formValues) => formValues.type === "service" && !formValues.isFree,
+      helperText:
+        "Enable this if you want customers to request quotes instead of showing a fixed price. Price will be based on your quote settings.",
+      showIf: (formValues) =>
+        formValues.type === "service" && !formValues.isFree,
     },
     {
       name: "price",

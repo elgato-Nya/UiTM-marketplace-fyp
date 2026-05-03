@@ -1693,55 +1693,55 @@ This notification system is designed to be:
 
 ### Backend Files Created/Modified
 
-| File | Status | Description |
-|------|--------|-------------|
-| `server/utils/enums/notification.enum.js` | ✅ Created | 26 notification types, 6 categories, priority levels, config map |
-| `server/models/notification/notification.model.js` | ✅ Created | Mongoose schema with TTL, indexes, soft delete |
-| `server/models/index.js` | ✅ Modified | Added Notification model export |
-| `server/models/user/user.model.js` | ✅ Modified | Added `notificationPreferences` subdocument |
-| `server/services/notification/notification.service.js` | ✅ Created | CRUD, bulk, preferences, email integration |
-| `server/controllers/notification/notification.controller.js` | ✅ Created | 8 endpoints with BaseController pattern |
-| `server/validators/notification.validator.js` | ✅ Created | Request validation middleware |
-| `server/routes/notification.routes.js` | ✅ Created | Protected routes with validation |
-| `server/index.js` | ✅ Modified | Mounted `/api/notifications` routes |
-| `server/jobs/notification-cleanup.job.js` | ✅ Created | Cron job for 30-day TTL cleanup |
-| `server/services/email.service.js` | ✅ Modified | Added `sendNotificationEmail`, merchant email functions |
+| File                                                         | Status      | Description                                                      |
+| ------------------------------------------------------------ | ----------- | ---------------------------------------------------------------- |
+| `server/utils/enums/notification.enum.js`                    | ✅ Created  | 26 notification types, 6 categories, priority levels, config map |
+| `server/models/notification/notification.model.js`           | ✅ Created  | Mongoose schema with TTL, indexes, soft delete                   |
+| `server/models/index.js`                                     | ✅ Modified | Added Notification model export                                  |
+| `server/models/user/user.model.js`                           | ✅ Modified | Added `notificationPreferences` subdocument                      |
+| `server/services/notification/notification.service.js`       | ✅ Created  | CRUD, bulk, preferences, email integration                       |
+| `server/controllers/notification/notification.controller.js` | ✅ Created  | 8 endpoints with BaseController pattern                          |
+| `server/validators/notification.validator.js`                | ✅ Created  | Request validation middleware                                    |
+| `server/routes/notification.routes.js`                       | ✅ Created  | Protected routes with validation                                 |
+| `server/index.js`                                            | ✅ Modified | Mounted `/api/notifications` routes                              |
+| `server/jobs/notification-cleanup.job.js`                    | ✅ Created  | Cron job for 30-day TTL cleanup                                  |
+| `server/services/email.service.js`                           | ✅ Modified | Added `sendNotificationEmail`, merchant email functions          |
 
 ### Notification Triggers Wired
 
-| Service/Controller | Events | Recipients |
-|-------------------|--------|------------|
-| `order.service.js` | createOrder, cancelOrder | Seller + Buyer |
-| `order.helpers.js` | shipped, delivered, completed | Buyer / Seller |
-| `quote.service.js` | create, provide, accept, reject, cancel, start, complete | Buyer ↔ Seller |
-| `auth.service.js` | createUser, verifyEmail, resetPassword | User |
-| `merchant.controller.js` | verify, reject, suspend, reactivate | Merchant |
-| `payout.service.js` | requestPayout, verifyBankDetails, processPayout | Seller |
-| `contact.service.js` | createContactSubmission | All Admins |
+| Service/Controller       | Events                                                   | Recipients     |
+| ------------------------ | -------------------------------------------------------- | -------------- |
+| `order.service.js`       | createOrder, cancelOrder                                 | Seller + Buyer |
+| `order.helpers.js`       | shipped, delivered, completed                            | Buyer / Seller |
+| `quote.service.js`       | create, provide, accept, reject, cancel, start, complete | Buyer ↔ Seller |
+| `auth.service.js`        | createUser, verifyEmail, resetPassword                   | User           |
+| `merchant.controller.js` | verify, reject, suspend, reactivate                      | Merchant       |
+| `payout.service.js`      | requestPayout, verifyBankDetails, processPayout          | Seller         |
+| `contact.service.js`     | createContactSubmission                                  | All Admins     |
 
 ### Email Integration
 
-| Type | Recipient | Trigger |
-|------|-----------|---------|
-| `NEW_ORDER_RECEIVED` | Seller | New order created |
-| `ORDER_DELIVERED` | Buyer | Order delivered |
-| `QUOTE_REQUEST_RECEIVED` | Seller | New quote request |
-| `QUOTE_RESPONSE_RECEIVED` | Buyer | Seller provides quote |
-| `PASSWORD_RESET` | User | Password reset requested (existing) |
-| `SECURITY_ALERT` | User | Security events |
+| Type                      | Recipient | Trigger                             |
+| ------------------------- | --------- | ----------------------------------- |
+| `NEW_ORDER_RECEIVED`      | Seller    | New order created                   |
+| `ORDER_DELIVERED`         | Buyer     | Order delivered                     |
+| `QUOTE_REQUEST_RECEIVED`  | Seller    | New quote request                   |
+| `QUOTE_RESPONSE_RECEIVED` | Buyer     | Seller provides quote               |
+| `PASSWORD_RESET`          | User      | Password reset requested (existing) |
+| `SECURITY_ALERT`          | User      | Security events                     |
 
 ### Frontend Files Created/Modified
 
-| File | Status | Description |
-|------|--------|-------------|
-| `client/src/services/notificationService.js` | ✅ Created | 8 API functions including preferences |
-| `client/src/hooks/useNotification.js` | ✅ Created | Polling hook with 30s interval |
-| `client/src/contexts/NotificationContext.js` | ✅ Created | Context provider for global state |
-| `client/src/components/notification/NotificationItem.js` | ✅ Created | Reusable notification row component |
-| `client/src/components/notification/NotificationDropdown.js` | ✅ Created | Header bell icon dropdown |
-| `client/src/pages/Notifications/NotificationsPage.js` | ✅ Created | Full notification center with filters |
-| `client/src/pages/Notifications/NotificationPreferencesPage.js` | ✅ Created | Category-level preference management |
-| `client/src/App.js` | ✅ Modified | Added routes for preferences page |
+| File                                                            | Status      | Description                           |
+| --------------------------------------------------------------- | ----------- | ------------------------------------- |
+| `client/src/services/notificationService.js`                    | ✅ Created  | 8 API functions including preferences |
+| `client/src/hooks/useNotification.js`                           | ✅ Created  | Polling hook with 30s interval        |
+| `client/src/contexts/NotificationContext.js`                    | ✅ Created  | Context provider for global state     |
+| `client/src/components/notification/NotificationItem.js`        | ✅ Created  | Reusable notification row component   |
+| `client/src/components/notification/NotificationDropdown.js`    | ✅ Created  | Header bell icon dropdown             |
+| `client/src/pages/Notifications/NotificationsPage.js`           | ✅ Created  | Full notification center with filters |
+| `client/src/pages/Notifications/NotificationPreferencesPage.js` | ✅ Created  | Category-level preference management  |
+| `client/src/App.js`                                             | ✅ Modified | Added routes for preferences page     |
 
 ### Remaining (Phase 2)
 

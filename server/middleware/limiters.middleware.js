@@ -179,6 +179,10 @@ const orderCreateLimiter = createLimiter("orderCreate");
  * Checkout limiter - payment processing
  */
 const checkoutLimiter = createLimiter("checkout");
+const paymentCreateBillLimiter = createLimiter("paymentCreateBill");
+const paymentRetryLimiter = createLimiter("paymentRetry");
+const paymentStatusPollLimiter = createLimiter("paymentStatusPoll");
+const paymentCallbackLimiter = createLimiter("paymentCallback");
 
 /**
  * Upload limiter - file uploads
@@ -248,6 +252,10 @@ module.exports = {
   writeLimiter,
   orderCreateLimiter,
   checkoutLimiter,
+  paymentCreateBillLimiter,
+  paymentRetryLimiter,
+  paymentStatusPollLimiter,
+  paymentCallbackLimiter,
   uploadLimiter,
   contactLimiter,
 

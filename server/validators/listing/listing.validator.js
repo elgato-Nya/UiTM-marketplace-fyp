@@ -6,6 +6,7 @@ const {
   QuoteFieldType,
 } = require("../../utils/enums/listing.enum");
 const { UploadValidator } = require("../upload/upload.validator");
+const logger = require("../../utils/logger");
 
 /**
  * Pure validation functions for listing-related data
@@ -408,7 +409,9 @@ class ListingValidator {
    */
   static isValidQuoteCustomField(field) {
     if (!field || typeof field !== "object" || Array.isArray(field)) {
-      console.log("[Quote Field Validation] Failed: field is not an object", { field });
+      logger.debug("[Quote Field Validation] Failed: field is not an object", {
+        field,
+      });
       return false;
     }
 
@@ -419,28 +422,28 @@ class ListingValidator {
       field.label.trim().length === 0 ||
       field.label.length > QuoteLimits.MAX_FIELD_LABEL_LENGTH
     ) {
-      console.log("[Quote Field Validation] Failed: invalid label", { 
+      logger.debug("[Quote Field Validation] Failed: invalid label", {
         label: field.label,
         labelLength: field.label?.length,
-        maxLength: QuoteLimits.MAX_FIELD_LABEL_LENGTH 
+        maxLength: QuoteLimits.MAX_FIELD_LABEL_LENGTH,
       });
       return false;
     }
 
     // Type is required and must be valid
     if (!field.type || !Object.values(QuoteFieldType).includes(field.type)) {
-      console.log("[Quote Field Validation] Failed: invalid type", { 
+      logger.debug("[Quote Field Validation] Failed: invalid type", {
         type: field.type,
-        validTypes: Object.values(QuoteFieldType)
+        validTypes: Object.values(QuoteFieldType),
       });
       return false;
     }
 
     // Required must be boolean if provided
     if (field.required !== undefined && typeof field.required !== "boolean") {
-      console.log("[Quote Field Validation] Failed: required is not boolean", { 
+      logger.debug("[Quote Field Validation] Failed: required is not boolean", {
         required: field.required,
-        typeOf: typeof field.required
+        typeOf: typeof field.required,
       });
       return false;
     }
@@ -448,7 +451,9 @@ class ListingValidator {
     // Options validation (for select type)
     if (field.type === QuoteFieldType.SELECT) {
       if (!Array.isArray(field.options) || field.options.length === 0) {
-        console.log("[Quote Field Validation] Failed: SELECT type requires options array");
+        logger.debug(
+          "[Quote Field Validation] Failed: SELECT type requires options array",
+        );
         return false;
       }
       if (field.options.length > QuoteLimits.MAX_FIELD_OPTIONS) return false;
@@ -463,7 +468,7 @@ class ListingValidator {
       }
     }
 
-    console.log("[Quote Field Validation] Passed:", field);
+    logger.debug("[Quote Field Validation] Passed", { field });
     return true;
   }
 

@@ -64,7 +64,7 @@ const colorizeJsonKeys = (obj, indent = 0) => {
       const coloredKey = `${colors.cyan}"${key}"${colors.reset}`;
       const coloredValue = `${colors.magenta}${colorizeJsonKeys(
         value,
-        indent + 1
+        indent + 1,
       )}${colors.reset}`;
       return `${nextSpaces}${coloredKey}: ${coloredValue}`;
     })
@@ -157,7 +157,7 @@ const consoleFormat = winston.format.combine(
     }
 
     return log;
-  })
+  }),
 );
 
 const prettyFileFormat = winston.format.combine(
@@ -169,7 +169,7 @@ const prettyFileFormat = winston.format.combine(
       log += `\n${JSON.stringify(meta, null, 2)}`;
     }
     return log;
-  })
+  }),
 );
 
 // Custom format for file output
@@ -185,7 +185,7 @@ const plainFileFormat = winston.format.combine(
     };
     // Return as a JSON string for machine readability
     return JSON.stringify(logObject);
-  })
+  }),
 );
 
 // Create transports array
@@ -211,7 +211,7 @@ if (
       maxFiles: "7d",
       format: plainFileFormat,
       level: "info",
-    })
+    }),
   );
 
   // Separate file for errors only
@@ -223,7 +223,7 @@ if (
       maxFiles: "14d",
       format: plainFileFormat,
       level: "error",
-    })
+    }),
   );
 
   // HTTP requests log
@@ -235,7 +235,7 @@ if (
       maxFiles: "3d",
       format: plainFileFormat,
       level: "http",
-    })
+    }),
   );
 
   // Security events log
@@ -247,7 +247,7 @@ if (
       maxFiles: "30d",
       format: plainFileFormat,
       level: "warn",
-    })
+    }),
   );
 }
 

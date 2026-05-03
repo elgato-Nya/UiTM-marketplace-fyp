@@ -18,8 +18,7 @@
  */
 export const validateCheckoutForm = (formData, session) => {
   const errors = {};
-  const { selectedAddressId, deliveryMethod, paymentMethod, cardReady } =
-    formData;
+  const { selectedAddressId, deliveryMethod, paymentMethod } = formData;
 
   // Address validation
   if (!selectedAddressId) {
@@ -37,21 +36,12 @@ export const validateCheckoutForm = (formData, session) => {
   }
 
   // Cash on Delivery (COD) specific validations
-  if (paymentMethod === "cash_on_delivery") {
-    if (deliveryMethod !== "cash_on_delivery") {
-      errors.payment = "Cash on Delivery payment requires COD delivery method";
-    }
-
+  if (paymentMethod === "cod") {
     const totalAmount = session?.pricing?.totalAmount || 0;
     if (totalAmount > 500) {
       errors.payment =
         "Cash on Delivery is not available for orders over RM 500";
     }
-  }
-
-  // Card payment validation
-  if (paymentMethod === "card" && !cardReady) {
-    errors.payment = "Please enter valid card details";
   }
 
   return {
@@ -66,14 +56,13 @@ export const validateCheckoutForm = (formData, session) => {
 export const VALIDATION_CONSTANTS = {
   COD_LIMIT: 500, // Maximum amount for Cash on Delivery in RM
   PAYMENT_METHODS: {
-    CARD: "card",
-    FPX: "fpx",
-    COD: "cash_on_delivery",
+    COD: "cod",
+    TOYYIBPAY: "toyyibpay",
   },
   DELIVERY_METHODS: {
-    STANDARD: "standard",
-    EXPRESS: "express",
-    COD: "cash_on_delivery",
+    CAMPUS_DELIVERY: "campus_delivery",
+    DELIVERY: "delivery",
+    SELF_PICKUP: "self_pickup",
   },
 };
 
@@ -96,7 +85,7 @@ export const isCodAllowed = (amount) => {
  */
 export const isCodMethodsMatching = (paymentMethod, deliveryMethod) => {
   if (paymentMethod === VALIDATION_CONSTANTS.PAYMENT_METHODS.COD) {
-    return deliveryMethod === VALIDATION_CONSTANTS.DELIVERY_METHODS.COD;
+    return deliveryMethod === VALIDATION_CONSTANTS.DELIVERY_METHODS.CAMPUS_DELIVERY;
   }
   return true; // Other payment methods don't have this requirement
 };

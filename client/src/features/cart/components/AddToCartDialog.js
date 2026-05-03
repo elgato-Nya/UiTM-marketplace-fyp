@@ -121,6 +121,7 @@ const AddToCartDialog = ({
   // ========== Event Handlers ==========
 
   const handleClose = () => {
+    setLoading(false);
     setQuantity(1);
     setInternalSelectedVariant(null);
     onClose();
@@ -148,19 +149,33 @@ const AddToCartDialog = ({
     setLoading(true);
     try {
       const qty = isService ? 1 : quantity;
+      const withTimeout = (promise, ms = 15000) =>
+        Promise.race([
+          promise,
+          new Promise((_, reject) =>
+            setTimeout(
+              () =>
+                reject(
+                  new Error(
+                    "Add to cart is taking too long. Please check your connection and try again.",
+                  ),
+                ),
+              ms,
+            ),
+          ),
+        ]);
 
       if (isService && cartItem) {
         showError("This service is already in your cart");
-        setLoading(false);
         return;
       }
 
       if (isWishlistContext) {
-        await moveToCart(_id, qty, selectedVariant?._id);
+        await withTimeout(moveToCart(_id, qty, selectedVariant?._id));
         handleClose();
         setTimeout(() => success(`Item moved to cart!`), 300);
       } else {
-        await addToCart(_id, qty, selectedVariant?._id);
+        await withTimeout(addToCart(_id, qty, selectedVariant?._id));
         handleClose();
         setTimeout(() => {
           const variantInfo = selectedVariant
@@ -173,6 +188,7 @@ const AddToCartDialog = ({
       }
     } catch (error) {
       showError(error.message || "Failed to add to cart");
+    } finally {
       setLoading(false);
     }
   };

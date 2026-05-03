@@ -1,8 +1,6 @@
 export const PAYMENT_METHOD = {
   COD: "cod",
-  BANK_TRANSFER: "bank_transfer",
-  E_WALLET: "e_wallet",
-  CREDIT_CARD: "credit_card",
+  TOYYIBPAY: "toyyibpay",
 };
 
 export const PAYMENT_STATUS = {
@@ -104,9 +102,7 @@ export const STATUS_CONFIG = {
 // Payment method labels
 export const PAYMENT_METHOD_LABELS = {
   [PAYMENT_METHOD.COD]: "Cash on Delivery",
-  [PAYMENT_METHOD.BANK_TRANSFER]: "Bank Transfer",
-  [PAYMENT_METHOD.E_WALLET]: "E-Wallet",
-  [PAYMENT_METHOD.CREDIT_CARD]: "Credit Card",
+  [PAYMENT_METHOD.TOYYIBPAY]: "Online Banking (FPX)",
 };
 
 // Delivery method labels

@@ -118,7 +118,7 @@ const config = {
       "MONGO_URI",
       IS_TEST
         ? "mongodb://localhost:27017/uitm-marketplace-test"
-        : "mongodb://localhost:27017/uitm-marketplace-dev"
+        : "mongodb://localhost:27017/uitm-marketplace-dev",
     ),
   },
 
@@ -138,7 +138,7 @@ const config = {
       "ALLOWED_ORIGINS",
       IS_PRODUCTION
         ? "" // Force explicit configuration in production
-        : "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000"
+        : "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000",
     )
       .split(",")
       .map((origin) => origin.trim())
@@ -149,22 +149,22 @@ const config = {
   aws: {
     accessKeyId: requireEnv(
       "AWS_ACCESS_KEY_ID",
-      IS_PRODUCTION ? null : "dummy-key"
+      IS_PRODUCTION ? null : "dummy-key",
     ),
     secretAccessKey: requireEnv(
       "AWS_SECRET_ACCESS_KEY",
-      IS_PRODUCTION ? null : "dummy-secret"
+      IS_PRODUCTION ? null : "dummy-secret",
     ),
     region: getEnv("AWS_REGION", "ap-southeast-1"),
     s3: {
       bucketName: requireEnv(
         "AWS_S3_BUCKET_NAME",
-        IS_PRODUCTION ? null : "uitm-marketplace-dev"
+        IS_PRODUCTION ? null : "uitm-marketplace-dev",
       ),
       maxImageSize: getIntEnv("MAX_IMAGE_SIZE", 5 * 1024 * 1024), // 5MB
       allowedImageTypes: getEnv(
         "ALLOWED_IMAGE_TYPES",
-        "image/jpeg,image/png,image/webp,image/jpg"
+        "image/jpeg,image/png,image/webp,image/jpg",
       )
         .split(",")
         .map((type) => type.trim()),
@@ -184,7 +184,7 @@ const config = {
     fromName: getEnv("EMAIL_FROM_NAME", "MarKet"),
     clientUrl: requireEnv(
       "CLIENT_URL",
-      IS_PRODUCTION ? null : "http://localhost:3000"
+      IS_PRODUCTION ? null : "http://localhost:3000",
     ),
   },
 
@@ -192,7 +192,7 @@ const config = {
   stripe: {
     secretKey: requireEnv(
       "STRIPE_SECRET_KEY",
-      IS_PRODUCTION ? null : "sk_test_dummy"
+      IS_PRODUCTION ? null : "sk_test_dummy",
     ),
     publishableKey: getEnv("STRIPE_PUBLISHABLE_KEY", "pk_test_dummy"),
     webhookSecret: getEnv("STRIPE_WEBHOOK_SECRET", ""),
@@ -200,12 +200,38 @@ const config = {
     minimumAmountCents: getIntEnv("STRIPE_MINIMUM_AMOUNT_CENTS", 1000),
   },
 
+  // ToyyibPay / marketplace finance
+  finance: {
+    toyyibpay: {
+      secretKey: requireEnv(
+        "TOYYIBPAY_SECRET_KEY",
+        IS_PRODUCTION ? null : "sandbox-secret",
+      ),
+      categoryCode: requireEnv(
+        "TOYYIBPAY_CATEGORY_CODE",
+        IS_PRODUCTION ? null : "sandbox-category",
+      ),
+      baseUrl: getEnv(
+        "TOYYIBPAY_BASE_URL",
+        IS_PRODUCTION ? "https://toyyibpay.com" : "https://dev.toyyibpay.com",
+      ),
+      callbackUrl: getEnv("TOYYIBPAY_CALLBACK_URL", ""),
+      returnUrl: getEnv("TOYYIBPAY_RETURN_URL", ""),
+    },
+    platformFeeBasic: getFloatEnv("PLATFORM_FEE_BASIC", 0.1),
+    platformFeePro: getFloatEnv("PLATFORM_FEE_PRO", 0.08),
+    platformFeeStore: getFloatEnv("PLATFORM_FEE_STORE", 0.06),
+    proPlanPrice: getFloatEnv("PRO_PLAN_PRICE", 9),
+    featuredSlotPrice: getFloatEnv("FEATURED_SLOT_PRICE", 5),
+    minWithdrawal: getFloatEnv("MIN_WITHDRAWAL", 10),
+  },
+
   // Rate Limiting
   rateLimit: {
     windowMs: getIntEnv("RATE_LIMIT_WINDOW_MS", 15 * 60 * 1000), // 15 minutes
     maxRequests: getIntEnv(
       "RATE_LIMIT_MAX_REQUESTS",
-      IS_DEVELOPMENT ? 1000 : 100
+      IS_DEVELOPMENT ? 1000 : 100,
     ),
     authMaxRequests: getIntEnv("RATE_LIMIT_AUTH_MAX_REQUESTS", 5),
   },
@@ -225,7 +251,7 @@ const validateConfig = () => {
   if (IS_PRODUCTION) {
     if (!config.database.uri.includes("mongodb+srv")) {
       errors.push(
-        "⚠️  Production should use MongoDB Atlas (mongodb+srv://...)"
+        "⚠️  Production should use MongoDB Atlas (mongodb+srv://...)",
       );
     }
 
@@ -250,6 +276,39 @@ const validateConfig = () => {
     if (config.stripe.secretKey.includes("test")) {
       errors.push("⚠️  Using Stripe test key in production");
     }
+
+    if (!config.finance.toyyibpay.callbackUrl) {
+      errors.push("❌ TOYYIBPAY_CALLBACK_URL must be set in production");
+    }
+
+    if (!config.finance.toyyibpay.returnUrl) {
+      errors.push("❌ TOYYIBPAY_RETURN_URL must be set in production");
+    }
+  }
+
+  if (
+    config.finance.platformFeeBasic < 0 ||
+    config.finance.platformFeeBasic > 1
+  ) {
+    errors.push("❌ PLATFORM_FEE_BASIC must be between 0 and 1");
+  }
+  if (config.finance.platformFeePro < 0 || config.finance.platformFeePro > 1) {
+    errors.push("❌ PLATFORM_FEE_PRO must be between 0 and 1");
+  }
+  if (
+    config.finance.platformFeeStore < 0 ||
+    config.finance.platformFeeStore > 1
+  ) {
+    errors.push("❌ PLATFORM_FEE_STORE must be between 0 and 1");
+  }
+  if (config.finance.proPlanPrice <= 0) {
+    errors.push("❌ PRO_PLAN_PRICE must be greater than 0");
+  }
+  if (config.finance.featuredSlotPrice <= 0) {
+    errors.push("❌ FEATURED_SLOT_PRICE must be greater than 0");
+  }
+  if (config.finance.minWithdrawal < 0) {
+    errors.push("❌ MIN_WITHDRAWAL must be 0 or greater");
   }
 
   return errors;
@@ -267,14 +326,14 @@ if (validationErrors.length > 0) {
   // In production, treat errors as critical
   if (IS_PRODUCTION && validationErrors.some((err) => err.startsWith("❌"))) {
     throw new Error(
-      `Production configuration errors:\n${validationErrors.join("\n")}`
+      `Production configuration errors:\n${validationErrors.join("\n")}`,
     );
   }
 }
 
 // Log configuration summary (without sensitive data)
 logger.info(
-  `Environment: ${NODE_ENV} | Port: ${config.server.port} | Database: Connected | CORS: ${config.cors.allowedOrigins.length} origin(s)`
+  `Environment: ${NODE_ENV} | Port: ${config.server.port} | Database: Connected | CORS: ${config.cors.allowedOrigins.length} origin(s)`,
 );
 
 module.exports = config;

@@ -13,7 +13,6 @@ import {
   AccountBalance as BankIcon,
   MonetizationOn as CashIcon,
 } from "@mui/icons-material";
-import { CardElement } from "@stripe/react-stripe-js";
 
 import { useTheme } from "../../../hooks/useTheme";
 import {
@@ -26,41 +25,6 @@ import {
  * Uses payment methods directly from orderConstant.js that matches server enum
  * Note: Stripe Elements context provided by CheckoutPageWrapper
  */
-
-const CardElementWrapper = ({ onReady, error }) => {
-  const { theme } = useTheme();
-
-  const cardElementOptions = {
-    style: {
-      base: {
-        fontSize: "16px",
-        color: theme.palette.text.primary,
-        fontFamily: theme.typography.fontFamily,
-        "::placeholder": {
-          color: theme.palette.text.disabled,
-        },
-      },
-      invalid: {
-        color: theme.palette.error.main,
-      },
-    },
-    hidePostalCode: true, // Hide postal code for Malaysia (not required)
-  };
-
-  return (
-    <Box
-      sx={{
-        p: 2,
-        border: 1,
-        borderColor: error ? "error.main" : "divider",
-        borderRadius: 1,
-        backgroundColor: "background.paper",
-      }}
-    >
-      <CardElement options={cardElementOptions} onReady={onReady} />
-    </Box>
-  );
-};
 
 const PaymentMethodSectionContent = ({
   selectedMethod,
@@ -81,18 +45,11 @@ const PaymentMethodSectionContent = ({
   // Map payment methods from constants with UI presentation data
   const paymentMethodOptions = [
     {
-      id: PAYMENT_METHOD.CREDIT_CARD,
-      label: PAYMENT_METHOD_LABELS[PAYMENT_METHOD.CREDIT_CARD],
-      description: "Secure payment via Stripe",
+      id: PAYMENT_METHOD.TOYYIBPAY,
+      label: PAYMENT_METHOD_LABELS[PAYMENT_METHOD.TOYYIBPAY],
+      description: "Secure payment via ToyyibPay",
       icon: CardIcon,
-      disabled: false, // Stripe single-flow payments enabled
-    },
-    {
-      id: PAYMENT_METHOD.E_WALLET,
-      label: PAYMENT_METHOD_LABELS[PAYMENT_METHOD.E_WALLET],
-      description: "GrabPay via Stripe",
-      icon: BankIcon,
-      disabled: false, // GrabPay enabled
+      disabled: false, // Online Banking (FPX) enabled
     },
     {
       id: PAYMENT_METHOD.COD,
@@ -255,16 +212,6 @@ const PaymentMethodSectionContent = ({
                   </Box>
 
                   {/* Show CardElement for credit card payment */}
-                  {method.id === PAYMENT_METHOD.CREDIT_CARD &&
-                    selectedMethod === PAYMENT_METHOD.CREDIT_CARD &&
-                    !isDisabled && (
-                      <Box sx={{ mt: 2, px: 1 }}>
-                        <CardElementWrapper
-                          onReady={onCardReady}
-                          error={error}
-                        />
-                      </Box>
-                    )}
                 </Box>
               );
             })}

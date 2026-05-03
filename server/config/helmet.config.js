@@ -85,10 +85,10 @@ const helmetConfig = helmet({
   permittedCrossDomainPolicies: { permittedPolicies: "none" },
 
   // Cross-Origin-Opener-Policy - isolates browsing context
-  crossOriginOpenerPolicy: { policy: "same-origin" },
+  crossOriginOpenerPolicy: { policy: "unsafe-none" },
 
   // Cross-Origin-Resource-Policy - controls resource sharing
-  crossOriginResourcePolicy: { policy: "same-origin" },
+  crossOriginResourcePolicy: { policy: "cross-origin" },
 
   // Origin-Agent-Cluster - hints browser to use separate agent cluster
   originAgentCluster: true,

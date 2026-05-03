@@ -18,7 +18,7 @@ const {
   updateDeliverySettings,
 } = require("../../controllers/user/merchant.controller");
 
-const { authenticateUser } = require("../../middleware/auth");
+const { authenticateUser, authorize } = require("../../middleware/auth");
 const {
   validateCreateMerchant,
   validateUpdateMerchant,
@@ -29,6 +29,14 @@ const {
   validateUpdateStatus,
   validateUpdateDeliverySettings,
 } = require("../../middleware/validations/user/merchant.validation");
+const {
+  validateBankAccount,
+  validateWithdrawalRequest,
+  validateWalletPagination,
+  validatePlanUpgrade,
+  validateFeaturedListing,
+} = require("../../middleware/validations/user/merchant.finance.validation");
+const merchantFinanceController = require("../../controllers/user/merchant.finance.controller");
 const {
   publicReadLimiter,
   standardLimiter,
@@ -163,6 +171,57 @@ router.post("/verify-email/submit", submitMerchantVerification);
  * @access  Private (authenticated users)
  */
 router.post("/verify-email/confirm", verifyMerchantEmail);
+
+router.get(
+  "/wallet",
+  authorize("merchant"),
+  validateWalletPagination,
+  merchantFinanceController.handleGetWallet,
+);
+
+router.get(
+  "/wallet/transactions",
+  authorize("merchant"),
+  validateWalletPagination,
+  merchantFinanceController.handleGetWalletTransactions,
+);
+
+router.post(
+  "/bank-account",
+  authorize("merchant"),
+  validateBankAccount,
+  merchantFinanceController.handleRegisterBankAccount,
+);
+
+router.post(
+  "/withdrawal",
+  authorize("merchant"),
+  validateWithdrawalRequest,
+  merchantFinanceController.handleSubmitWithdrawal,
+);
+
+router.get(
+  "/withdrawal",
+  authorize("merchant"),
+  validateWalletPagination,
+  merchantFinanceController.handleGetWithdrawals,
+);
+
+router.get("/plan", authorize("merchant"), merchantFinanceController.handleGetPlan);
+
+router.post(
+  "/plan/upgrade",
+  authorize("merchant"),
+  validatePlanUpgrade,
+  merchantFinanceController.handleUpgradePlan,
+);
+
+router.post(
+  "/listings/featured",
+  authorize("merchant"),
+  validateFeaturedListing,
+  merchantFinanceController.handlePurchaseFeaturedListing,
+);
 
 /**
  * @route   PUT /api/merchants/business-email

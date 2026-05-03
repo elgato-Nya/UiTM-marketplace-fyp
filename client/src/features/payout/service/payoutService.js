@@ -13,31 +13,31 @@ const payoutService = {
   // -------------------------------------------
 
   async getBalance(params = {}) {
-    return api.get("/payouts/balance", { params });
+    return api.get("/payments/balance", { params });
   },
 
   async updatePayoutSettings(settingsData) {
-    return api.patch("/payouts/settings", settingsData);
+    return api.patch("/payments/settings", settingsData);
   },
 
   async updateBankDetails(bankData) {
-    return api.put("/payouts/bank-details", bankData);
+    return api.put("/payments/bank-details", bankData);
   },
 
   async requestPayout(payoutData = {}) {
-    return api.post("/payouts/request", payoutData);
+    return api.post("/payments/request", payoutData);
   },
 
   async getPayoutHistory(params = {}) {
-    return api.get("/payouts/history", { params });
+    return api.get("/payments/history", { params });
   },
 
   async getPayoutById(payoutId) {
-    return api.get(`/payouts/${payoutId}`);
+    return api.get(`/payments/${payoutId}`);
   },
 
   async cancelPayout(payoutId) {
-    return api.patch(`/payouts/${payoutId}/cancel`);
+    return api.patch(`/payments/${payoutId}/cancel`);
   },
 
   // -------------------------------------------
@@ -45,23 +45,23 @@ const payoutService = {
   // -------------------------------------------
 
   async getPendingBankVerifications(params = {}) {
-    return api.get("/payouts/admin/pending-verifications", { params });
+    return api.get("/payments/admin/pending-verifications", { params });
   },
 
   async getPendingPayouts(params = {}) {
-    return api.get("/payouts/admin/pending-payouts", { params });
+    return api.get("/payments/admin/pending-payouts", { params });
   },
 
   async getSellerBalance(sellerId, params = {}) {
-    return api.get(`/payouts/admin/seller/${sellerId}`, { params });
+    return api.get(`/payments/admin/seller/${sellerId}`, { params });
   },
 
   async verifyBankDetails(sellerId) {
-    return api.patch(`/payouts/admin/verify/${sellerId}`);
+    return api.patch(`/payments/admin/verify/${sellerId}`);
   },
 
   async processPayout(payoutId, processData) {
-    return api.patch(`/payouts/admin/${payoutId}/process`, processData);
+    return api.patch(`/payments/admin/${payoutId}/process`, processData);
   },
 };
 

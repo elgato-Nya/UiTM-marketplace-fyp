@@ -186,7 +186,7 @@ jobs:
             cd $APP_DIR/server
 
             if ! command -v node &> /dev/null; then
-              echo "❌ Node.js not found! Please install Node.js first."
+              echo "�?Node.js not found! Please install Node.js first."
               exit 1
             fi
 
@@ -205,18 +205,18 @@ jobs:
 
             if pm2 describe uitm-marketplace-server > /dev/null 2>&1; then
               pm2 restart uitm-marketplace-server
-              echo "✅ Backend restarted"
+              echo "�?Backend restarted"
             else
               pm2 start index.js --name uitm-marketplace-server --env production
-              echo "✅ Backend started"
+              echo "�?Backend started"
             fi
             pm2 save
 
-            echo "⏳ Waiting for backend to start..."
+            echo "�?Waiting for backend to start..."
             sleep 5
 
             if pm2 describe uitm-marketplace-server | grep -q "online"; then
-              echo "✅ Backend is online"
+              echo "�?Backend is online"
             else
               echo "⚠️ Backend may not be running properly"
               pm2 logs uitm-marketplace-server --lines 20 --nostream
@@ -227,7 +227,7 @@ jobs:
             cd $APP_DIR/client
 
             if [ ! -d "build" ]; then
-              echo "❌ Build folder not found! SCP upload may have failed."
+              echo "�?Build folder not found! SCP upload may have failed."
               exit 1
             fi
 
@@ -243,47 +243,67 @@ jobs:
             pm2 start "serve -s build -l tcp://0.0.0.0:3000" --name uitm-marketplace-client
             pm2 save
 
-            echo "⏳ Waiting for frontend to start..."
+            echo "�?Waiting for frontend to start..."
             sleep 5
 
-            echo "✅ Deployment completed successfully!"
+            echo "�?Deployment completed successfully!"
             pm2 status
 
             echo ""
             echo "📋 Recent backend logs:"
             pm2 logs uitm-marketplace-server --lines 10 --nostream
 
-      - name: Health Check
-        run: |
-          echo "⏳ Waiting for services to start..."
-          sleep 20
+      - name: Health Check (EC2)
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            echo "Waiting for services to start..."
+            sleep 20
 
-          echo "🔍 Checking backend at https://nekodez.com/api/health"
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://nekodez.com/api/health 2>/dev/null || echo "000")
+            echo "Checking local backend on EC2 (http://localhost:5000/api/health)"
+            LOCAL_OK=0
+            for i in {1..10}; do
+              LOCAL_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/health || echo "000")
+              echo "Attempt $i: local backend HTTP $LOCAL_CODE"
+              if [ "$LOCAL_CODE" = "200" ]; then
+                LOCAL_OK=1
+                break
+              fi
+              sleep 5
+            done
 
-          echo "📊 Health check response: HTTP $HTTP_CODE"
-
-          if [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ Backend is healthy (HTTP $HTTP_CODE)"
-          elif [ "$HTTP_CODE" = "000" ]; then
-            echo "⚠️ Could not reach backend via HTTPS"
-            echo "Checking if backend is running on localhost..."
-            LOCALHOST_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/health 2>/dev/null || echo "000")
-            echo "Localhost check: HTTP $LOCALHOST_CODE"
-            if [ "$LOCALHOST_CODE" = "200" ]; then
-              echo "✅ Backend is running, but Nginx may need configuration"
-            else
-              echo "❌ Backend is not responding"
+            if [ "$LOCAL_OK" -ne 1 ]; then
+              echo "Local backend is not healthy on EC2"
+              pm2 status || true
+              pm2 logs uitm-marketplace-server --lines 40 --nostream || true
               exit 1
             fi
-          else
-            echo "❌ Unexpected response: HTTP $HTTP_CODE"
-            exit 1
-          fi
 
-          echo "🎉 Deployment verification passed!"
+            echo "Checking public endpoint (https://nekodez.com/api/health)"
+            PUBLIC_OK=0
+            for i in {1..10}; do
+              PUBLIC_CODE=$(curl -k -s -o /dev/null -w "%{http_code}" https://nekodez.com/api/health || echo "000")
+              echo "Attempt $i: public endpoint HTTP $PUBLIC_CODE"
+              if [ "$PUBLIC_CODE" = "200" ]; then
+                PUBLIC_OK=1
+                break
+              fi
+              sleep 5
+            done
 
+            if [ "$PUBLIC_OK" -ne 1 ]; then
+              echo "Public health endpoint is not healthy"
+              echo "Backend is running locally; check Nginx upstream/proxy config"
+              exit 1
+            fi
+
+            echo "Deployment verification passed!"
       - name: Notify on failure
         if: failure()
         run: |
-          echo "❌ Deployment failed! Check the logs above for details."
+          echo "�?Deployment failed! Check the logs above for details."

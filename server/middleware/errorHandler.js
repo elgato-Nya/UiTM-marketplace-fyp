@@ -88,6 +88,8 @@ const sendErrorDev = (err, req, res) => {
     originalUrl: req.originalUrl,
     method: req.method,
     userId: req.user?.id || req.user?._id || "undefined",
+    correlationId: req.correlationId || "undefined",
+    requestId: req.requestId || "undefined",
     environment: "development",
     body: req.body, // Logger will sanitize this automatically
     ...(Object.keys(req.params).length > 0 && { params: req.params }),
@@ -108,6 +110,8 @@ const sendErrorDev = (err, req, res) => {
         method: req.method,
         url: req.originalUrl,
         userId: req.user?.id || req.user?._id || "anonymous",
+        correlationId: req.correlationId || "undefined",
+        requestId: req.requestId || "undefined",
       },
       message: err.message,
       name: err.name,
@@ -119,6 +123,8 @@ const sendErrorDev = (err, req, res) => {
       body: req.body,
       params: req.params,
       query: req.query,
+      correlationId: req.correlationId || "undefined",
+      requestId: req.requestId || "undefined",
     },
   });
 };
@@ -135,6 +141,8 @@ const sendErrorProd = (err, req, res) => {
       originalUrl: req.originalUrl,
       method: req.method,
       userId: req.user?.id || req.user?._id || "anonymous",
+      correlationId: req.correlationId || "undefined",
+      requestId: req.requestId || "undefined",
       environment: "production",
       requestContext: err.requestContext,
     });
@@ -143,6 +151,7 @@ const sendErrorProd = (err, req, res) => {
       success: false,
       message: err.message,
       code: err.code,
+      correlationId: req.correlationId || "undefined",
       ...(err.details && { details: err.details }), // Include validation details in production too
     });
   } else {
@@ -153,6 +162,8 @@ const sendErrorProd = (err, req, res) => {
       originalUrl: req.originalUrl,
       method: req.method,
       userId: req.user?.id || req.user?._id || "anonymous",
+      correlationId: req.correlationId || "undefined",
+      requestId: req.requestId || "undefined",
       environment: "production",
       severity: "critical",
       requestContext: err.requestContext,
@@ -163,6 +174,7 @@ const sendErrorProd = (err, req, res) => {
       success: false,
       message: "Something went wrong! Please try again later.",
       code: "SERVER_ERROR",
+      correlationId: req.correlationId || "undefined",
     });
   }
 };

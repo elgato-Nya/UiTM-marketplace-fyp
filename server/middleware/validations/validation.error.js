@@ -37,9 +37,14 @@ const handleValidationErrors = (req, res, next) => {
       request: {
         method: req.method,
         url: req.originalUrl,
-        body: req.body,
+        body:
+          req.body && typeof req.body === "object"
+            ? Object.keys(req.body)
+            : undefined,
         params: req.params,
         query: req.query,
+        correlationId: req.correlationId || "undefined",
+        requestId: req.requestId || "undefined",
       },
       user: req.user
         ? { id: req.user._id.toString(), email: req.user.email }

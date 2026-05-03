@@ -9,6 +9,7 @@
  */
 
 const isDevelopment = process.env.NODE_ENV === "development";
+const logger = require("../utils/logger");
 
 /**
  * Development multiplier - all limits are 10x higher in development
@@ -167,6 +168,39 @@ const RATE_LIMITS = {
       15 * 60 * 1000
     ),
   },
+  paymentCreateBill: {
+    windowMs: 5 * 60 * 1000,
+    max: applyDevMultiplier(20),
+    message: createErrorResponse(
+      "Too many payment link requests. Please wait and try again.",
+      5 * 60 * 1000
+    ),
+  },
+  paymentRetry: {
+    windowMs: 5 * 60 * 1000,
+    max: applyDevMultiplier(15),
+    message: createErrorResponse(
+      "Too many payment retry attempts. Please wait and try again.",
+      5 * 60 * 1000
+    ),
+  },
+  paymentStatusPoll: {
+    windowMs: 1 * 60 * 1000,
+    max: applyDevMultiplier(60),
+    message: createErrorResponse(
+      "Too many payment status checks. Please slow down.",
+      1 * 60 * 1000
+    ),
+    useUserIdKey: true,
+  },
+  paymentCallback: {
+    windowMs: 1 * 60 * 1000,
+    max: applyDevMultiplier(240),
+    message: createErrorResponse(
+      "Too many callback requests. Please try again later.",
+      1 * 60 * 1000
+    ),
+  },
 
   // ==================== TIER 6: RESOURCE-INTENSIVE ====================
   /**
@@ -279,7 +313,11 @@ const RATE_LIMITS = {
  */
 const getRateLimit = (name) => {
   if (!RATE_LIMITS[name]) {
-    console.warn(`Rate limit '${name}' not found, using 'standard' as default`);
+    logger.warn("Rate limit config missing, using standard default", {
+      requestedName: name,
+      fallbackName: "standard",
+      category: "rate_limit_config",
+    });
     return RATE_LIMITS.standard;
   }
   return RATE_LIMITS[name];

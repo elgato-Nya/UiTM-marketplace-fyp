@@ -28,6 +28,7 @@
     "health:check": "node scripts/health-check.js",
     "health:watch": "node scripts/health-check.js --watch",
     "health:details": "node scripts/health-check.js --details",
+    "verify:logger": "node scripts/verify-logger-normalization.js",
     "verify:stripe": "node scripts/verify-stripe.js",
     "verify:stripe:prod": "node scripts/verify-stripe-production.js"
   },

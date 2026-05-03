@@ -15,13 +15,17 @@
 const fs = require("fs");
 const path = require("path");
 
-// Configuration
 const LOG_DIR = path.join(__dirname, "../logs");
-const today = new Date().toISOString().split("T")[0];
-
-// Arguments
-const logType = process.argv[2] || "error";
-const lineCount = parseInt(process.argv[3]) || 10;
+const lineCount = parseInt(process.argv[3], 10) || 10;
+const inputType = (process.argv[2] || "error").toLowerCase();
+const typeAliases = {
+  app: "application",
+  application: "application",
+  error: "error",
+  http: "http",
+  security: "security",
+};
+const logType = typeAliases[inputType];
 
 // Colors for console output
 const colors = {
@@ -101,13 +105,40 @@ function formatLogEntry(entry) {
   }
 }
 
-function viewLogs() {
-  const logFile = path.join(LOG_DIR, today, `${logType}-current.log`);
+function getLatestLogFile(type) {
+  if (!type) return null;
+  if (!fs.existsSync(LOG_DIR)) return null;
 
-  if (!fs.existsSync(logFile)) {
-    console.log(`${colors.red}No log file found: ${logFile}${colors.reset}`);
+  const pattern = new RegExp(`^${type}-(\\d{4}-\\d{2}-\\d{2})\\.log$`);
+  const candidates = fs
+    .readdirSync(LOG_DIR)
+    .filter((file) => pattern.test(file))
+    .sort((a, b) => {
+      const aDate = a.match(pattern)?.[1] || "";
+      const bDate = b.match(pattern)?.[1] || "";
+      return aDate.localeCompare(bDate);
+    });
+
+  if (candidates.length === 0) return null;
+  return path.join(LOG_DIR, candidates[candidates.length - 1]);
+}
+
+function viewLogs() {
+  if (!logType) {
     console.log(
-      `${colors.yellow}Available log types: error, http, application${colors.reset}`
+      `${colors.red}Invalid log type. Use: application|app|error|http|security${colors.reset}`,
+    );
+    return;
+  }
+
+  const logFile = getLatestLogFile(logType);
+
+  if (!logFile || !fs.existsSync(logFile)) {
+    console.log(
+      `${colors.red}No log file found for type "${logType}" in ${LOG_DIR}${colors.reset}`,
+    );
+    console.log(
+      `${colors.yellow}Available log types: application, error, http, security${colors.reset}`
     );
     return;
   }
@@ -115,7 +146,9 @@ function viewLogs() {
   console.log(
     `${
       colors.bright
-    }=== ${logType.toUpperCase()} LOGS (Last ${lineCount} entries) ===${
+    }=== ${logType.toUpperCase()} LOGS (${path.basename(
+      logFile,
+    )}, Last ${lineCount} entries) ===${
       colors.reset
     }\n`
   );

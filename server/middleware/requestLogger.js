@@ -12,15 +12,18 @@ const logger = require("../utils/logger");
 
 const requestLogger = (req, res, next) => {
   const startTime = Date.now();
+  const isHealthCheck = req.path === "/api/health";
 
   // Generate and attach correlation ID
   const correlationId = logger.generateCorrelationId();
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   req.correlationId = correlationId;
+  req.requestId = requestId;
 
   // Create child logger for this request
   req.logger = logger.createChild({
     correlationId,
-    requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    requestId,
     route: req.originalUrl,
     method: req.method,
     ip: req.ip,
@@ -28,7 +31,8 @@ const requestLogger = (req, res, next) => {
   });
 
   // Log incoming request
-  req.logger.info("Incoming request", {
+  const incomingLogMethod = isHealthCheck ? "debug" : "info";
+  req.logger[incomingLogMethod]("Incoming request", {
     method: req.method,
     url: req.originalUrl,
     headers: {
@@ -37,32 +41,17 @@ const requestLogger = (req, res, next) => {
       authorization: req.headers?.["authorization"] ? "present" : "none",
     },
     query: Object.keys(req.query).length > 0 ? req.query : undefined,
-    body:
-      req.method !== "GET" && req.body
-        ? typeof req.body === "object"
-          ? Object.keys(req.body)
-          : "present"
-        : undefined,
   });
 
   // Override res.json to capture response data
   const originalJson = res.json;
   res.json = function (data) {
-    const responseTime = Date.now() - startTime;
-
-    // Log response
-    req.logger.info("Outgoing response", {
-      statusCode: res.statusCode,
-      responseTime: `${responseTime}ms`,
-      contentLength:
-        res.get("Content-Length") || (data ? JSON.stringify(data).length : 0),
-      success: res.statusCode < 400,
+    res.locals._loggerResponseMeta = {
       errorCode: data?.code || undefined,
       hasData: !!data?.data,
-    });
-
-    // Log to main logger for analytics
-    logger.request(req, res, responseTime);
+      contentLength:
+        res.get("Content-Length") || (data ? JSON.stringify(data).length : 0),
+    };
 
     return originalJson.call(this, data);
   };
@@ -84,13 +73,36 @@ const requestLogger = (req, res, next) => {
   // Handle response finish event
   res.on("finish", () => {
     const responseTime = Date.now() - startTime;
+    const responseMeta = res.locals._loggerResponseMeta || {};
+
+    const outgoingLogMethod = isHealthCheck ? "debug" : "info";
+    req.logger[outgoingLogMethod]("Outgoing response", {
+      method: req.method,
+      url: req.originalUrl,
+      statusCode: res.statusCode,
+      durationMs: responseTime,
+      contentLength: res.get("Content-Length") || responseMeta.contentLength,
+      success: res.statusCode < 400,
+      errorCode: responseMeta.errorCode,
+      hasData: responseMeta.hasData,
+      ip: req.ip,
+      userAgent: req.headers?.["user-agent"] || "unknown",
+      userId: req.user?.id || req.user?._id || "undefined",
+      correlationId,
+      requestId,
+    });
 
     // Log completion
     req.logger.debug("Request completed", {
       statusCode: res.statusCode,
-      responseTime: `${responseTime}ms`,
+      durationMs: responseTime,
       completed: true,
     });
+
+    // Log to main logger for analytics
+    if (!isHealthCheck) {
+      logger.request(req, res, responseTime);
+    }
   });
 
   next();

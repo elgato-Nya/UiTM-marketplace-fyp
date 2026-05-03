@@ -11,7 +11,7 @@ const {
 } = require("../../services/analytic/merchant.analytics.service");
 const asyncHandler = require("../../utils/asyncHandler");
 const { sanitizeObject } = require("../../utils/sanitizer");
-const logger = require("../../config/logger.config");
+const logger = require("../../utils/logger");
 
 const baseController = new BaseController();
 
@@ -37,7 +37,7 @@ const handleGetAnalyticsByPeriod = asyncHandler(async (req, res) => {
 
   const analytics = await getMerchantAnalytics(merchantId, period);
 
-  baseController.logAction("get_merchant_analytics", req.user._id, {
+  baseController.logAction("get_merchant_analytics", req, {
     period,
     hasData: !!analytics.lastCalculated,
   });
@@ -59,7 +59,7 @@ const handleGetOverview = asyncHandler(async (req, res) => {
 
   const overview = await getMerchantOverview(merchantId);
 
-  baseController.logAction("get_merchant_overview", req.user._id, {
+  baseController.logAction("get_merchant_overview", req, {
     hasWeekData: !!overview.week.lastCalculated,
     hasMonthData: !!overview.month.lastCalculated,
     hasYearData: !!overview.year.lastCalculated,
@@ -110,7 +110,7 @@ const handleRefreshAnalytics = asyncHandler(async (req, res) => {
 
   const result = await refreshMerchantAnalytics(merchantId, period);
 
-  baseController.logAction("refresh_merchant_analytics", req.user._id, {
+  baseController.logAction("refresh_merchant_analytics", req, {
     period,
     success: true,
   });
@@ -152,7 +152,7 @@ const handleGetQuickStats = asyncHandler(async (req, res) => {
     lastUpdated: weekAnalytics.lastCalculated,
   };
 
-  baseController.logAction("get_merchant_quick_stats", req.user._id);
+  baseController.logAction("get_merchant_quick_stats", req);
 
   return baseController.sendSuccess(
     res,

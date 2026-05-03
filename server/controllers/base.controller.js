@@ -188,6 +188,15 @@ class BaseController {
    * USAGE: this.logAction('get_users', req, { additional: 'context' });
    */
   logAction(action, req, additionalContext = {}) {
+    if (!req || typeof req !== "object") {
+      this.logger.warn("Controller logAction called without request context", {
+        action,
+        category: "controller_action",
+        ...additionalContext,
+      });
+      return;
+    }
+
     const userId =
       req.user?._id?.toString?.() || req.user?.id?.toString?.() || "undefined";
 
@@ -198,6 +207,8 @@ class BaseController {
       userId: userId.toString(),
       ip: req.ip,
       userAgent: req.headers?.["user-agent"] || "unknown",
+      correlationId: req.correlationId || "undefined",
+      requestId: req.requestId || "undefined",
       ...additionalContext,
       category: "controller_action",
     });

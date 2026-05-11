@@ -72,6 +72,66 @@ const extractBillCode = (responseBody = {}) => {
   return null;
 };
 
+const stripHtmlTags = (value) =>
+  String(value || "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const summarizeProviderResponse = (value, maxLength = 300) => {
+  const text = stripHtmlTags(value);
+  return text ? text.slice(0, maxLength) : null;
+};
+
+const extractProviderMessage = (normalized = {}, parsedBody = {}, responseText = "") => {
+  const directMessage =
+    normalized?.msg ||
+    normalized?.message ||
+    normalized?.error ||
+    normalized?.status ||
+    parsedBody?.msg ||
+    parsedBody?.message ||
+    parsedBody?.error ||
+    parsedBody?.status ||
+    null;
+
+  if (directMessage && String(directMessage).trim()) {
+    return String(directMessage).trim();
+  }
+
+  if (typeof parsedBody?.raw === "string") {
+    const rawMessage = summarizeProviderResponse(parsedBody.raw);
+    if (rawMessage) return rawMessage;
+  }
+
+  if (typeof responseText === "string") {
+    return summarizeProviderResponse(responseText);
+  }
+
+  return null;
+};
+
+const summarizeBillPayloadForLogs = (payload = {}) => ({
+  categoryCode: payload.categoryCode || null,
+  billName: payload.billName || null,
+  billDescription: payload.billDescription || null,
+  billPriceSetting: payload.billPriceSetting ?? null,
+  billPayorInfo: payload.billPayorInfo ?? null,
+  billPaymentChannel: payload.billPaymentChannel ?? null,
+  billChargeToCustomer: payload.billChargeToCustomer ?? null,
+  enableDuitNowQR: payload.enableDuitNowQR ?? null,
+  chargeDuitNowQR: payload.chargeDuitNowQR ?? null,
+  billAmount: payload.billAmount ?? null,
+  billReturnUrl: payload.billReturnUrl || null,
+  billCallbackUrl: payload.billCallbackUrl || null,
+  billExternalReferenceNo: payload.billExternalReferenceNo || null,
+  hasBillTo: Boolean(String(payload.billTo || "").trim()),
+  hasBillEmail: Boolean(String(payload.billEmail || "").trim()),
+  hasBillPhone: Boolean(String(payload.billPhone || "").trim()),
+  billExpiryDays: payload.billExpiryDays ?? null,
+  metadata: payload.metadata || null,
+});
+
 const normalizeAttemptStatus = (status) => {
   const allowedStatuses = new Set([
     "active",
@@ -399,6 +459,7 @@ const createBill = async ({
   });
 
   const responseText = await response.text();
+  const responseContentType = response.headers.get("content-type") || "";
   let parsedBody = {};
   try {
     parsedBody = responseText ? JSON.parse(responseText) : {};
@@ -410,7 +471,8 @@ const createBill = async ({
     logger.error("ToyyibPay bill creation failed", {
       orderId: order?._id?.toString?.() || String(orderId || ""),
       status: response.status,
-      responseText,
+      responseContentType,
+      responsePreview: summarizeProviderResponse(responseText),
     });
     throw createBadRequestError(
       "Failed to create ToyyibPay bill",
@@ -422,20 +484,20 @@ const createBill = async ({
   const billCode = extractBillCode(normalized);
 
   if (!billCode) {
-    const providerMessage =
-      normalized?.msg ||
-      normalized?.message ||
-      normalized?.error ||
-      normalized?.status ||
-      null;
+    const providerMessage = extractProviderMessage(
+      normalized,
+      parsedBody,
+      responseText,
+    );
 
     logger.error("ToyyibPay bill code missing from response", {
       orderId: order._id.toString(),
-      responseText,
+      responseContentType,
+      responsePreview: summarizeProviderResponse(responseText),
       parsedBody,
       normalized,
       providerMessage,
-      payload,
+      payload: summarizeBillPayloadForLogs(payload),
     });
     throw createBadRequestError(
       providerMessage

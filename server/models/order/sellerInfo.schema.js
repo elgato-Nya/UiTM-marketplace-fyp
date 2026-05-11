@@ -7,7 +7,7 @@ const {
   addressErrorMessages,
   orderErrorMessages,
 } = require("../../validators");
-const { isValidUiTMEmail, isValidPhoneNumber } = UserValidator;
+const { isValidEmail, isValidPhoneNumber } = UserValidator;
 const { isValidRecipientName } = AddressValidator;
 
 /**
@@ -57,7 +57,7 @@ const sellerInfoSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
       required: [true, userErrorMessages.email.required],
-      validate: [isValidUiTMEmail, userErrorMessages.email.invalid],
+      validate: [isValidEmail, userErrorMessages.email.invalid],
     },
     phone: {
       type: String,

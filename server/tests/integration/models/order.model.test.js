@@ -225,6 +225,67 @@ describe("Order Model Integration Tests", () => {
         })
       ).rejects.toThrow();
     });
+
+    it("should allow non-UiTM snapshot emails for buyer and seller", async () => {
+      const externalBuyer = await User.create({
+        email: "buyer@gmail.com",
+        password: "SecurePass123!",
+        profile: {
+          username: "buyerext",
+          phoneNumber: "01234567892",
+        },
+      });
+
+      const externalMerchant = await User.create({
+        email: "seller@yahoo.com",
+        password: "SecurePass123!",
+        profile: {
+          username: "sellerext",
+          phoneNumber: "01234567893",
+        },
+        roles: ["merchant"],
+      });
+
+      const order = await Order.create({
+        checkoutSessionId: new mongoose.Types.ObjectId(),
+        buyer: {
+          userId: externalBuyer._id,
+          username: externalBuyer.profile.username,
+          email: externalBuyer.email,
+          phone: externalBuyer.profile.phoneNumber,
+        },
+        seller: {
+          userId: externalMerchant._id,
+          name: externalMerchant.profile.username,
+          email: externalMerchant.email,
+          phone: externalMerchant.profile.phoneNumber,
+        },
+        items: [
+          {
+            listingId: testListing._id,
+            name: "External Email Product",
+            price: 100,
+            quantity: 1,
+          },
+        ],
+        itemsTotal: 100,
+        shippingFee: 10,
+        totalAmount: 110,
+        paymentMethod: "cod",
+        deliveryMethod: "campus_delivery",
+        deliveryAddress: {
+          type: "campus",
+          campus: "SHAH_ALAM",
+          block: "A",
+          roomNumber: "103",
+          recipientName: externalBuyer.profile.username,
+          recipientPhone: externalBuyer.profile.phoneNumber,
+        },
+      });
+
+      expect(order.buyer.email).toBe("buyer@gmail.com");
+      expect(order.seller.email).toBe("seller@yahoo.com");
+    });
   });
 
   describe("Payment Methods", () => {

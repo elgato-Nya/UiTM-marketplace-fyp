@@ -167,15 +167,15 @@ jobs:
             set -e
             APP_DIR="/home/ubuntu/uitm-marketplace"
 
-            echo "ðŸš€ Starting deployment..."
+            echo "Starting deployment..."
             cd $APP_DIR
 
-            echo "ðŸ“¥ Pulling latest code from main branch..."
+            echo "Pulling latest code from main branch..."
             git fetch origin main
-            git reset --hard origin/main || echo "âš ï¸ Git reset failed, continuing..."
+            git reset --hard origin/main || echo "Git reset failed, continuing..."
 
             # ========== DISK CLEANUP ==========
-            echo "ðŸ§¹ Cleaning up to preserve disk space..."
+            echo "Cleaning up to preserve disk space..."
             # Remove client node_modules (not needed - build is pre-compiled)
             rm -rf $APP_DIR/client/node_modules
             # Remove stale build artifacts
@@ -186,7 +186,7 @@ jobs:
             npm cache clean --force 2>/dev/null || true
 
             # ========== BACKEND DEPLOYMENT ==========
-            echo "ðŸ”§ Deploying backend..."
+            echo "Deploying backend..."
             cd $APP_DIR/server
 
             # Optional: sync server .env from GitHub secret if provided
@@ -204,71 +204,71 @@ jobs:
 
 
             if ! command -v node &> /dev/null; then
-              echo "ï¿?Node.js not found! Please install Node.js first."
+              echo "Node.js not found! Please install Node.js first."
               exit 1
             fi
 
-            echo "ðŸ“¦ Installing server dependencies..."
+            echo "Installing server dependencies..."
             npm ci --only=production
 
             if [ ! -f .env ]; then
-              echo "âš ï¸ Warning: .env file not found in server directory"
+              echo "Warning: .env file not found in server directory"
             fi
 
-            echo "ðŸ”„ Restarting backend service..."
+            echo "Restarting backend service..."
             if ! command -v pm2 &> /dev/null; then
-              echo "ðŸ“¦ Installing PM2 globally..."
+              echo "Installing PM2 globally..."
               sudo npm install -g pm2
             fi
 
             if pm2 describe uitm-marketplace-server > /dev/null 2>&1; then
               pm2 restart uitm-marketplace-server
-              echo "ï¿?Backend restarted"
+              echo "Backend restarted"
             else
               pm2 start index.js --name uitm-marketplace-server --env production
-              echo "ï¿?Backend started"
+              echo "Backend started"
             fi
             pm2 save
 
-            echo "ï¿?Waiting for backend to start..."
+            echo "Waiting for backend to start..."
             sleep 5
 
             if pm2 describe uitm-marketplace-server | grep -q "online"; then
-              echo "ï¿?Backend is online"
+              echo "Backend is online"
             else
-              echo "âš ï¸ Backend may not be running properly"
+              echo "Warning: Backend may not be running properly"
               pm2 logs uitm-marketplace-server --lines 20 --nostream
             fi
 
             # ========== FRONTEND DEPLOYMENT ==========
-            echo "ðŸŽ¨ Deploying pre-built frontend..."
+            echo "Deploying pre-built frontend..."
             cd $APP_DIR/client
 
             if [ ! -d "build" ]; then
-              echo "ï¿?Build folder not found! SCP upload may have failed."
+              echo "Build folder not found! SCP upload may have failed."
               exit 1
             fi
 
             if ! command -v serve &> /dev/null; then
-              echo "ðŸ“¦ Installing serve globally..."
+              echo "Installing serve globally..."
               sudo npm install -g serve
             fi
 
-            echo "ðŸ”„ Restarting frontend service..."
+            echo "Restarting frontend service..."
             if pm2 describe uitm-marketplace-client > /dev/null 2>&1; then
               pm2 delete uitm-marketplace-client
             fi
             pm2 start "serve -s build -l tcp://0.0.0.0:3000" --name uitm-marketplace-client
             pm2 save
 
-            echo "ï¿?Waiting for frontend to start..."
+            echo "Waiting for frontend to start..."
             sleep 5
 
-            echo "ï¿?Deployment completed successfully!"
+            echo "Deployment completed successfully!"
             pm2 status
 
             echo ""
-            echo "ðŸ“‹ Recent backend logs:"
+            echo "Recent backend logs:"
             pm2 logs uitm-marketplace-server --lines 10 --nostream
 
       - name: Health Check (EC2)
@@ -324,4 +324,5 @@ jobs:
       - name: Notify on failure
         if: failure()
         run: |
-          echo "ï¿?Deployment failed! Check the logs above for details."
+          echo "Deployment failed! Check the logs above for details."
+

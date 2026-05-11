@@ -222,6 +222,8 @@ const buildBillPayload = async ({
     billPayorInfo: hasCompletePayerInfo ? 1 : 0,
     billPaymentChannel: 0,
     billChargeToCustomer: 0,
+    enableDuitNowQR: 1,
+    chargeDuitNowQR: 0,
     billAmount: billAmountInCent,
     billReturnUrl: returnUrl,
     billCallbackUrl: callbackUrl,
@@ -235,6 +237,59 @@ const buildBillPayload = async ({
       listingLimit: rules.listingLimit,
       hasCompletePayerInfo,
     },
+  };
+};
+
+const pickFirstNonEmpty = (...values) => {
+  for (const value of values) {
+    if (value === undefined || value === null) continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return null;
+};
+
+const extractPaymentChannelInfo = (source = {}) => {
+  if (!source || typeof source !== "object") {
+    return {
+      paymentChannel: null,
+      paymentMethodLabel: null,
+      payerInstitution: null,
+    };
+  }
+
+  const paymentChannel = pickFirstNonEmpty(
+    source.paymentChannel,
+    source.channel,
+    source.method,
+    source.billpaymentChannel,
+    source.billPaymentChannel,
+    source.billpaymentType,
+    source.billPaymentType,
+  );
+  const paymentMethodLabel = pickFirstNonEmpty(
+    source.paymentMethod,
+    source.methodName,
+    source.paymentOption,
+    source.billpaymentSource,
+    source.billPaymentSource,
+    source.billpaymentMode,
+    source.billPaymentMode,
+  );
+  const payerInstitution = pickFirstNonEmpty(
+    source.bank,
+    source.bankName,
+    source.bankCode,
+    source.fpxBank,
+    source.eWallet,
+    source.wallet,
+    source.provider,
+  );
+
+  return {
+    paymentChannel,
+    paymentMethodLabel,
+    payerInstitution,
   };
 };
 
@@ -326,6 +381,13 @@ const createBill = async ({
         typeof value === "object" ? JSON.stringify(value) : String(value),
       );
     }
+  });
+
+  logger.info("payment.dnqr.enabled", {
+    orderId: order._id.toString(),
+    orderNumber: order.orderNumber,
+    enableDuitNowQR: String(payload.enableDuitNowQR || ""),
+    chargeDuitNowQR: String(payload.chargeDuitNowQR || ""),
   });
 
   const response = await fetch(`${getBaseUrl()}/index.php/api/createBill`, {
@@ -495,6 +557,7 @@ module.exports = {
   createBill,
   parseCallbackPayload,
   getCallbackStatusLabel,
+  extractPaymentChannelInfo,
   ensureToyyibPayAttempts,
   getActiveAttemptIndex,
   markActiveAttemptAsObsolete,

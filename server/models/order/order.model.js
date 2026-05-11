@@ -135,6 +135,9 @@ const orderSchema = new mongoose.Schema(
       toyyibPayCallbackProcessedAt: Date,
       toyyibPayCallbackHashValid: Boolean,
       toyyibPayCallbackRefNo: String,
+      toyyibPayPaymentChannel: String,
+      toyyibPayPaymentMethodLabel: String,
+      toyyibPayPayerInstitution: String,
       toyyibPayAttempts: [
         {
           billCode: {

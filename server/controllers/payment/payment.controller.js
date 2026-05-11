@@ -5,6 +5,7 @@ const {
   createBill,
   parseCallbackPayload,
   verifyCallbackHash,
+  extractPaymentChannelInfo,
   ensureToyyibPayAttempts,
   getActiveAttemptIndex,
   TOYYIBPAY_RETRY_THROTTLE_SECONDS,
@@ -147,6 +148,7 @@ const handleRetryOrderPayment = asyncHandler(async (req, res) => {
  */
 const handleCallback = asyncHandler(async (req, res) => {
   const { payload, status, orderId, refno, billCode, hash } = parseCallbackPayload(req.body);
+  const channelInfo = extractPaymentChannelInfo(payload);
   logger.info("payment.callback.received", {
     orderId: orderId || null,
     billCode: billCode || null,
@@ -273,6 +275,29 @@ const handleCallback = asyncHandler(async (req, res) => {
     order.paymentDetails.toyyibPayCallbackBillCode = billCode || refno;
     order.paymentDetails.paymentProvider = "toyyibpay";
     order.paymentDetails.toyyibPayCallbackHashValid = hashValid;
+    if (channelInfo.paymentChannel) {
+      order.paymentDetails.toyyibPayPaymentChannel = channelInfo.paymentChannel;
+    }
+    if (channelInfo.paymentMethodLabel) {
+      order.paymentDetails.toyyibPayPaymentMethodLabel =
+        channelInfo.paymentMethodLabel;
+    }
+    if (channelInfo.payerInstitution) {
+      order.paymentDetails.toyyibPayPayerInstitution = channelInfo.payerInstitution;
+    }
+    if (
+      channelInfo.paymentChannel ||
+      channelInfo.paymentMethodLabel ||
+      channelInfo.payerInstitution
+    ) {
+      logger.info("payment.channel.selected", {
+        orderId: order._id.toString(),
+        billCode: billCode || refno || null,
+        paymentChannel: channelInfo.paymentChannel,
+        paymentMethodLabel: channelInfo.paymentMethodLabel,
+        payerInstitution: channelInfo.payerInstitution,
+      });
+    }
 
     const attempts = order.paymentDetails.toyyibPayAttempts || [];
     const attemptIndex = attempts.findIndex(
@@ -547,6 +572,11 @@ const handleGetOrderPaymentStatus = asyncHandler(async (req, res) => {
             status: latestAttempt.status || null,
             createdAt: latestAttempt.createdAt || null,
             paidAt: latestAttempt.paidAt || null,
+            paymentChannel: order.paymentDetails?.toyyibPayPaymentChannel || null,
+            paymentMethodLabel:
+              order.paymentDetails?.toyyibPayPaymentMethodLabel || null,
+            payerInstitution:
+              order.paymentDetails?.toyyibPayPayerInstitution || null,
           }
         : null,
       callbackStatus: order.paymentDetails?.toyyibPayCallbackStatus || null,

@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const { Order, Listing } = require("../../models");
 const logger = require("../../utils/logger");
+const { extractPaymentChannelInfo } = require("./toyyibpay.service");
 
 const PAYMENT_EXPIRY_MINUTES = Number(process.env.PAYMENT_EXPIRY_MINUTES || 30);
 
@@ -188,6 +189,22 @@ const reconcileStalePendingPayments = async ({
 
     const tx = await fetchToyyibPayBillTransactions(activeAttempt.billCode);
     checked += 1;
+    const lastTx = Array.isArray(tx) && tx.length ? tx[tx.length - 1] : null;
+    const channelInfo = extractPaymentChannelInfo(lastTx || {});
+    if (
+      channelInfo.paymentChannel ||
+      channelInfo.paymentMethodLabel ||
+      channelInfo.payerInstitution
+    ) {
+      logger.info("payment.channel.selected", {
+        orderId: order._id.toString(),
+        billCode: activeAttempt.billCode,
+        source: "reconcile",
+        paymentChannel: channelInfo.paymentChannel,
+        paymentMethodLabel: channelInfo.paymentMethodLabel,
+        payerInstitution: channelInfo.payerInstitution,
+      });
+    }
     const hasSuccess = tx.some(
       (row) => String(row?.billpaymentStatus || row?.billStatus || "") === "1",
     );

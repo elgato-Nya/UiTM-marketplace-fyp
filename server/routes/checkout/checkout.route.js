@@ -14,7 +14,10 @@ const {
   validateSessionIdParam,
   validateConfirmCheckout,
 } = require("../../middleware/validations/checkout/checkout.validation");
-const { checkoutLimiter } = require("../../middleware/limiters.middleware");
+const {
+  checkoutLimiter,
+  checkoutConfirmLimiter,
+} = require("../../middleware/limiters.middleware");
 
 /**
  * Checkout Routes
@@ -123,6 +126,7 @@ router.delete(
  */
 router.post(
   "/confirm/:id",
+  checkoutConfirmLimiter,
   validateSessionIdParam,
   validateConfirmCheckout,
   handleConfirmCheckout

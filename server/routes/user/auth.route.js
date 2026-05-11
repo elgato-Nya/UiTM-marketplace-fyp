@@ -17,8 +17,14 @@ const {
 } = require("../../middleware/validations/user/auth.validation");
 const { protect } = require("../../middleware/auth/auth.middleware");
 const {
-  emailLimiter,
-  passwordResetLimiter,
+  loginLimiter,
+  registerLimiter,
+  refreshTokenLimiter,
+  resendVerificationLimiter,
+  verifyEmailLimiter,
+  forgotPasswordLimiter,
+  validateResetTokenLimiter,
+  resetPasswordLimiter,
 } = require("../../middleware/limiters.middleware");
 
 /**
@@ -51,7 +57,7 @@ const router = express.Router();
  * @access  Public
  * @body    email, password, username, profile data
  */
-router.post("/register", validateRegister, register);
+router.post("/register", registerLimiter, validateRegister, register);
 
 /**
  * @route   POST /api/auth/login
@@ -59,14 +65,14 @@ router.post("/register", validateRegister, register);
  * @access  Public
  * @body    email, password
  */
-router.post("/login", validateLogin, login);
+router.post("/login", loginLimiter, validateLogin, login);
 
 /**
  * @route   POST /api/auth/refresh-token
  * @desc    Refresh access token using refresh token
  * @access  Public (requires valid refresh token in cookies)
  */
-router.post("/refresh-token", handleTokenRefresh);
+router.post("/refresh-token", refreshTokenLimiter, handleTokenRefresh);
 
 /**
  * @route   POST /api/auth/resend-verification
@@ -75,7 +81,11 @@ router.post("/refresh-token", handleTokenRefresh);
  * @body    email
  * @ratelimit 3 requests per 15 minutes
  */
-router.post("/resend-verification", emailLimiter, resendVerificationEmail);
+router.post(
+  "/resend-verification",
+  resendVerificationLimiter,
+  resendVerificationEmail
+);
 
 /**
  * @route   POST /api/auth/verify-email
@@ -83,7 +93,7 @@ router.post("/resend-verification", emailLimiter, resendVerificationEmail);
  * @access  Public
  * @body    email, token
  */
-router.post("/verify-email", verifyEmail);
+router.post("/verify-email", verifyEmailLimiter, verifyEmail);
 
 /**
  * @route   POST /api/auth/forgot-password
@@ -92,7 +102,11 @@ router.post("/verify-email", verifyEmail);
  * @body    email
  * @ratelimit 5 requests per 15 minutes
  */
-router.post("/forgot-password", passwordResetLimiter, handleForgotPassword);
+router.post(
+  "/forgot-password",
+  forgotPasswordLimiter,
+  handleForgotPassword
+);
 
 /**
  * @route   POST /api/auth/validate-reset-token
@@ -100,7 +114,11 @@ router.post("/forgot-password", passwordResetLimiter, handleForgotPassword);
  * @access  Public
  * @body    email, token
  */
-router.post("/validate-reset-token", handleValidateResetToken);
+router.post(
+  "/validate-reset-token",
+  validateResetTokenLimiter,
+  handleValidateResetToken
+);
 
 /**
  * @route   POST /api/auth/reset-password
@@ -109,7 +127,7 @@ router.post("/validate-reset-token", handleValidateResetToken);
  * @body    email, token, newPassword
  * @ratelimit 5 requests per 15 minutes
  */
-router.post("/reset-password", passwordResetLimiter, handleResetPassword);
+router.post("/reset-password", resetPasswordLimiter, handleResetPassword);
 
 // ==================== AUTHENTICATED ROUTES ====================
 

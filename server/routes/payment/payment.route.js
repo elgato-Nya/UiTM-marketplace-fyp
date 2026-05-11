@@ -10,6 +10,7 @@ const {
   paymentRetryLimiter,
   paymentStatusPollLimiter,
   paymentCallbackLimiter,
+  paymentReturnLimiter,
 } = require("../../middleware/limiters.middleware");
 const paymentController = require("../../controllers/payment");
 const {
@@ -69,6 +70,6 @@ router.post(
   paymentController.handleCallback,
 );
 
-router.get("/return", paymentController.handleReturn);
+router.get("/return", paymentReturnLimiter, paymentController.handleReturn);
 
 module.exports = router;

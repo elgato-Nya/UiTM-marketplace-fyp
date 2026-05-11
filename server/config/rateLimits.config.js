@@ -106,6 +106,31 @@ const RATE_LIMITS = {
     ),
     skipSuccessfulRequests: true, // Don't count successful logins
   },
+  login: {
+    windowMs: 15 * 60 * 1000,
+    max: applyDevMultiplier(5),
+    message: createErrorResponse(
+      "Too many login attempts. Please try again in 15 minutes.",
+      15 * 60 * 1000
+    ),
+    skipSuccessfulRequests: true,
+  },
+  register: {
+    windowMs: 15 * 60 * 1000,
+    max: applyDevMultiplier(5),
+    message: createErrorResponse(
+      "Too many registration attempts. Please try again in 15 minutes.",
+      15 * 60 * 1000
+    ),
+  },
+  refreshToken: {
+    windowMs: 15 * 60 * 1000,
+    max: applyDevMultiplier(30),
+    message: createErrorResponse(
+      "Too many session refresh attempts. Please try again shortly.",
+      15 * 60 * 1000
+    ),
+  },
 
   /**
    * Email operations - verification, password reset
@@ -119,6 +144,22 @@ const RATE_LIMITS = {
       15 * 60 * 1000
     ),
   },
+  resendVerification: {
+    windowMs: 15 * 60 * 1000,
+    max: applyDevMultiplier(3),
+    message: createErrorResponse(
+      "Too many verification email requests. Please try again in 15 minutes.",
+      15 * 60 * 1000
+    ),
+  },
+  verifyEmail: {
+    windowMs: 15 * 60 * 1000,
+    max: applyDevMultiplier(10),
+    message: createErrorResponse(
+      "Too many email verification attempts. Please request a new link if needed.",
+      15 * 60 * 1000
+    ),
+  },
 
   /**
    * Password reset - slightly higher than email
@@ -128,6 +169,30 @@ const RATE_LIMITS = {
     max: applyDevMultiplier(5),
     message: createErrorResponse(
       "Too many password reset attempts. Please try again in 15 minutes.",
+      15 * 60 * 1000
+    ),
+  },
+  forgotPassword: {
+    windowMs: 15 * 60 * 1000,
+    max: applyDevMultiplier(5),
+    message: createErrorResponse(
+      "Too many password reset attempts. Please try again in 15 minutes.",
+      15 * 60 * 1000
+    ),
+  },
+  validateResetToken: {
+    windowMs: 15 * 60 * 1000,
+    max: applyDevMultiplier(10),
+    message: createErrorResponse(
+      "Too many reset link validation attempts. Please request a new link if needed.",
+      15 * 60 * 1000
+    ),
+  },
+  resetPassword: {
+    windowMs: 15 * 60 * 1000,
+    max: applyDevMultiplier(5),
+    message: createErrorResponse(
+      "Too many password reset submissions. Please try again in 15 minutes.",
       15 * 60 * 1000
     ),
   },
@@ -168,6 +233,14 @@ const RATE_LIMITS = {
       15 * 60 * 1000
     ),
   },
+  checkoutConfirm: {
+    windowMs: 15 * 60 * 1000,
+    max: applyDevMultiplier(10),
+    message: createErrorResponse(
+      "Too many checkout confirmation attempts. Please wait before trying again.",
+      15 * 60 * 1000
+    ),
+  },
   paymentCreateBill: {
     windowMs: 5 * 60 * 1000,
     max: applyDevMultiplier(20),
@@ -198,6 +271,14 @@ const RATE_LIMITS = {
     max: applyDevMultiplier(240),
     message: createErrorResponse(
       "Too many callback requests. Please try again later.",
+      1 * 60 * 1000
+    ),
+  },
+  paymentReturn: {
+    windowMs: 1 * 60 * 1000,
+    max: applyDevMultiplier(60),
+    message: createErrorResponse(
+      "Too many payment return requests. Please try again later.",
       1 * 60 * 1000
     ),
   },

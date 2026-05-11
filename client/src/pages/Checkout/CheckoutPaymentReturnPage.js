@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -29,6 +29,7 @@ const CheckoutPaymentReturnPage = () => {
   const [pendingMessage, setPendingMessage] = useState("");
   const [order, setOrder] = useState(null);
   const [paymentStatus, setPaymentStatus] = useState("");
+  const hasSyncedPaymentResult = useRef(false);
 
   const statusId = searchParams.get("status_id");
   const orderId = searchParams.get("order_id");
@@ -92,6 +93,12 @@ const CheckoutPaymentReturnPage = () => {
   };
 
   useEffect(() => {
+    if (hasSyncedPaymentResult.current) {
+      return undefined;
+    }
+
+    hasSyncedPaymentResult.current = true;
+
     let isCancelled = false;
     const syncPaymentResult = async () => {
       if (!orderId) {

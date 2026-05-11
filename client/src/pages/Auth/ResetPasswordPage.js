@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import {
   Box,
@@ -49,6 +49,7 @@ const ResetPasswordPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [countdown, setCountdown] = useState(5);
+  const hasValidatedResetToken = useRef(false);
 
   const token = searchParams.get("token");
   const email = searchParams.get("email");
@@ -63,6 +64,12 @@ const ResetPasswordPage = () => {
 
   // Validate token on mount
   useEffect(() => {
+    if (hasValidatedResetToken.current) {
+      return;
+    }
+
+    hasValidatedResetToken.current = true;
+
     const validateToken = async () => {
       if (!token || !email) {
         setError("Invalid reset link. Please request a new password reset.");

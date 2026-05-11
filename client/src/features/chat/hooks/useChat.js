@@ -39,7 +39,7 @@ import { useAuth } from "../../auth/hooks/useAuth";
  * @returns {Object} Chat state and action dispatchers
  */
 export function useChat(options = {}) {
-  const { autoFetch = false } = options;
+  const { autoFetch = false, includeUnread = true } = options;
   const dispatch = useDispatch();
   const { socket, isConnected } = useSocket();
   const { user } = useAuth();
@@ -129,9 +129,11 @@ export function useChat(options = {}) {
   useEffect(() => {
     if (autoFetch) {
       loadConversations();
-      loadUnreadCount();
+      if (includeUnread) {
+        loadUnreadCount();
+      }
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [autoFetch, includeUnread, loadConversations, loadUnreadCount]);
 
   // Socket event listeners for real-time chat
   useEffect(() => {

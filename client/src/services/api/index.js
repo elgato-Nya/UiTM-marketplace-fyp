@@ -1,9 +1,6 @@
 import axios from "axios";
 import { store } from "../../store";
-import { logout, setTokens } from "../../features/auth/store/authSlice";
-
-// Request deduplication cache
-const pendingRequests = new Map();
+import { setTokens } from "../../features/auth/store/authSlice";
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -22,20 +19,6 @@ api.interceptors.request.use(
   (config) => {
     const state = store.getState();
     const token = state.auth?.token;
-    const isAuthenticated = state.auth?.isAuthenticated;
-
-    // Create unique request key for deduplication (excluding refresh token requests)
-    if (!config.url?.includes("/auth/refresh-token")) {
-      const requestKey = `${config.method?.toUpperCase()}-${config.url}-${JSON.stringify(config.params || {})}-${JSON.stringify(config.data || {})}`;
-
-      // If same request is already pending, return the existing promise
-      if (pendingRequests.has(requestKey)) {
-        return pendingRequests.get(requestKey);
-      }
-
-      // Store the request promise for deduplication
-      config._requestKey = requestKey;
-    }
 
     // Add auth token if available (but don't block the request)
     // Let the server decide if authentication is required
@@ -57,18 +40,9 @@ let refreshPromise = null;
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => {
-    // Clean up pending request from deduplication cache
-    if (response.config._requestKey) {
-      pendingRequests.delete(response.config._requestKey);
-    }
     return response;
   },
   async (error) => {
-    // Clean up pending request from deduplication cache
-    if (error.config?._requestKey) {
-      pendingRequests.delete(error.config._requestKey);
-    }
-
     // Debug logging
     if (process.env.NODE_ENV === "development") {
       console.log("[API Interceptor] Error:", {

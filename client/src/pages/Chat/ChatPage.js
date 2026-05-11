@@ -43,7 +43,7 @@ const ChatPage = () => {
     selectConversation,
     deselectConversation,
     clearError,
-  } = useChat({ autoFetch: true });
+  } = useChat({ autoFetch: true, includeUnread: false });
 
   const { deleteConversation, deleteMessage } = useChatActions();
 

@@ -198,6 +198,7 @@ STRIPE_CANCEL_URL=http://localhost:3000/checkout/cancel
 # Rate Limiting (optional overrides)
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=1000
+TRUST_PROXY=loopback
 ```
 
 > **Note:** For testing, CLIENT_URL and SES_FROM_EMAIL are automatically set in `jest.env.js`
@@ -290,8 +291,11 @@ npm run test:coverage
 ### Key Configuration
 
 ```bash
-# Trust proxy (production)
-app.set('trust proxy', 1)  # Trust first proxy (Nginx)
+# Trust proxy
+# Local development: TRUST_PROXY=loopback
+# Nginx -> Node: TRUST_PROXY=1
+# AWS ALB -> Nginx -> Node: TRUST_PROXY=2
+app.set('trust proxy', process.env.TRUST_PROXY || 'loopback')
 
 # PM2 ecosystem
 pm2 start index.js --name uitm-marketplace --no-daemon
@@ -471,7 +475,7 @@ feat(checkout): add stripe payment integration
 ```bash
 fix(security): improve rate limiting configuration
 
-- Set trust proxy to 1 for production
+- Set TRUST_PROXY based on your proxy chain (`loopback` locally, `1` for Nginx -> Node, `2` for AWS ALB -> Nginx -> Node)
 - Move rate limiters before body parsing
 - Add retry-after headers
 ```

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Box,
@@ -18,11 +18,18 @@ const VerifyEmailPage = () => {
   const [status, setStatus] = useState("verifying"); // verifying, success, error
   const [message, setMessage] = useState("Verifying your email...");
   const [countdown, setCountdown] = useState(5);
+  const hasAttemptedVerification = useRef(false);
 
   const token = searchParams.get("token");
   const email = searchParams.get("email");
 
   useEffect(() => {
+    if (hasAttemptedVerification.current) {
+      return undefined;
+    }
+
+    hasAttemptedVerification.current = true;
+
     const verifyEmail = async () => {
       if (!token || !email) {
         setStatus("error");

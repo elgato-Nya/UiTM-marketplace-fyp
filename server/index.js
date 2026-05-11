@@ -11,10 +11,7 @@ require("./config/env.config");
 
 const corsOptions = require("./config/cors.config");
 const helmetConfig = require("./config/helmet.config");
-const {
-  globalLimiter,
-  authLimiter,
-} = require("./middleware/limiters.middleware");
+const { globalLimiter } = require("./middleware/limiters.middleware");
 const database = require("./config/database.config");
 const logger = require("./utils/logger");
 const { toMalaysianISO } = require("./utils/datetime");
@@ -23,11 +20,29 @@ const {
   handleNotFound,
 } = require("./middleware/errorHandler");
 const requestLogger = require("./middleware/requestLogger");
+const ensureRequestContext = require("./middleware/requestContext.middleware");
 
 const PORT = Number(process.env.PORT || 5000);
 
 const app = express();
 const httpServer = http.createServer(app);
+
+const parseTrustProxy = (value) => {
+  if (value === undefined || value === null || value === "") {
+    return "loopback";
+  }
+
+  const normalizedValue = String(value).trim();
+
+  if (/^\d+$/.test(normalizedValue)) {
+    return Number(normalizedValue);
+  }
+
+  if (normalizedValue === "true") return true;
+  if (normalizedValue === "false") return false;
+
+  return normalizedValue;
+};
 
 // Route modules
 const authRoutes = require("./routes/user/auth.route");
@@ -52,11 +67,11 @@ const chatRoutes = require("./routes/chat/chat.route");
 
 // Security and parser middleware
 app.disable("x-powered-by");
-app.set("trust proxy", process.env.NODE_ENV === "production" ? 1 : "loopback");
+app.set("trust proxy", parseTrustProxy(process.env.TRUST_PROXY));
 app.use(helmetConfig);
 app.use(cors(corsOptions));
+app.use(ensureRequestContext);
 app.use("/api/", globalLimiter);
-app.use("/api/auth/", authLimiter);
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb", strict: true }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));

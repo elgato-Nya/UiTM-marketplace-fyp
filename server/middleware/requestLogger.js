@@ -14,11 +14,13 @@ const requestLogger = (req, res, next) => {
   const startTime = Date.now();
   const isHealthCheck = req.path === "/api/health";
 
-  // Generate and attach correlation ID
-  const correlationId = logger.generateCorrelationId();
-  const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  // Reuse the lightweight request context created before rate limiting.
+  const correlationId = req.correlationId || logger.generateCorrelationId();
+  const requestId =
+    req.requestId || `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   req.correlationId = correlationId;
   req.requestId = requestId;
+  res.setHeader("X-Correlation-Id", correlationId);
 
   // Create child logger for this request
   req.logger = logger.createChild({

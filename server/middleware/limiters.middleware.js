@@ -38,8 +38,9 @@ const handleLimitReached = (req, res, next, options) => {
     userAgent: req.headers?.["user-agent"] || "unknown",
     path: req.path,
     method: req.method,
-    userId: req.user?.userId || "unauthenticated",
+    userId: req.user?._id?.toString() || req.user?.id || "unauthenticated",
     limiterName: options._limiterName || "unknown",
+    correlationId: req.correlationId || "unknown",
     timestamp: new Date().toISOString(),
   };
 
@@ -54,6 +55,9 @@ const handleLimitReached = (req, res, next, options) => {
 
   // Set standard rate limit headers
   res.setHeader("Retry-After", retryAfterSec);
+  if (req.correlationId) {
+    res.setHeader("X-Correlation-Id", req.correlationId);
+  }
 
   // Send consistent error response
   res.status(429).json({
@@ -62,6 +66,7 @@ const handleLimitReached = (req, res, next, options) => {
       options.message?.message || "Too many requests, please try again later.",
     code: "RATE_LIMIT_EXCEEDED",
     retryAfter: retryAfterSec,
+    correlationId: req.correlationId,
     timestamp: new Date().toISOString(),
   });
 };
@@ -118,7 +123,7 @@ const createLimiter = (configOrName, overrides = {}) => {
   if (finalConfig.useUserIdKey) {
     limiterOptions.keyGenerator = (req) => {
       // Use userId if authenticated, fallback to IP
-      return req.user?.userId?.toString() || req.ip;
+      return req.user?._id?.toString() || req.user?.id || req.ip;
     };
   }
 
@@ -151,17 +156,25 @@ const strictLimiter = createLimiter("strict");
  * Prevents brute force attacks
  */
 const authLimiter = createLimiter("auth");
+const loginLimiter = createLimiter("login");
+const registerLimiter = createLimiter("register");
+const refreshTokenLimiter = createLimiter("refreshToken");
 
 /**
  * Email limiter - email verification, resend
  * Prevents email spam
  */
 const emailLimiter = createLimiter("email");
+const resendVerificationLimiter = createLimiter("resendVerification");
+const verifyEmailLimiter = createLimiter("verifyEmail");
 
 /**
  * Password reset limiter
  */
 const passwordResetLimiter = createLimiter("passwordReset");
+const forgotPasswordLimiter = createLimiter("forgotPassword");
+const validateResetTokenLimiter = createLimiter("validateResetToken");
+const resetPasswordLimiter = createLimiter("resetPassword");
 
 /**
  * Write limiter - create/update operations
@@ -179,10 +192,12 @@ const orderCreateLimiter = createLimiter("orderCreate");
  * Checkout limiter - payment processing
  */
 const checkoutLimiter = createLimiter("checkout");
+const checkoutConfirmLimiter = createLimiter("checkoutConfirm");
 const paymentCreateBillLimiter = createLimiter("paymentCreateBill");
 const paymentRetryLimiter = createLimiter("paymentRetry");
 const paymentStatusPollLimiter = createLimiter("paymentStatusPoll");
 const paymentCallbackLimiter = createLimiter("paymentCallback");
+const paymentReturnLimiter = createLimiter("paymentReturn");
 
 /**
  * Upload limiter - file uploads
@@ -245,17 +260,27 @@ module.exports = {
 
   // Authentication
   authLimiter,
+  loginLimiter,
+  registerLimiter,
+  refreshTokenLimiter,
   emailLimiter,
+  resendVerificationLimiter,
+  verifyEmailLimiter,
   passwordResetLimiter,
+  forgotPasswordLimiter,
+  validateResetTokenLimiter,
+  resetPasswordLimiter,
 
   // Operations
   writeLimiter,
   orderCreateLimiter,
   checkoutLimiter,
+  checkoutConfirmLimiter,
   paymentCreateBillLimiter,
   paymentRetryLimiter,
   paymentStatusPollLimiter,
   paymentCallbackLimiter,
+  paymentReturnLimiter,
   uploadLimiter,
   contactLimiter,
 

@@ -3,6 +3,7 @@ import {
   Box,
   Typography,
   Card,
+  CardActionArea,
   CardMedia,
   CardContent,
   CardActions,
@@ -13,7 +14,6 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import {
-  Edit as EditIcon,
   Delete as DeleteIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
@@ -21,6 +21,8 @@ import {
   FavoriteBorder as FavoriteBorderIcon,
   ShoppingCart as ShoppingCartIcon,
   ImageNotSupported as NoImageIcon,
+  Storefront as StorefrontIcon,
+  Verified as VerifiedIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 
@@ -28,7 +30,6 @@ import { useTheme } from "../../../hooks/useTheme";
 import { useSnackbarContext as useSnackbar } from "../../../contexts/SnackbarContext";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { CATEGORY_LABELS } from "../../../constants/listingConstant";
-import { ROUTES } from "../../../constants/routes";
 import AddToCartDialog from "../../cart/components/AddToCartDialog";
 import useCart from "../../cart/hook/useCart";
 import useWishlist from "../../wishlist/hook/useWishlist";
@@ -48,9 +49,8 @@ const ListingCard = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const { isInCart, getCartItem, addToCart } = useCart();
-  const { addToWishlist, removeFromWishlist, isInWishlist, moveToCart } =
-    useWishlist();
+  const { isInCart } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
   const {
     _id,
@@ -164,11 +164,6 @@ const ListingCard = ({
     }
   };
 
-  const handleViewCart = (event) => {
-    event.stopPropagation();
-    navigate(ROUTES.CART);
-  };
-
   const hasImages = images && images.length > 0;
   const imageUrl = hasImages
     ? typeof images[0] === "string"
@@ -182,7 +177,20 @@ const ListingCard = ({
   const canAddToCart = isAvailable && (isService || !isOutOfStock);
   const inCart = isInCart(_id);
   const inWishlist = isInWishlist(_id);
-  const cartItem = getCartItem(_id);
+  const sellerUser = seller?.userId || seller || {};
+  const sellerMerchant = sellerUser?.merchantDetails || {};
+  const sellerDisplayName =
+    sellerMerchant.shopName ||
+    seller?.shopName ||
+    sellerUser?.shopName ||
+    sellerUser?.username ||
+    seller?.username ||
+    "Seller";
+  const isSellerVerified = Boolean(
+    sellerUser?.isVerifiedMerchant ||
+      seller?.isVerifiedMerchant ||
+      sellerMerchant?.verificationStatus === "verified",
+  );
 
   return (
     <Box
@@ -193,12 +201,12 @@ const ListingCard = ({
       }}
     >
       <Card
+        component="article"
         sx={{
           width: "100%",
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          cursor: "pointer",
           transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           border: "1px solid",
           borderColor: "divider",
@@ -213,281 +221,319 @@ const ListingCard = ({
           position: "relative",
           overflow: "hidden",
         }}
-        onClick={handleCardClick}
         key={_id}
       >
-        {/* Image Section - Fixed Height */}
-        <Box
+        <CardActionArea
+          onClick={handleCardClick}
+          aria-label={`View listing: ${name}`}
           sx={{
-            position: "relative",
-            height: isMobile ? 160 : 210,
-            overflow: "hidden",
-            flexShrink: 0,
-            bgcolor: hasImages ? "transparent" : "background.default",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {hasImages ? (
-            <CardMedia
-              component="img"
-              height={isMobile ? "160" : "210"}
-              image={imageUrl}
-              alt={name}
-              sx={{
-                objectFit: "cover",
-                width: "100%",
-                height: "100%",
-              }}
-            />
-          ) : (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 1,
-                color: "text.disabled",
-              }}
-            >
-              <NoImageIcon sx={{ fontSize: 48 }} />
-              <Typography variant="caption" color="text.disabled">
-                No Image
-              </Typography>
-            </Box>
-          )}
-
-          {/* Badges Overlay - Left Side */}
-          <Box
-            sx={{
-              position: "absolute",
-              top: 8,
-              left: 8,
-              display: "flex",
-              gap: 0.5,
-              flexWrap: "wrap",
-              maxWidth: { xs: "60%", sm: "calc(100% - 100px)" }, // Leave space for type badge
-            }}
-          >
-            {!isAvailable && (
-              <Chip
-                label="Unavailable"
-                size="small"
-                sx={{
-                  backgroundColor: "rgba(211, 47, 47, 0.9)",
-                  color: "white",
-                  fontWeight: 600,
-                  fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                }}
-              />
-            )}
-            {isOutOfStock && (
-              <Chip
-                label="Out of Stock"
-                size="small"
-                sx={{
-                  backgroundColor: "rgba(237, 108, 2, 0.9)",
-                  color: "white",
-                  fontWeight: 600,
-                  fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                }}
-              />
-            )}
-            {isFree && (
-              <Chip
-                label="Free"
-                size="small"
-                sx={{
-                  backgroundColor: "rgba(46, 125, 50, 0.9)",
-                  color: "white",
-                  fontWeight: 600,
-                  fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                }}
-              />
-            )}
-          </Box>
-
-          {/* Type Badge - Right Side */}
-          <Box sx={{ position: "absolute", top: 8, right: 8 }}>
-            <Chip
-              label={
-                isProduct
-                  ? "Product"
-                  : isService
-                    ? "Service"
-                    : type || "Unknown"
-              }
-              size="small"
-              variant="filled"
-              sx={{
-                backgroundColor:
-                  theme.palette.mode === "dark"
-                    ? theme.palette.primary.main
-                    : "rgba(255, 255, 255, 0.95)",
-                color:
-                  theme.palette.mode === "dark"
-                    ? theme.palette.primary.contrastText
-                    : theme.palette.text.primary,
-                fontWeight: 600,
-                fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                border:
-                  theme.palette.mode === "dark"
-                    ? "none"
-                    : `1px solid ${theme.palette.primary.main}`,
-              }}
-            />
-          </Box>
-        </Box>
-
-        {/* Content Section - Flex Grow with structured zones */}
-        <CardContent
-          sx={{
-            flex: 1,
             display: "flex",
             flexDirection: "column",
-            pb: 1,
-            pt: isMobile ? 1.5 : 2,
-            px: isMobile ? 1.5 : 2,
-            overflow: "hidden",
-            minHeight: 0,
+            alignItems: "stretch",
+            flex: 1,
           }}
         >
-          {/* Title - Fixed 2-line zone */}
-          <Typography
-            variant={isMobile ? "subtitle2" : "h6"}
-            sx={{
-              fontWeight: 600,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              lineHeight: 1.3,
-              minHeight: isMobile
-                ? "calc(0.8rem * 1.3 * 2)"
-                : "calc(0.95rem * 1.3 * 2)",
-              maxHeight: isMobile
-                ? "calc(0.8rem * 1.3 * 2)"
-                : "calc(0.95rem * 1.3 * 2)",
-              wordBreak: "break-word",
-              overflowWrap: "break-word",
-              hyphens: "auto",
-              fontSize: isMobile ? "0.8rem" : "0.95rem",
-              mb: isMobile ? 0.5 : 0.75,
-              flexShrink: 0,
-            }}
-            title={name}
-          >
-            {name}
-          </Typography>
-
-          {/* Description - Fixed 2-line zone */}
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              lineHeight: 1.4,
-              minHeight: isMobile
-                ? "calc(0.7rem * 1.4 * 2)"
-                : "calc(0.8rem * 1.4 * 2)",
-              maxHeight: isMobile
-                ? "calc(0.7rem * 1.4 * 2)"
-                : "calc(0.8rem * 1.4 * 2)",
-              wordBreak: "break-word",
-              overflowWrap: "break-word",
-              fontSize: isMobile ? "0.7rem" : "0.8rem",
-              mb: isMobile ? 0.5 : 0.75,
-              flexShrink: 0,
-            }}
-            title={description || "No description"}
-          >
-            {description || "\u00A0"}
-          </Typography>
-
-          {/* Category - Fixed single-line zone */}
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              fontSize: isMobile ? "0.65rem" : "0.75rem",
-              lineHeight: 1.4,
-              minHeight: isMobile
-                ? "calc(0.65rem * 1.4)"
-                : "calc(0.75rem * 1.4)",
-              mb: isMobile ? 0.5 : 0.75,
-              display: "block",
-              maxWidth: "100%",
-              flexShrink: 0,
-            }}
-            title={CATEGORY_LABELS[category] || category}
-          >
-            {CATEGORY_LABELS[category] || category}
-          </Typography>
-
-          {/* Price */}
           <Box
             sx={{
+              position: "relative",
+              aspectRatio: "4 / 3",
+              overflow: "hidden",
+              flexShrink: 0,
+              bgcolor: hasImages ? "transparent" : "background.default",
               display: "flex",
-              justifyContent: "space-between",
               alignItems: "center",
-              flexDirection: "row",
-              mt: "auto",
-              pt: 1,
-              gap: 1,
-              minWidth: 0, // Allow flex items to shrink
+              justifyContent: "center",
+            }}
+          >
+            {hasImages ? (
+              <CardMedia
+                component="img"
+                image={imageUrl}
+                alt={name}
+                sx={{
+                  objectFit: "cover",
+                  width: "100%",
+                  height: "100%",
+                }}
+              />
+            ) : (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 1,
+                  color: "text.disabled",
+                }}
+              >
+                <NoImageIcon sx={{ fontSize: 48 }} />
+                <Typography variant="caption" color="text.disabled">
+                  No Image
+                </Typography>
+              </Box>
+            )}
+
+            {/* Badges Overlay - Left Side */}
+            <Box
+              sx={{
+                position: "absolute",
+                top: 10,
+                left: 10,
+                display: "flex",
+                gap: 0.5,
+                flexWrap: "wrap",
+                maxWidth: { xs: "60%", sm: "calc(100% - 100px)" },
+              }}
+            >
+              {!isAvailable && (
+                <Chip
+                  label="Unavailable"
+                  size="small"
+                  sx={{
+                    backgroundColor: "rgba(211, 47, 47, 0.92)",
+                    color: "white",
+                    fontWeight: 600,
+                    fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                  }}
+                />
+              )}
+              {isOutOfStock && (
+                <Chip
+                  label="Out of Stock"
+                  size="small"
+                  sx={{
+                    backgroundColor: "rgba(237, 108, 2, 0.92)",
+                    color: "white",
+                    fontWeight: 600,
+                    fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                  }}
+                />
+              )}
+              {isFree && (
+                <Chip
+                  label="Free"
+                  size="small"
+                  sx={{
+                    backgroundColor: "rgba(46, 125, 50, 0.92)",
+                    color: "white",
+                    fontWeight: 600,
+                    fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                  }}
+                />
+              )}
+            </Box>
+
+            {/* Type Badge - Right Side */}
+            <Box sx={{ position: "absolute", top: 10, right: 10 }}>
+              <Chip
+                label={
+                  isProduct
+                    ? "Product"
+                    : isService
+                      ? "Service"
+                      : type || "Unknown"
+                }
+                size="small"
+                variant="filled"
+                sx={{
+                  backgroundColor:
+                    theme.palette.mode === "dark"
+                      ? theme.palette.primary.main
+                      : "rgba(255, 255, 255, 0.95)",
+                  color:
+                    theme.palette.mode === "dark"
+                      ? theme.palette.primary.contrastText
+                      : theme.palette.text.primary,
+                  fontWeight: 600,
+                  fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                  border:
+                    theme.palette.mode === "dark"
+                      ? "none"
+                      : `1px solid ${theme.palette.primary.main}`,
+                }}
+              />
+            </Box>
+          </Box>
+
+          <CardContent
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: isMobile ? 0.75 : 1,
+              pb: 1.25,
+              pt: isMobile ? 1.75 : 2,
+              px: isMobile ? 1.5 : 2,
+              overflow: "hidden",
+              minHeight: 0,
             }}
           >
             <Typography
               variant={isMobile ? "subtitle1" : "h6"}
               sx={{
-                color: theme.palette.primary.main,
                 fontWeight: 700,
-                fontSize: isMobile ? "0.8rem" : "0.9rem",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                lineHeight: 1.3,
+                minHeight: isMobile
+                  ? "calc(0.9rem * 1.3 * 2)"
+                  : "calc(1rem * 1.3 * 2)",
+                fontSize: isMobile ? "0.9rem" : "1rem",
+              }}
+              title={name}
+            >
+              {name}
+            </Typography>
+
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                lineHeight: 1.45,
+                minHeight: isMobile
+                  ? "calc(0.76rem * 1.45 * 2)"
+                  : "calc(0.84rem * 1.45 * 2)",
+                fontSize: isMobile ? "0.76rem" : "0.84rem",
+              }}
+              title={description || "No description"}
+            >
+              {description || "\u00A0"}
+            </Typography>
+
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                maxWidth: isMobile ? "55%" : "60%",
-                flexShrink: 1,
+                fontSize: isMobile ? "0.68rem" : "0.76rem",
+                lineHeight: 1.4,
+                display: "block",
+                maxWidth: "100%",
+              }}
+              title={CATEGORY_LABELS[category] || category}
+            >
+              {CATEGORY_LABELS[category] || category}
+            </Typography>
+
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 0.75,
+                flexWrap: "wrap",
+                minHeight: 24,
+              }}
+            >
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  minWidth: 0,
+                  maxWidth: "100%",
+                }}
+              >
+                <StorefrontIcon
+                  sx={{ fontSize: 14, color: "text.secondary", flexShrink: 0 }}
+                />
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{
+                    fontSize: isMobile ? "0.68rem" : "0.76rem",
+                    fontWeight: 600,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    maxWidth: isMobile ? "130px" : "170px",
+                  }}
+                  title={sellerDisplayName}
+                >
+                  {sellerDisplayName}
+                </Typography>
+              </Box>
+              {isSellerVerified && (
+                <Chip
+                  icon={<VerifiedIcon sx={{ fontSize: "0.8rem !important" }} />}
+                  label="Verified"
+                  size="small"
+                  color="success"
+                  variant="outlined"
+                  aria-label="Verified merchant"
+                  sx={{
+                    height: 20,
+                    fontSize: "0.64rem",
+                    fontWeight: 700,
+                    "& .MuiChip-label": { px: 0.75 },
+                  }}
+                />
+              )}
+            </Box>
+
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-end",
+                flexDirection: "row",
+                mt: "auto",
+                pt: 0.5,
+                gap: 1,
                 minWidth: 0,
               }}
             >
-              {variants && variants.length > 0
-                ? isMobile
-                  ? formatPrice(displayPrice)
-                  : `From ${formatPrice(displayPrice)}`
-                : formatPrice(price)}
-            </Typography>
-
-            {/* Stock Info - Only for products */}
-            {isProduct && (
               <Typography
-                variant="caption"
+                variant={isMobile ? "subtitle1" : "h6"}
                 sx={{
-                  color: stock < 5 ? "error.main" : "text.secondary",
-                  fontWeight: stock < 5 ? 700 : 600,
-                  fontSize: isMobile ? "0.65rem" : "0.7rem",
-                  flexShrink: 0,
-                  whiteSpace: "nowrap",
+                  color: theme.palette.primary.main,
+                  fontWeight: 800,
+                  fontSize: isMobile ? "0.92rem" : "1rem",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  maxWidth: isMobile ? "42%" : "38%",
+                  whiteSpace: "nowrap",
+                  maxWidth: isMobile ? "55%" : "60%",
+                  flexShrink: 1,
+                  minWidth: 0,
                 }}
               >
-                {formatStock(stock)}
+                {variants && variants.length > 0
+                  ? isMobile
+                    ? formatPrice(displayPrice)
+                    : `From ${formatPrice(displayPrice)}`
+                  : formatPrice(price)}
               </Typography>
-            )}
-          </Box>
-        </CardContent>
+
+              {isProduct && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: stock < 5 ? "error.main" : "text.secondary",
+                    fontWeight: stock < 5 ? 700 : 600,
+                    fontSize: isMobile ? "0.68rem" : "0.74rem",
+                    flexShrink: 0,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    maxWidth: isMobile ? "42%" : "38%",
+                  }}
+                >
+                  {formatStock(stock)}
+                </Typography>
+              )}
+            </Box>
+          </CardContent>
+        </CardActionArea>
 
         {/* Actions Section */}
         {showActions ? (
@@ -511,6 +557,7 @@ const ListingCard = ({
               variant="outlined"
               size="small"
               onClick={handleEdit}
+              aria-label={`Edit ${name}`}
               sx={{
                 flex: 1,
                 textTransform: "none",
@@ -542,6 +589,11 @@ const ListingCard = ({
               <IconButton
                 size="small"
                 onClick={handleToggle}
+                aria-label={
+                  isAvailable
+                    ? `Hide ${name} from buyers`
+                    : `Show ${name} to buyers`
+                }
                 sx={{
                   color: isAvailable ? "warning.main" : "success.main",
                   border: "1px solid",
@@ -571,6 +623,7 @@ const ListingCard = ({
               <IconButton
                 size="small"
                 onClick={handleDelete}
+                aria-label={`Delete ${name}`}
                 sx={{
                   color: "error.main",
                   border: "1px solid",
@@ -615,6 +668,7 @@ const ListingCard = ({
                 onClick={handleAddToCartClick}
                 disabled={!canAddToCart}
                 fullWidth
+                aria-label={`Add ${name} to cart`}
                 sx={{
                   flex: 1,
                   textTransform: "none",
@@ -637,6 +691,11 @@ const ListingCard = ({
                 <IconButton
                   onClick={handleToggleWishlist}
                   size={isMobile ? "small" : "medium"}
+                  aria-label={
+                    inWishlist
+                      ? `Remove ${name} from wishlist`
+                      : `Add ${name} to wishlist`
+                  }
                   sx={{
                     color: inWishlist ? "error.main" : "text.secondary",
                     "&:hover": {

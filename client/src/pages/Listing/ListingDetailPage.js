@@ -335,9 +335,6 @@ const ListingDetailPage = () => {
     if (shopSlug) {
       // Navigate to shop profile page
       navigate(`/merchants/${shopSlug}`);
-    } else {
-      // Fallback to user profile if no shop exists
-      navigate(`/user/${username}`);
     }
   };
 
@@ -372,7 +369,8 @@ const ListingDetailPage = () => {
       maxWidth="lg"
       sx={{
         py: { xs: 2, md: 4 },
-        px: { xs: 2, sm: 3, md: 4 },
+        px: { xs: 1.5, sm: 3, md: 4 },
+        overflowX: "clip",
       }}
     >
       {/* Back Button */}
@@ -385,15 +383,17 @@ const ListingDetailPage = () => {
           gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
           gap: { xs: 2, md: 4 },
           mb: 3,
+          width: "100%",
+          minWidth: 0,
         }}
       >
         {/* Image Gallery */}
-        <Box sx={{ width: "100%" }}>
+        <Box sx={{ width: "100%", minWidth: 0 }}>
           <ImageGallery images={images} altText={name} />
         </Box>
 
         {/* Product Information */}
-        <Box sx={{ width: "100%" }}>
+        <Box sx={{ width: "100%", minWidth: 0 }}>
           {/* Title */}
           <Typography
             variant="h4"
@@ -403,6 +403,7 @@ const ListingDetailPage = () => {
               mb: 1.5,
               fontSize: { xs: "1.5rem", md: "2rem" },
               lineHeight: 1.3,
+              overflowWrap: "anywhere",
             }}
           >
             {name}
@@ -417,6 +418,9 @@ const ListingDetailPage = () => {
               lineHeight: 1.6,
               whiteSpace: "pre-wrap",
               fontSize: { xs: "0.875rem", md: "1rem" },
+              overflowWrap: "anywhere",
+              wordBreak: "break-word",
+              minWidth: 0,
             }}
           >
             {description}
@@ -492,7 +496,7 @@ const ListingDetailPage = () => {
               <Typography
                 variant="subtitle2"
                 color="text.secondary"
-                sx={{ mb: 1.5, fontWeight: 600 }}
+                sx={{ mb: 1.5, fontWeight: 600, overflowWrap: "anywhere" }}
               >
                 Select Variant ({availableVariants.length} available)
               </Typography>
@@ -525,9 +529,12 @@ const ListingDetailPage = () => {
             <Typography
               variant="body2"
               color="text.secondary"
-              sx={{ fontSize: { xs: "0.8125rem", md: "0.875rem" } }}
+              sx={{
+                fontSize: { xs: "0.8125rem", md: "0.875rem" },
+                overflowWrap: "anywhere",
+              }}
             >
-              {CATEGORY_LABELS[category] || category} •{" "}
+              {CATEGORY_LABELS[category] || category} -{" "}
               {type === "product" ? "Product" : "Service"}
             </Typography>
           </Box>
@@ -540,12 +547,14 @@ const ListingDetailPage = () => {
                 <Box
                   sx={{
                     display: "flex",
-                    flexDirection: "row",
+                    flexDirection: { xs: "column", sm: "row" },
                     gap: 1.5,
                     mt: 3,
                     mb: 0,
+                    width: "100%",
+                    minWidth: 0,
                   }}
-                >
+                  >
                   {/* Buy Now - For variants, opens modal if no variant selected */}
                   <Button
                     variant="contained"
@@ -557,7 +566,9 @@ const ListingDetailPage = () => {
                       fontSize: { xs: "0.875rem", sm: "1rem" },
                       fontWeight: 600,
                       textTransform: "none",
-                      flex: 1,
+                      width: { xs: "100%", sm: "auto" },
+                      flex: { xs: "0 0 auto", sm: 1 },
+                      minWidth: 0,
                     }}
                   >
                     {isBuyingNow ? (
@@ -574,51 +585,80 @@ const ListingDetailPage = () => {
                     )}
                   </Button>
 
-                  {/* Add to Cart - For variants, opens modal for selection */}
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    onClick={handleAddToCartClick}
-                    disabled={!canAddToCart}
+                  <Box
                     sx={{
-                      py: 1.5,
-                      fontSize: { xs: "0.875rem", sm: "1rem" },
-                      fontWeight: 600,
-                      textTransform: "none",
-                      flex: 1,
+                      display: "flex",
+                      flexDirection: "row",
+                      gap: 1.5,
+                      width: { xs: "100%", sm: "auto" },
+                      flex: { xs: "0 0 auto", sm: 1 },
+                      minWidth: 0,
                     }}
                   >
-                    Add to Cart
-                  </Button>
-
-                  {/* Wishlist - Icon Only */}
-                  <Tooltip
-                    title={
-                      inWishlist ? "Remove from wishlist" : "Add to wishlist"
-                    }
-                  >
-                    <IconButton
-                      onClick={handleToggleWishlist}
+                    {/* Add to Cart - For variants, opens modal for selection */}
+                    <Button
+                      variant="outlined"
                       size="large"
+                      onClick={handleAddToCartClick}
+                      disabled={!canAddToCart}
                       sx={{
-                        border: "2px solid",
-                        borderColor: inWishlist ? "error.main" : "divider",
-                        color: inWishlist ? "error.main" : "text.secondary",
-                        "&:hover": {
-                          borderColor: "error.main",
-                          color: "error.main",
-                        },
+                        py: 1.5,
+                        fontSize: { xs: "0.875rem", sm: "1rem" },
+                        fontWeight: 600,
+                        textTransform: "none",
+                        flex: 1,
+                        width: { xs: "auto", sm: "100%" },
+                        minWidth: 0,
                       }}
                     >
-                      {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-                    </IconButton>
-                  </Tooltip>
+                      Add to Cart
+                    </Button>
+
+                    {/* Wishlist - Icon Only */}
+                    <Tooltip
+                      title={
+                        inWishlist ? "Remove from wishlist" : "Add to wishlist"
+                      }
+                    >
+                      <IconButton
+                        onClick={handleToggleWishlist}
+                        size="large"
+                        aria-label={
+                          inWishlist
+                            ? `Remove ${name} from wishlist`
+                            : `Add ${name} to wishlist`
+                        }
+                        sx={{
+                          border: "2px solid",
+                          borderColor: inWishlist ? "error.main" : "divider",
+                          color: inWishlist ? "error.main" : "text.secondary",
+                          flexShrink: 0,
+                          width: 56,
+                          height: 56,
+                          "&:hover": {
+                            borderColor: "error.main",
+                            color: "error.main",
+                          },
+                        }}
+                      >
+                        {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                 </Box>
               )}
 
               {/* Quote-only: Show only wishlist button if not showing buy/cart buttons */}
               {isQuoteOnly && (
-                <Box sx={{ display: "flex", gap: 1.5, mt: 3, mb: 0 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 1.5,
+                    mt: 3,
+                    mb: 0,
+                    width: "100%",
+                  }}
+                >
                   <Tooltip
                     title={
                       inWishlist ? "Remove from wishlist" : "Add to wishlist"
@@ -631,6 +671,7 @@ const ListingDetailPage = () => {
                         border: "2px solid",
                         borderColor: inWishlist ? "error.main" : "divider",
                         color: inWishlist ? "error.main" : "text.secondary",
+                        alignSelf: "stretch",
                         "&:hover": {
                           borderColor: "error.main",
                           color: "error.main",
@@ -689,8 +730,8 @@ const ListingDetailPage = () => {
           </Typography>
           <Box
             display="flex"
-            flexDirection="row"
-            alignItems="flex-start"
+            flexDirection={{ xs: "column", sm: "row" }}
+            alignItems={{ xs: "stretch", sm: "flex-start" }}
             gap={2}
           >
             <Avatar
@@ -700,11 +741,18 @@ const ListingDetailPage = () => {
                 bgcolor: theme.palette.primary.main,
                 width: { xs: 56, sm: 64 },
                 height: { xs: 56, sm: 64 },
+                alignSelf: { xs: "center", sm: "flex-start" },
               }}
             >
               {!shopLogo && <StoreIcon sx={{ fontSize: { xs: 32, sm: 36 } }} />}
             </Avatar>
-            <Box sx={{ flex: 1, textAlign: { xs: "center", sm: "left" } }}>
+            <Box
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                textAlign: { xs: "center", sm: "left" },
+              }}
+            >
               <Typography
                 variant="h6"
                 fontWeight="600"
@@ -728,6 +776,7 @@ const ListingDetailPage = () => {
                 display: "flex",
                 flexDirection: { xs: "column", sm: "row" },
                 gap: 1,
+                width: { xs: "100%", sm: "auto" },
               }}
             >
               {/* Only show Message Seller if it's not the user's own listing */}
@@ -742,7 +791,8 @@ const ListingDetailPage = () => {
                     onClick={handleMessageSeller}
                     disabled={chatLoading === "start"}
                     sx={{
-                      minWidth: 150,
+                      minWidth: { xs: 0, sm: 150 },
+                      width: { xs: "100%", sm: "auto" },
                       textTransform: "none",
                       fontSize: { xs: "0.875rem", md: "1rem" },
                     }}
@@ -750,17 +800,20 @@ const ListingDetailPage = () => {
                     {chatLoading === "start" ? "Opening..." : "Message Seller"}
                   </Button>
                 )}
-              <Button
-                variant="outlined"
-                onClick={handleViewShop}
-                sx={{
-                  minWidth: 150,
-                  textTransform: "none",
-                  fontSize: { xs: "0.875rem", md: "1rem" },
-                }}
-              >
-                Visit {shopSlug ? "Shop" : "Profile"}
-              </Button>
+              {shopSlug && (
+                <Button
+                  variant="outlined"
+                  onClick={handleViewShop}
+                  sx={{
+                    minWidth: { xs: 0, sm: 150 },
+                    width: { xs: "100%", sm: "auto" },
+                    textTransform: "none",
+                    fontSize: { xs: "0.875rem", md: "1rem" },
+                  }}
+                >
+                  Visit Shop
+                </Button>
+              )}
             </Box>
           </Box>
         </CardContent>

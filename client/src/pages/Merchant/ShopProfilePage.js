@@ -129,7 +129,7 @@ function ShopProfilePage() {
       return;
     }
 
-    const message = `Hi! I'm interested in your products at ${shop.shopName}`;
+    const message = `Hi! I'm interested in your listings at ${shop.shopName}`;
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
   };
@@ -640,7 +640,7 @@ function ShopProfilePage() {
 
       {/* Shop Products Section */}
       <Card>
-        <CardContent sx={{ px: isMobile ? 1.5 : 3, py: isMobile ? 2 : 3 }}>
+        <CardContent sx={{ px: isMobile ? 1 : 3, py: isMobile ? 2 : 3 }}>
           {/* Header with Search and Filters */}
           <Box sx={{ mb: 3 }}>
             <Typography
@@ -648,13 +648,13 @@ function ShopProfilePage() {
               gutterBottom
               sx={{ fontWeight: 600, fontSize: isMobile ? "1rem" : "1.25rem" }}
             >
-              Products from this Shop
+              Listings from this Shop
             </Typography>
 
             {/* Search Bar */}
             <TextField
               fullWidth
-              placeholder="Search products..."
+              placeholder="Search listings..."
               value={searchQuery}
               onChange={handleSearch}
               size={isMobile ? "small" : "medium"}
@@ -875,7 +875,7 @@ function ShopProfilePage() {
             <>
               {/* List view for mobile, Grid for desktop */}
               {isMobile ? (
-                <Stack spacing={2}>
+                <Stack spacing={1.25} sx={{ mx: -0.5 }}>
                   {listings.map((listing) => (
                     <ListingListItem key={listing._id} listing={listing} />
                   ))}

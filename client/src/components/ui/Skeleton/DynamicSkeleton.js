@@ -60,7 +60,7 @@ function DynamicSkeleton({
   const routeMappings = [
     { patterns: ["/auth"], type: "form" },
     { patterns: ["/admin", "/merchant"], type: "dashboard" },
-    { patterns: ["/products", "/services"], type: "grid" },
+    { patterns: ["/products", "/services", "/browse", "/listings"], type: "grid" },
     { patterns: ["/profile", "/user"], type: "profile" },
     { patterns: ["/cart"], type: "cart" },
     { patterns: ["/wishlist"], type: "wishlist" },

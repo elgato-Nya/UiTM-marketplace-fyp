@@ -1,4 +1,5 @@
 import { Box, Skeleton, Paper, Container, Grid } from "@mui/material";
+import ListingCardSkeleton from "./ListingCardSkeleton";
 
 /**
  * Content-level skeleton components for forms, lists, and grids
@@ -121,52 +122,8 @@ export const GridSkeleton = ({ config, skeletonProps }) => (
   <Container maxWidth="lg" sx={{ py: 3 }}>
     <Grid container spacing={3}>
       {[...Array(config.items * 2)].map((_, i) => (
-        <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
-          <Paper sx={{ p: 2, height: "100%" }}>
-            <Skeleton
-              variant="rectangular"
-              width="100%"
-              height={200}
-              sx={{ mb: 2, borderRadius: 1, ...skeletonProps.sx }}
-              {...skeletonProps}
-            />
-            <Skeleton
-              variant="text"
-              width="80%"
-              height={24}
-              sx={{ mb: 1, ...skeletonProps.sx }}
-              {...skeletonProps}
-            />
-            <Skeleton
-              variant="text"
-              width="60%"
-              height={20}
-              sx={{ mb: 1, ...skeletonProps.sx }}
-              {...skeletonProps}
-            />
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mt: 2,
-              }}
-            >
-              <Skeleton
-                variant="text"
-                width="40%"
-                height={20}
-                {...skeletonProps}
-              />
-              <Skeleton
-                variant="rectangular"
-                width={60}
-                height={28}
-                sx={{ borderRadius: 1, ...skeletonProps.sx }}
-                {...skeletonProps}
-              />
-            </Box>
-          </Paper>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={i}>
+          <ListingCardSkeleton />
         </Grid>
       ))}
     </Grid>

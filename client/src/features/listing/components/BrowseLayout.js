@@ -1,8 +1,6 @@
 import {
   Box,
   Container,
-  Typography,
-  CircularProgress,
   useMediaQuery,
 } from "@mui/material";
 import BrowseHeader from "./BrowseHeader";
@@ -81,30 +79,17 @@ const BrowseLayout = ({
         fallback="Failed to load listings. Please try again."
       />
 
-      {/* Loading State */}
-      {isLoading && (
-        <Box display="flex" justifyContent="center" alignItems="center" py={8}>
-          <Box textAlign="center">
-            <CircularProgress size={60} thickness={4} />
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              Loading {activeType === "all" ? "listings" : `${activeType}s`}...
-            </Typography>
-          </Box>
-        </Box>
-      )}
-
       {/* Listings Grid */}
-      {!isLoading && (
-        <ListingGrid
-          listings={listings}
-          pagination={pagination}
-          onPageChange={onPageChange}
-          onLimitChange={onLimitChange}
-          emptyMessage={`No ${
-            activeType === "all" ? "listings" : `${activeType}s`
-          } found. Try adjusting your filters.`}
-        />
-      )}
+      <ListingGrid
+        listings={listings}
+        pagination={pagination}
+        isLoading={isLoading}
+        onPageChange={onPageChange}
+        onLimitChange={onLimitChange}
+        emptyMessage={`No ${
+          activeType === "all" ? "listings" : `${activeType}s`
+        } found. Try adjusting your filters.`}
+      />
     </Container>
   );
 };

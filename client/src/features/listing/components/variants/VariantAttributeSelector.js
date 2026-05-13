@@ -189,7 +189,15 @@ const VariantAttributeSelector = ({
             {attribute.label}
           </Typography>
 
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 0.75,
+              width: "100%",
+              minWidth: 0,
+            }}
+          >
             {attribute.values.map((value) => {
               const isSelected = selectedAttributes[attribute.key] === value;
               const isAvailable = isValueAvailable(attribute.key, value);
@@ -212,7 +220,9 @@ const VariantAttributeSelector = ({
                     opacity: isDisabled ? 0.4 : 1,
                     fontWeight: isSelected ? 600 : 400,
                     fontSize: compact ? "0.75rem" : "0.875rem",
-                    height: compact ? 28 : 32,
+                    height: "auto",
+                    minHeight: compact ? 28 : 32,
+                    maxWidth: "100%",
                     borderRadius: 1,
                     border: "1.5px solid",
                     borderColor: isSelected ? "primary.main" : "divider",
@@ -230,6 +240,13 @@ const VariantAttributeSelector = ({
                     "& .MuiChip-icon": {
                       color: "primary.main",
                       marginLeft: "4px",
+                    },
+                    "& .MuiChip-label": {
+                      display: "block",
+                      whiteSpace: "normal",
+                      overflowWrap: "anywhere",
+                      lineHeight: 1.2,
+                      py: 0.75,
                     },
                     textDecoration:
                       !inStock && isAvailable ? "line-through" : "none",

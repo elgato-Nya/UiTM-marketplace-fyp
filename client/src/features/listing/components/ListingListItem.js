@@ -7,6 +7,7 @@ import {
   Chip,
   IconButton,
   Stack,
+  Avatar,
 } from "@mui/material";
 import {
   Favorite as FavoriteIcon,
@@ -37,8 +38,7 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const { isInCart, addToCart } = useCart();
-  const { addToWishlist, removeFromWishlist, isInWishlist, moveToCart } =
-    useWishlist();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
   const {
     _id,
@@ -55,9 +55,30 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
   } = listing;
 
   const isService = type === "service";
+  const isProduct = type === "product";
+  const isOutOfStock = isProduct && stock <= 0;
+  const canAddToCart = isAvailable && (isService || !isOutOfStock);
   const inCart = isInCart(_id);
   const inWishlist = isInWishlist(_id);
-  const imageSrc = images?.[0] || "https://via.placeholder.com/150";
+  const primaryImage = images?.[0];
+  const imageSrc =
+    typeof primaryImage === "string"
+      ? primaryImage
+      : primaryImage?.url || "https://via.placeholder.com/150";
+  const sellerUser = seller?.userId || seller || {};
+  const sellerMerchant = sellerUser?.merchantDetails || {};
+  const sellerDisplayName =
+    sellerMerchant.shopName ||
+    seller?.shopName ||
+    sellerUser?.shopName ||
+    sellerUser?.username ||
+    seller?.username ||
+    "Seller";
+  const isSellerVerified = Boolean(
+    sellerUser?.isVerifiedMerchant ||
+      seller?.isVerifiedMerchant ||
+      sellerMerchant?.verificationStatus === "verified",
+  );
 
   // Format price with spaces (e.g., 1 234 567.89)
   const formatPrice = (price) => {
@@ -118,15 +139,6 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
     }
   };
 
-  const handleMoveToCart = async () => {
-    try {
-      await moveToCart(_id);
-      success("Moved to cart");
-    } catch (error) {
-      showError(error.message || "Failed to move to cart");
-    }
-  };
-
   const handleCloseDialog = () => {
     setDialogOpen(false);
   };
@@ -154,8 +166,7 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
             transform: "translateY(-2px)",
             boxShadow: theme.shadows[4],
           },
-          minHeight: 140,
-          maxHeight: 140,
+          minHeight: 132,
         }}
       >
         {/* Image */}
@@ -164,8 +175,8 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
           src={imageSrc}
           alt={name}
           sx={{
-            width: 140,
-            height: 140,
+            width: { xs: 110, sm: 124 },
+            aspectRatio: "4 / 3",
             objectFit: "cover",
             flexShrink: 0,
           }}
@@ -234,6 +245,56 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
               {CATEGORY_LABELS[category] || category}
             </Typography>
 
+            <Stack
+              direction="row"
+              spacing={0.5}
+              alignItems="center"
+              sx={{ mb: 0.5, minWidth: 0 }}
+            >
+              <Avatar
+                sx={{
+                  width: 18,
+                  height: 18,
+                  fontSize: "0.65rem",
+                  bgcolor: "primary.light",
+                  color: "primary.contrastText",
+                }}
+              >
+                {sellerDisplayName.charAt(0).toUpperCase()}
+              </Avatar>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{
+                  fontSize: "0.68rem",
+                  fontWeight: 600,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  minWidth: 0,
+                  flex: 1,
+                }}
+                title={sellerDisplayName}
+              >
+                {sellerDisplayName}
+              </Typography>
+              {isSellerVerified && (
+                <Chip
+                  label="Verified"
+                  size="small"
+                  color="success"
+                  variant="outlined"
+                  aria-label="Verified merchant"
+                  sx={{
+                    height: 18,
+                    fontSize: "0.62rem",
+                    fontWeight: 700,
+                    "& .MuiChip-label": { px: 0.6 },
+                  }}
+                />
+              )}
+            </Stack>
+
             {/* Price and Actions Row */}
             <Stack
               direction="row"
@@ -266,6 +327,11 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
                   <IconButton
                     size="small"
                     onClick={handleWishlistClick}
+                    aria-label={
+                      inWishlist
+                        ? `Remove ${name} from wishlist`
+                        : `Add ${name} to wishlist`
+                    }
                     sx={{
                       color: inWishlist
                         ? theme.palette.error.main
@@ -281,13 +347,14 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
                 )}
 
                 {/* Add to Cart Button - Only show for authenticated users */}
-                {isAuthenticated && isAvailable && !isService && (
+                {isAuthenticated && canAddToCart && (
                   <IconButton
                     size="small"
                     onClick={handleAddToCartClick}
-                    disabled={inCart}
+                    disabled={!isService && inCart}
+                    aria-label={`Add ${name} to cart`}
                     sx={{
-                      color: inCart
+                      color: !isService && inCart
                         ? theme.palette.success.main
                         : theme.palette.primary.main,
                     }}

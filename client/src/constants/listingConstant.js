@@ -42,8 +42,8 @@ export const CATEGORY_LABELS = {
 export const SORT_OPTIONS = [
   { value: "-createdAt", label: "Newest First", shortLabel: "Newest" },
   { value: "createdAt", label: "Oldest First", shortLabel: "Oldest" },
-  { value: "price", label: "Price: Low to High", shortLabel: "Price ↑" },
-  { value: "-price", label: "Price: High to Low", shortLabel: "Price ↓" },
+  { value: "price", label: "Price: Low to High", shortLabel: "Low-High" },
+  { value: "-price", label: "Price: High to Low", shortLabel: "High-Low" },
   { value: "name", label: "Name: A to Z", shortLabel: "Name A-Z" },
   { value: "-name", label: "Name: Z to A", shortLabel: "Name Z-A" },
 ];

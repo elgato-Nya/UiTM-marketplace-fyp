@@ -288,6 +288,7 @@ const ListingFilters = ({
                 size="small"
                 onClick={handleReset}
                 disabled={!hasActiveFilters}
+                aria-label="Reset filters"
                 sx={{
                   minWidth: "auto",
                 }}
@@ -318,7 +319,11 @@ const ListingFilters = ({
                 ),
                 endAdornment: filters.search && (
                   <InputAdornment position="end">
-                    <IconButton size="small" onClick={handleClearSearch}>
+                    <IconButton
+                      size="small"
+                      onClick={handleClearSearch}
+                      aria-label="Clear search"
+                    >
                       <ClearIcon fontSize="small" />
                     </IconButton>
                   </InputAdornment>
@@ -329,7 +334,7 @@ const ListingFilters = ({
 
           {/* Category and Sort Filters - Single row on desktop */}
           <Stack
-            direction="row"
+            direction={isMobile ? "column" : "row"}
             spacing={isMobile ? 1 : 2}
             sx={{
               flexWrap: "nowrap",

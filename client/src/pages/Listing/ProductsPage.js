@@ -87,7 +87,7 @@ const ProductsPage = () => {
               {listings.filter((l) => l.isFree).length > 0 && (
                 <>
                   <Typography variant="body1" color="text.secondary">
-                    •
+                    -
                   </Typography>
                   <Chip
                     label={`${listings.filter((l) => l.isFree).length} Free ${listings.filter((l) => l.isFree).length === 1 ? "item" : "items"}`}

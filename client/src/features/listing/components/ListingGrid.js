@@ -1,6 +1,5 @@
 import {
   Box,
-  Typography,
   Grid,
   Pagination,
   Select,
@@ -9,17 +8,21 @@ import {
   InputLabel,
   useMediaQuery,
 } from "@mui/material";
+import { SearchOff as SearchOffIcon } from "@mui/icons-material";
 
 import ListingCard from "./ListingCard";
+import ListingCardSkeleton from "../../../components/ui/Skeleton/ListingCardSkeleton";
 import {
   DEFAULT_PAGE_SIZE,
   PAGE_SIZE_OPTIONS,
 } from "../../../constants/listingConstant";
 import { useTheme } from "../../../hooks/useTheme";
+import EmptyState from "../../../components/common/EmptyState";
 
 const ListingGrid = ({
   listings = [],
   pagination = {},
+  isLoading = false,
   onPageChange,
   onLimitChange,
   onEdit,
@@ -42,30 +45,48 @@ const ListingGrid = ({
     ? limit
     : DEFAULT_PAGE_SIZE;
 
-  if (!listings || listings.length === 0) {
+  if (isLoading) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="40vh"
-      >
-        <Typography variant="h6" color="textSecondary">
-          {emptyMessage}
-        </Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <Box>
       <Grid
         container
         spacing={isMobile ? 0.5 : 3}
         sx={{ alignItems: "stretch" }}
+        aria-label="Loading listings"
+      >
+        {Array.from({ length: isMobile ? 6 : 8 }).map((_, index) => (
+          <Grid size={{ xs: 6, sm: 6, md: 4, lg: 3 }} key={`listing-skeleton-${index}`}>
+            <ListingCardSkeleton />
+          </Grid>
+        ))}
+      </Grid>
+    );
+  }
+
+  if (!listings || listings.length === 0) {
+    return (
+      <EmptyState
+        icon={<SearchOffIcon />}
+        title="No listings found"
+        description={emptyMessage}
+        sx={{ minHeight: "40vh" }}
+      />
+    );
+  }
+
+  return (
+    <Box component="section" aria-label="Listing results">
+      <Grid
+        container
+        spacing={isMobile ? 0.5 : 3}
+        sx={{ alignItems: "stretch" }}
+        role="list"
       >
         {listings.map((listing) => (
-          <Grid size={{ xs: 6, sm: 6, md: 4, lg: 3 }} key={listing._id}>
+          <Grid
+            size={{ xs: 6, sm: 6, md: 4, lg: 3 }}
+            key={listing._id}
+            role="listitem"
+          >
             <ListingCard
               listing={listing}
               showActions={showActions}

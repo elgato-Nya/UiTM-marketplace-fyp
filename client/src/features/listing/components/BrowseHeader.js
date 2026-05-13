@@ -103,7 +103,7 @@ const BrowseHeader = ({
           {freeCount > 0 && (
             <>
               <Typography variant="body1" color="text.secondary">
-                •
+                -
               </Typography>
               <Chip
                 label={`${freeCount} Free ${freeCount === 1 ? "item" : "items"}`}

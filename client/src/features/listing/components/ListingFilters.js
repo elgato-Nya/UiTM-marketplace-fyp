@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Paper,
@@ -15,6 +15,9 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Divider,
+  Collapse,
+  Chip,
+  Typography,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -23,6 +26,8 @@ import {
   Build,
   ViewModule as AllIcon,
   Close as CloseIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
 } from "@mui/icons-material";
 
 import {
@@ -35,15 +40,14 @@ const ListingFilters = ({
   filters = {},
   onFilterChange,
   onReset,
-  type = null,
   activeType = "all",
   onTypeChange,
 }) => {
   const { theme } = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState(filters.search || "");
 
-  // Determine available categories based on active type
   let categories = [];
   if (activeType === "product") {
     categories = LISTING_CATEGORIES.PRODUCT;
@@ -53,35 +57,46 @@ const ListingFilters = ({
     categories = [...LISTING_CATEGORIES.PRODUCT, ...LISTING_CATEGORIES.SERVICE];
   }
 
-  // REMOVED: Auto-detect type from selected category
-  // This was causing the category to be cleared when switching types
-
-  // Check if current category is valid for the current type
   const isCategoryValid =
     !filters.category ||
     categories.some((cat) => cat.value === filters.category);
 
-  // Use empty string if category is invalid to prevent MUI warning
   const safeCategory = isCategoryValid ? filters.category || "" : "";
 
-  const handleSearchChange = (event) => {
-    const searchValue = event.target.value;
+  useEffect(() => {
+    setSearchInput(filters.search || "");
+  }, [filters.search]);
 
-    // Reset category when user starts typing in search bar
-    if (filters.category) {
-      onFilterChange?.({ search: searchValue, category: null });
-    } else {
-      onFilterChange?.({ search: searchValue });
+  useEffect(() => {
+    const trimmedSearch = searchInput.trim();
+    const currentSearch = filters.search || "";
+
+    if (trimmedSearch === currentSearch) {
+      return undefined;
     }
+
+    if (trimmedSearch.length === 1) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      if (filters.category) {
+        onFilterChange?.({ search: trimmedSearch, category: null });
+      } else {
+        onFilterChange?.({ search: trimmedSearch });
+      }
+    }, 500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchInput, filters.search, filters.category, onFilterChange]);
+
+  const handleSearchChange = (event) => {
+    setSearchInput(event.target.value);
   };
 
   const handleCategoryChange = (event) => {
     const selectedCategory = event.target.value;
-
-    // Fix: Handle empty string for "All Categories"
     onFilterChange?.({ category: selectedCategory || null });
-
-    // No auto-switching of type - user controls the type toggle independently
   };
 
   const handleSortChange = (event) => {
@@ -89,7 +104,12 @@ const ListingFilters = ({
   };
 
   const handleClearSearch = () => {
-    onFilterChange?.({ search: "" });
+    setSearchInput("");
+    if (filters.search || filters.category) {
+      onFilterChange?.({ search: "", category: null });
+    } else {
+      onFilterChange?.({ search: "" });
+    }
   };
 
   const handleReset = () => {
@@ -98,7 +118,6 @@ const ListingFilters = ({
 
   const handleTypeChangeWrapper = (event, newType) => {
     if (newType !== null && onTypeChange) {
-      // Just pass to parent - BrowsePage handles clearing category/search
       onTypeChange(event, newType);
     }
   };
@@ -108,6 +127,16 @@ const ListingFilters = ({
     filters.category ||
     filters.sort !== "-createdAt" ||
     activeType !== "all";
+
+  const secondaryActiveFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.category) count += 1;
+    if (filters.sort && filters.sort !== "-createdAt") count += 1;
+    return count;
+  }, [filters.category, filters.sort]);
+
+  const mobileFilterSummary =
+    secondaryActiveFilterCount > 0 ? `${secondaryActiveFilterCount} active` : "";
 
   return (
     <Box sx={{ mb: 3 }}>
@@ -119,17 +148,15 @@ const ListingFilters = ({
         }}
       >
         <Stack spacing={isMobile ? 1.5 : 2}>
-          {/* Type Toggle - Now integrated into filters */}
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
-              gap: isMobile ? 1 : 1.5,
+              gap: isMobile ? 0.75 : 1.5,
               flexWrap: "nowrap",
               justifyContent: "space-between",
             }}
           >
-            {/* Left side - Search placeholder on desktop, toggle on mobile */}
             {isMobile && (
               <ToggleButtonGroup
                 value={activeType}
@@ -192,7 +219,6 @@ const ListingFilters = ({
               </ToggleButtonGroup>
             )}
 
-            {/* Right side - Type toggle and reset button on desktop */}
             {!isMobile && (
               <Box
                 sx={{
@@ -281,119 +307,251 @@ const ListingFilters = ({
                 </Button>
               </Box>
             )}
-
-            {/* Reset button for mobile */}
-            {isMobile && (
-              <IconButton
-                size="small"
-                onClick={handleReset}
-                disabled={!hasActiveFilters}
-                aria-label="Reset filters"
-                sx={{
-                  minWidth: "auto",
-                }}
-              >
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            )}
           </Box>
 
-          {/* Search Bar */}
-          <TextField
-            fullWidth
-            size={isMobile ? "small" : "medium"}
-            placeholder={`Search ${activeType === "all" ? "listings" : activeType + "s"}...`}
-            value={filters.search || ""}
-            onChange={handleSearchChange}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                bgcolor: "background.default",
-              },
-            }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize={isMobile ? "small" : "medium"} />
-                  </InputAdornment>
-                ),
-                endAdornment: filters.search && (
-                  <InputAdornment position="end">
-                    <IconButton
+          <Box>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{
+                display: "block",
+                mb: 0.75,
+                fontSize: isMobile ? "0.72rem" : "0.78rem",
+                fontWeight: 700,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+              }}
+            >
+              Search listings
+            </Typography>
+
+            <TextField
+              fullWidth
+              size={isMobile ? "small" : "medium"}
+              placeholder={`Search ${activeType === "all" ? "listings" : activeType + "s"}...`}
+              value={searchInput}
+              onChange={handleSearchChange}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  bgcolor: "background.default",
+                },
+              }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize={isMobile ? "small" : "medium"} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchInput && (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={handleClearSearch}
+                        aria-label="Clear search"
+                      >
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+          </Box>
+
+          {isMobile ? (
+            <>
+              <Button
+                variant="outlined"
+                onClick={() => setMobileFiltersOpen((prev) => !prev)}
+                endIcon={mobileFiltersOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                aria-expanded={mobileFiltersOpen}
+                aria-controls="mobile-browse-filters"
+                aria-label={
+                  mobileFiltersOpen ? "Collapse browse filters" : "Expand browse filters"
+                }
+                sx={{
+                  justifyContent: "space-between",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  px: 1.25,
+                  py: 1,
+                  borderRadius: 1.5,
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    minWidth: 0,
+                  }}
+                >
+                  <Box component="span">Filters</Box>
+                  {mobileFilterSummary && (
+                    <Chip
+                      component="span"
                       size="small"
-                      onClick={handleClearSearch}
-                      aria-label="Clear search"
+                      label={mobileFilterSummary}
+                      color="primary"
+                      variant="outlined"
+                      sx={{
+                        height: 22,
+                        fontWeight: 600,
+                        "& .MuiChip-label": { px: 0.9 },
+                      }}
+                    />
+                  )}
+                </Box>
+              </Button>
+
+              <Collapse
+                in={mobileFiltersOpen}
+                timeout="auto"
+                unmountOnExit
+                id="mobile-browse-filters"
+              >
+                <Stack spacing={1.25} sx={{ pt: 0.25 }}>
+                  <Stack direction="column" spacing={1}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Category</InputLabel>
+                      <Select
+                        value={safeCategory}
+                        label="Category"
+                        onChange={handleCategoryChange}
+                      >
+                        <MenuItem value="">
+                          All{" "}
+                          {activeType === "all"
+                            ? ""
+                            : activeType.charAt(0).toUpperCase() +
+                              activeType.slice(1)}{" "}
+                          Categories
+                        </MenuItem>
+                        {categories.map((category) => (
+                          <MenuItem key={category.value} value={category.value}>
+                            {category.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Sort By</InputLabel>
+                      <Select
+                        value={filters.sort || "-createdAt"}
+                        label="Sort By"
+                        onChange={handleSortChange}
+                      >
+                        {SORT_OPTIONS.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.shortLabel}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Stack>
+
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 1,
+                      pt: 0.5,
+                    }}
+                  >
+                    <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
+                      {filters.category && (
+                        <Chip
+                          size="small"
+                          label="Category set"
+                          color="primary"
+                          variant="outlined"
+                        />
+                      )}
+                      {filters.sort && filters.sort !== "-createdAt" && (
+                        <Chip
+                          size="small"
+                          label="Custom sort"
+                          color="secondary"
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
+
+                    <Button
+                      variant="text"
+                      size="small"
+                      onClick={handleReset}
+                      disabled={!hasActiveFilters}
+                      startIcon={<CloseIcon />}
+                      sx={{
+                        textTransform: "none",
+                        flexShrink: 0,
+                      }}
                     >
-                      <ClearIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
-
-          {/* Category and Sort Filters - Single row on desktop */}
-          <Stack
-            direction={isMobile ? "column" : "row"}
-            spacing={isMobile ? 1 : 2}
-            sx={{
-              flexWrap: "nowrap",
-            }}
-          >
-            {/* Category Filter */}
-            <FormControl
-              fullWidth
-              size={isMobile ? "small" : "medium"}
-              sx={{
-                minWidth: isMobile ? 0 : 200,
-                flex: 1,
-              }}
-            >
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={safeCategory}
-                label="Category"
-                onChange={handleCategoryChange}
+                      Reset all
+                    </Button>
+                  </Box>
+                </Stack>
+              </Collapse>
+            </>
+          ) : (
+            <Stack direction="row" spacing={2} sx={{ flexWrap: "nowrap" }}>
+              <FormControl
+                fullWidth
+                size="medium"
+                sx={{
+                  minWidth: 200,
+                  flex: 1,
+                }}
               >
-                <MenuItem value="">
-                  All{" "}
-                  {activeType === "all"
-                    ? ""
-                    : activeType.charAt(0).toUpperCase() +
-                      activeType.slice(1)}{" "}
-                  Categories
-                </MenuItem>
-                {categories.map((category) => (
-                  <MenuItem key={category.value} value={category.value}>
-                    {category.label}
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={safeCategory}
+                  label="Category"
+                  onChange={handleCategoryChange}
+                >
+                  <MenuItem value="">
+                    All{" "}
+                    {activeType === "all"
+                      ? ""
+                      : activeType.charAt(0).toUpperCase() +
+                        activeType.slice(1)}{" "}
+                    Categories
                   </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                  {categories.map((category) => (
+                    <MenuItem key={category.value} value={category.value}>
+                      {category.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-            {/* Sort Filter */}
-            <FormControl
-              fullWidth
-              size={isMobile ? "small" : "medium"}
-              sx={{
-                minWidth: isMobile ? 0 : 200,
-                flex: 1,
-              }}
-            >
-              <InputLabel>Sort By</InputLabel>
-              <Select
-                value={filters.sort || "-createdAt"}
-                label="Sort By"
-                onChange={handleSortChange}
+              <FormControl
+                fullWidth
+                size="medium"
+                sx={{
+                  minWidth: 200,
+                  flex: 1,
+                }}
               >
-                {SORT_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {isMobile ? option.shortLabel : option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
+                <InputLabel>Sort By</InputLabel>
+                <Select
+                  value={filters.sort || "-createdAt"}
+                  label="Sort By"
+                  onChange={handleSortChange}
+                >
+                  {SORT_OPTIONS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Stack>
+          )}
         </Stack>
       </Paper>
     </Box>

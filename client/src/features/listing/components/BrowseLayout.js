@@ -1,6 +1,9 @@
 import {
   Box,
+  Chip,
   Container,
+  Stack,
+  Typography,
   useMediaQuery,
 } from "@mui/material";
 import BrowseHeader from "./BrowseHeader";
@@ -8,26 +11,11 @@ import ListingFilters from "./ListingFilters";
 import ListingGrid from "./ListingGrid";
 import ErrorAlert from "../../../components/common/Alert/ErrorAlert";
 import { useTheme } from "../../../hooks/useTheme";
+import {
+  CATEGORY_LABELS,
+  SORT_OPTIONS,
+} from "../../../constants/listingConstant";
 
-/**
- * BrowseLayout - Reusable layout template for browsing listings
- * This component handles the presentation layer, keeping it separate from business logic
- *
- * @param {Object} props
- * @param {string} props.activeType - Current active type ('all', 'product', 'service')
- * @param {Function} props.onTypeChange - Callback when type toggle changes
- * @param {Array} props.listings - Array of listing items
- * @param {Object} props.pagination - Pagination data
- * @param {Object} props.filters - Current filter values
- * @param {boolean} props.isLoading - Loading state
- * @param {Error} props.error - Error object if any
- * @param {Function} props.onFilterChange - Callback for filter changes
- * @param {Function} props.onFilterReset - Callback to reset filters
- * @param {Function} props.onPageChange - Callback for page changes
- * @param {Function} props.onLimitChange - Callback for limit changes
- * @param {Function} props.getGradient - Function to get gradient based on type
- * @param {Object} props.typeConfig - Optional configuration for custom types
- */
 const BrowseLayout = ({
   activeType,
   onTypeChange,
@@ -41,19 +29,33 @@ const BrowseLayout = ({
   onPageChange,
   onLimitChange,
   getGradient,
-  typeConfig,
 }) => {
   const { theme } = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  // Calculate free items count
   const freeCount = listings.filter((listing) => listing.isFree).length;
+  const sortOption = SORT_OPTIONS.find(
+    (option) => option.value === (filters.sort || "-createdAt"),
+  );
+  const browseLabel =
+    activeType === "product"
+      ? "products"
+      : activeType === "service"
+        ? "services"
+        : "listings";
+  const hasSummaryFilters = Boolean(
+    filters.search ||
+      filters.category ||
+      (filters.sort && filters.sort !== "-createdAt"),
+  );
+
+  const handleClearSearch = () => onFilterChange?.({ search: "" });
+  const handleClearCategory = () => onFilterChange?.({ category: null });
+  const handleClearSort = () => onFilterChange?.({ sort: "-createdAt" });
 
   return (
     <Container disableGutters sx={{ p: isMobile ? 2 : 4 }}>
-      {/* Page Header Section */}
       <Box sx={{ mb: isMobile ? 2 : 3 }}>
-        {/* Dynamic Header */}
         <BrowseHeader
           activeType={activeType}
           totalCount={pagination.totalListings || 0}
@@ -62,7 +64,6 @@ const BrowseLayout = ({
         />
       </Box>
 
-      {/* Integrated Filters Section with Type Toggle */}
       <ListingFilters
         filters={filters}
         onFilterChange={onFilterChange}
@@ -72,14 +73,75 @@ const BrowseLayout = ({
         onTypeChange={onTypeChange}
       />
 
-      {/* Error Alert */}
       <ErrorAlert
         error={error}
         show={!!error}
         fallback="Failed to load listings. Please try again."
       />
 
-      {/* Listings Grid */}
+      <Box
+        sx={{
+          mb: 2,
+          p: isMobile ? 1.25 : 1.5,
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.paper",
+        }}
+      >
+        <Stack
+          direction={isMobile ? "column" : "row"}
+          spacing={1}
+          justifyContent="space-between"
+          alignItems={isMobile ? "flex-start" : "center"}
+        >
+          <Box>
+            <Typography
+              variant={isMobile ? "body1" : "subtitle1"}
+              fontWeight={700}
+            >
+              {pagination.totalListings || 0} {browseLabel} found
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {filters.search
+                ? `Live results for "${filters.search}"`
+                : `Browsing ${browseLabel}${activeType === "all" ? "" : " only"}`}
+            </Typography>
+          </Box>
+
+          {hasSummaryFilters && (
+            <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+              {filters.search && (
+                <Chip
+                  label={`Search: "${filters.search}"`}
+                  onDelete={handleClearSearch}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                />
+              )}
+              {filters.category && (
+                <Chip
+                  label={CATEGORY_LABELS[filters.category] || filters.category}
+                  onDelete={handleClearCategory}
+                  size="small"
+                  color="secondary"
+                  variant="outlined"
+                />
+              )}
+              {filters.sort && filters.sort !== "-createdAt" && (
+                <Chip
+                  label={sortOption?.label || "Custom sort"}
+                  onDelete={handleClearSort}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
+            </Stack>
+          )}
+        </Stack>
+      </Box>
+
       <ListingGrid
         listings={listings}
         pagination={pagination}

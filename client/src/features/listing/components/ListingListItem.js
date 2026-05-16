@@ -205,7 +205,7 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
                 label={type === "product" ? "Product" : "Service"}
                 size="small"
                 color={type === "product" ? "primary" : "secondary"}
-                sx={{ height: 18, fontSize: "0.65rem" }}
+                sx={{ minHeight: 18, fontSize: "0.7rem" }}
               />
             </Box>
 
@@ -215,7 +215,6 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
               component="h3"
               sx={{
                 fontWeight: 600,
-                fontSize: "0.8rem",
                 mb: 0.25,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -235,7 +234,6 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
               sx={{
                 display: "block",
                 mb: 0.25,
-                fontSize: "0.7rem",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -255,7 +253,7 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
                 sx={{
                   width: 18,
                   height: 18,
-                  fontSize: "0.65rem",
+                  fontSize: "0.7rem",
                   bgcolor: "primary.light",
                   color: "primary.contrastText",
                 }}
@@ -266,7 +264,6 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
                 variant="caption"
                 color="text.secondary"
                 sx={{
-                  fontSize: "0.68rem",
                   fontWeight: 600,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -286,8 +283,8 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
                   variant="outlined"
                   aria-label="Verified merchant"
                   sx={{
-                    height: 18,
-                    fontSize: "0.62rem",
+                    minHeight: 18,
+                    fontSize: "0.68rem",
                     fontWeight: 700,
                     "& .MuiChip-label": { px: 0.6 },
                   }}
@@ -309,7 +306,6 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
                 color="primary"
                 sx={{
                   fontWeight: 700,
-                  fontSize: "0.85rem",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -373,7 +369,6 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
                 sx={{
                   display: "block",
                   mt: 0.25,
-                  fontSize: "0.65rem",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -390,7 +385,7 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
                 size="small"
                 color="error"
                 variant="outlined"
-                sx={{ mt: 0.5, height: 20, fontSize: "0.7rem" }}
+                sx={{ mt: 0.5, minHeight: 20, fontSize: "0.75rem" }}
               />
             )}
           </CardContent>

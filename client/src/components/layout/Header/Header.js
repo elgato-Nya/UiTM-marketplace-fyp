@@ -312,6 +312,7 @@ function Header({ onMenuClick, userRole, isMobile }) {
                   to={ROUTES.CART}
                   color="inherit"
                   size="small"
+                  aria-label={`Open cart (${cartCount} item${cartCount === 1 ? "" : "s"})`}
                 >
                   <Badge badgeContent={cartCount} color="error">
                     <CartIcon />
@@ -326,6 +327,7 @@ function Header({ onMenuClick, userRole, isMobile }) {
                   to={ROUTES.WISHLIST}
                   color="inherit"
                   size="small"
+                  aria-label={`Open wishlist (${wishlistCount} item${wishlistCount === 1 ? "" : "s"})`}
                 >
                   <Badge badgeContent={wishlistCount} color="error">
                     <WishlistIcon />

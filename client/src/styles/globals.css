@@ -52,10 +52,10 @@
 
 /* Dark Theme Variables */
 [data-theme="dark"] {
-  /* Primary colors stay the same for brand consistency */
-  --color-primary: #b8336a; /* Lighter maroon for dark theme */
-  --color-primary-light: #e085a5;
-  --color-primary-dark: #8b1538;
+  /* Unified dark accent direction: purple/indigo */
+  --color-primary: #7c3aed;
+  --color-primary-light: #a78bfa;
+  --color-primary-dark: #5b21b6;
 
   --color-secondary: #42a5f5; /* Lighter blue for dark theme */
   --color-secondary-light: #90caf9;
@@ -68,24 +68,32 @@
   --color-info: #2196f3;
 
   /* Backgrounds - Dark Theme */
-  --color-background-default: #121212;
-  --color-background-paper: #1e1e1e;
-  --color-background-alt: #2a2a2a;
+  --color-background-default: #0f1115;
+  --color-background-paper: #171a21;
+  --color-background-alt: #1d2330;
+  --color-background-elevated: #1d2330;
 
   /* Text - Dark Theme */
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #b3b3b3;
+  --color-text-primary: #f5f7fb;
+  --color-text-secondary: #a7b0c0;
   --color-text-disabled: #666666;
 
   /* Borders - Dark Theme */
-  --color-divider: #333333;
+  --color-divider: #2a3140;
   --color-border: #404040;
+  --color-action-hover: rgba(255, 255, 255, 0.04);
+  --color-action-disabled: rgba(255, 255, 255, 0.38);
+  --color-action-disabled-bg: rgba(255, 255, 255, 0.1);
 }
 
 /* Accessible/High Contrast Theme */
 [data-theme="accessible"] {
   --color-primary: #000000;
   --color-secondary: #ffffff;
+  --color-success: #0b6e2e;
+  --color-warning: #8a5a00;
+  --color-error: #b00020;
+  --color-info: #005a9c;
   --color-background-default: #ffffff;
   --color-background-paper: #ffffff;
   --color-text-primary: #000000;
@@ -169,12 +177,12 @@ body {
 
 /* Dark Theme Scrollbar */
 [data-theme="dark"] ::-webkit-scrollbar-track {
-  background: #1e1e1e;
+  background: #171a21;
 }
 
 [data-theme="dark"] ::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
-  border-color: #1e1e1e;
+  border-color: #171a21;
 }
 
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
@@ -182,7 +190,7 @@ body {
 }
 
 [data-theme="dark"] * {
-  scrollbar-color: #7c3aed #1e1e1e;
+  scrollbar-color: #7c3aed #171a21;
 }
 
 /* Accessible Theme - High Contrast Scrollbar */

@@ -199,7 +199,9 @@ const BuyNowDialog = ({
               borderRadius: 1.5,
               display: "grid",
               placeItems: "center",
-              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+              bgcolor: "action.hover",
+              border: "1px solid",
+              borderColor: "divider",
               color: "primary.main",
               flexShrink: 0,
             }}
@@ -276,7 +278,6 @@ const BuyNowDialog = ({
                 mb: 0.5,
                 textTransform: "uppercase",
                 letterSpacing: 0.6,
-                fontSize: "0.72rem",
                 fontWeight: 700,
               }}
             >
@@ -293,7 +294,6 @@ const BuyNowDialog = ({
                 WebkitBoxOrient: "vertical",
                 lineHeight: 1.35,
                 mb: 0.4,
-                fontSize: { xs: "0.9rem", sm: "0.975rem" },
               }}
             >
               {name}
@@ -302,7 +302,6 @@ const BuyNowDialog = ({
               variant="subtitle1"
               color="primary"
               fontWeight={800}
-              sx={{ fontSize: { xs: "1rem", sm: "1.15rem" } }}
             >
               {formatPrice(effectivePrice)}
             </Typography>
@@ -311,14 +310,14 @@ const BuyNowDialog = ({
                 label={selectedStatusLabel}
                 size="small"
                 sx={{
-                  height: 24,
+                  minHeight: 24,
                   borderRadius: 999,
                   bgcolor: (theme) => alpha(theme.palette.background.default, 0.5),
                   border: "1px solid",
                   borderColor: "divider",
                   "& .MuiChip-label": {
                     px: 0.9,
-                    fontSize: "0.72rem",
+                    fontSize: "0.8125rem",
                   },
                 }}
               />
@@ -326,14 +325,14 @@ const BuyNowDialog = ({
                 label="Immediate checkout"
                 size="small"
                 sx={{
-                  height: 24,
+                  minHeight: 24,
                   borderRadius: 999,
                   bgcolor: (theme) => alpha(theme.palette.background.default, 0.5),
                   border: "1px solid",
                   borderColor: "divider",
                   "& .MuiChip-label": {
                     px: 0.9,
-                    fontSize: "0.72rem",
+                    fontSize: "0.8125rem",
                   },
                 }}
               />
@@ -354,7 +353,7 @@ const BuyNowDialog = ({
                     display: "block",
                     whiteSpace: "normal",
                     py: 0.25,
-                    fontSize: "0.72rem",
+                    fontSize: "0.8125rem",
                   },
                 }}
               />
@@ -367,7 +366,7 @@ const BuyNowDialog = ({
             <Typography
               variant="subtitle2"
               fontWeight={700}
-              sx={{ mb: 0.25, fontSize: { xs: "0.9rem", sm: "0.95rem" } }}
+              sx={{ mb: 0.25 }}
             >
               Choose options
             </Typography>
@@ -405,7 +404,7 @@ const BuyNowDialog = ({
             <Typography
               variant="subtitle2"
               fontWeight={700}
-              sx={{ mb: 0.25, fontSize: { xs: "0.9rem", sm: "0.95rem" } }}
+              sx={{ mb: 0.25 }}
             >
               Choose a variant
             </Typography>
@@ -440,7 +439,7 @@ const BuyNowDialog = ({
                       color: isSelected ? "primary.main" : "text.primary",
                       "& .MuiChip-label": {
                         px: 1,
-                        fontSize: "0.76rem",
+                        fontSize: "0.8125rem",
                       },
                     }}
                   />
@@ -458,7 +457,9 @@ const BuyNowDialog = ({
               justifyContent: "space-between",
               py: 1.5,
               px: { xs: 1.5, sm: 2 },
-              bgcolor: "action.hover",
+              bgcolor: "background.default",
+              border: "1px solid",
+              borderColor: "divider",
               borderRadius: 1.5,
               mb: 1.5,
               gap: 1.5,
@@ -514,7 +515,6 @@ const BuyNowDialog = ({
               variant="h6"
               color="primary"
               fontWeight={800}
-              sx={{ fontSize: { xs: "1.1rem", sm: "1.2rem" } }}
             >
               RM{isService ? effectivePrice.toFixed(2) : totalPrice}
             </Typography>
@@ -538,7 +538,6 @@ const BuyNowDialog = ({
             py: 1.1,
             borderRadius: 2,
             fontWeight: 700,
-            fontSize: { xs: "0.95rem", sm: "1rem" },
             boxShadow: "none",
             "&.Mui-disabled": {
               bgcolor: "action.disabledBackground",

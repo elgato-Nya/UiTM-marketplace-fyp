@@ -88,7 +88,9 @@ function ThemeToggle() {
         slotProps={{
           paper: {
             sx: {
-              width: 240,
+              minWidth: 240,
+              width: { xs: "min(92vw, 320px)", sm: 280 },
+              maxWidth: "calc(100vw - 16px)",
               p: 2,
               borderRadius: 2,
             },

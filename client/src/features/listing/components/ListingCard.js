@@ -291,10 +291,10 @@ const ListingCard = ({
                   label="Unavailable"
                   size="small"
                   sx={{
-                    backgroundColor: "rgba(211, 47, 47, 0.92)",
-                    color: "white",
+                    backgroundColor: "error.main",
+                    color: "error.contrastText",
                     fontWeight: 600,
-                    fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                    fontSize: { xs: "0.7rem", sm: "0.8rem" },
                   }}
                 />
               )}
@@ -303,10 +303,10 @@ const ListingCard = ({
                   label="Out of Stock"
                   size="small"
                   sx={{
-                    backgroundColor: "rgba(237, 108, 2, 0.92)",
-                    color: "white",
+                    backgroundColor: "warning.main",
+                    color: "warning.contrastText",
                     fontWeight: 600,
-                    fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                    fontSize: { xs: "0.7rem", sm: "0.8rem" },
                   }}
                 />
               )}
@@ -315,10 +315,10 @@ const ListingCard = ({
                   label="Free"
                   size="small"
                   sx={{
-                    backgroundColor: "rgba(46, 125, 50, 0.92)",
-                    color: "white",
+                    backgroundColor: "success.main",
+                    color: "success.contrastText",
                     fontWeight: 600,
-                    fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                    fontSize: { xs: "0.7rem", sm: "0.8rem" },
                   }}
                 />
               )}
@@ -340,13 +340,13 @@ const ListingCard = ({
                   backgroundColor:
                     theme.palette.mode === "dark"
                       ? theme.palette.primary.main
-                      : "rgba(255, 255, 255, 0.95)",
+                      : theme.palette.background.paper,
                   color:
                     theme.palette.mode === "dark"
                       ? theme.palette.primary.contrastText
                       : theme.palette.text.primary,
                   fontWeight: 600,
-                  fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                  fontSize: { xs: "0.7rem", sm: "0.8rem" },
                   border:
                     theme.palette.mode === "dark"
                       ? "none"
@@ -382,7 +382,6 @@ const ListingCard = ({
                 minHeight: isMobile
                   ? "calc(0.9rem * 1.3 * 2)"
                   : "calc(1rem * 1.3 * 2)",
-                fontSize: isMobile ? "0.9rem" : "1rem",
               }}
               title={name}
             >
@@ -402,7 +401,6 @@ const ListingCard = ({
                 minHeight: isMobile
                   ? "calc(0.76rem * 1.45 * 2)"
                   : "calc(0.84rem * 1.45 * 2)",
-                fontSize: isMobile ? "0.76rem" : "0.84rem",
               }}
               title={description || "No description"}
             >
@@ -416,7 +414,6 @@ const ListingCard = ({
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                fontSize: isMobile ? "0.68rem" : "0.76rem",
                 lineHeight: 1.4,
                 display: "block",
                 maxWidth: "100%",
@@ -451,7 +448,6 @@ const ListingCard = ({
                   variant="caption"
                   color="text.secondary"
                   sx={{
-                    fontSize: isMobile ? "0.68rem" : "0.76rem",
                     fontWeight: 600,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -472,8 +468,8 @@ const ListingCard = ({
                   variant="outlined"
                   aria-label="Verified merchant"
                   sx={{
-                    height: 20,
-                    fontSize: "0.64rem",
+                    minHeight: 20,
+                    fontSize: "0.7rem",
                     fontWeight: 700,
                     "& .MuiChip-label": { px: 0.75 },
                   }}
@@ -498,7 +494,6 @@ const ListingCard = ({
                 sx={{
                   color: theme.palette.primary.main,
                   fontWeight: 800,
-                  fontSize: isMobile ? "0.92rem" : "1rem",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -518,12 +513,11 @@ const ListingCard = ({
                 <Typography
                   variant="caption"
                   sx={{
-                    color: stock < 5 ? "error.main" : "text.secondary",
-                    fontWeight: stock < 5 ? 700 : 600,
-                    fontSize: isMobile ? "0.68rem" : "0.74rem",
-                    flexShrink: 0,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
+                  color: stock < 5 ? "error.main" : "text.secondary",
+                  fontWeight: stock < 5 ? 700 : 600,
+                  flexShrink: 0,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
                     textOverflow: "ellipsis",
                     maxWidth: isMobile ? "42%" : "38%",
                   }}
@@ -562,7 +556,6 @@ const ListingCard = ({
                 flex: 1,
                 textTransform: "none",
                 fontWeight: 500,
-                fontSize: isMobile ? "0.7rem" : "0.875rem",
                 py: isMobile ? 0.5 : 0.75,
                 px: isMobile ? 0.75 : 1.5,
                 minWidth: isMobile ? 0 : "auto",
@@ -673,7 +666,6 @@ const ListingCard = ({
                   flex: 1,
                   textTransform: "none",
                   fontWeight: 600,
-                  fontSize: isMobile ? "0.75rem" : undefined,
                   py: isMobile ? 0.75 : undefined,
                   whiteSpace: "nowrap",
                   overflow: "hidden",

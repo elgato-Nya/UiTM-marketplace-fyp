@@ -48,6 +48,9 @@ const BrowseLayout = ({
       filters.category ||
       (filters.sort && filters.sort !== "-createdAt"),
   );
+  const resultAnnouncement = filters.search
+    ? `${pagination.totalListings || 0} ${browseLabel} found for search ${filters.search}.`
+    : `${pagination.totalListings || 0} ${browseLabel} found.`;
 
   const handleClearSearch = () => onFilterChange?.({ search: "" });
   const handleClearCategory = () => onFilterChange?.({ category: null });
@@ -81,6 +84,7 @@ const BrowseLayout = ({
 
       <Box
         sx={{
+          position: "relative",
           mb: 2,
           p: isMobile ? 1.25 : 1.5,
           borderRadius: 2,
@@ -89,6 +93,24 @@ const BrowseLayout = ({
           bgcolor: "background.paper",
         }}
       >
+        <Box
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          sx={{
+            position: "absolute",
+            width: 1,
+            height: 1,
+            p: 0,
+            m: -1,
+            overflow: "hidden",
+            clip: "rect(0, 0, 0, 0)",
+            whiteSpace: "nowrap",
+            border: 0,
+          }}
+        >
+          {resultAnnouncement}
+        </Box>
         <Stack
           direction={isMobile ? "column" : "row"}
           spacing={1}

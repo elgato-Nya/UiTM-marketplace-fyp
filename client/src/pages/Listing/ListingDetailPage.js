@@ -357,7 +357,6 @@ const ListingDetailPage = () => {
             component="h1"
             fontWeight="700"
             sx={{
-              fontSize: { xs: "1.5rem", md: "2rem" },
               lineHeight: 1.3,
               overflowWrap: "anywhere",
             }}
@@ -370,9 +369,6 @@ const ListingDetailPage = () => {
               variant="h3"
               fontWeight="700"
               color="success.main"
-              sx={{
-                fontSize: { xs: "1.75rem", md: "2.25rem" },
-              }}
             >
               FREE
             </Typography>
@@ -381,9 +377,6 @@ const ListingDetailPage = () => {
               variant="h3"
               fontWeight="700"
               color="primary.main"
-              sx={{
-                fontSize: { xs: "1.75rem", md: "2.25rem" },
-              }}
             >
               {getQuotePriceDisplay() || "Quote Required"}
             </Typography>
@@ -392,9 +385,6 @@ const ListingDetailPage = () => {
               variant="h3"
               fontWeight="700"
               color="primary.main"
-              sx={{
-                fontSize: { xs: "1.75rem", md: "2.25rem" },
-              }}
             >
               {getVariantPriceDisplay() || formatPrice(effectivePrice)}
             </Typography>
@@ -403,9 +393,6 @@ const ListingDetailPage = () => {
               variant="h3"
               fontWeight="700"
               color="primary.main"
-              sx={{
-                fontSize: { xs: "1.75rem", md: "2.25rem" },
-              }}
             >
               {formatPrice(effectivePrice)}
             </Typography>
@@ -417,7 +404,6 @@ const ListingDetailPage = () => {
             sx={{
               lineHeight: 1.6,
               whiteSpace: "pre-wrap",
-              fontSize: { xs: "0.875rem", md: "1rem" },
               overflowWrap: "anywhere",
               wordBreak: "break-word",
               minWidth: 0,
@@ -430,7 +416,6 @@ const ListingDetailPage = () => {
             variant="body2"
             color="text.secondary"
             sx={{
-              fontSize: { xs: "0.8125rem", md: "0.875rem" },
               overflowWrap: "anywhere",
             }}
           >
@@ -459,7 +444,6 @@ const ListingDetailPage = () => {
                 color="text.secondary"
                 sx={{
                   display: { xs: "block", sm: "none" },
-                  fontSize: { xs: "0.875rem", md: "0.9375rem" },
                   lineHeight: 1.5,
                   overflowWrap: "anywhere",
                   minWidth: 0,
@@ -489,7 +473,6 @@ const ListingDetailPage = () => {
                     disabled={!canBuyNow || isBuyingNow}
                     sx={{
                       py: 1.5,
-                      fontSize: { xs: "0.875rem", sm: "1rem" },
                       fontWeight: 600,
                       textTransform: "none",
                       width: { xs: "100%", sm: "auto" },
@@ -526,7 +509,6 @@ const ListingDetailPage = () => {
                       disabled={!canAddToCart}
                       sx={{
                         py: 1.5,
-                        fontSize: { xs: "0.875rem", sm: "1rem" },
                         fontWeight: 600,
                         textTransform: "none",
                         flex: 1,
@@ -613,7 +595,6 @@ const ListingDetailPage = () => {
                   sx={{
                     py: 1.5,
                     mt: isQuoteOnly ? 0 : 0.5,
-                    fontSize: { xs: "0.875rem", sm: "1rem" },
                     fontWeight: 600,
                     textTransform: "none",
                     width: "100%",
@@ -626,7 +607,7 @@ const ListingDetailPage = () => {
           ) : (
             <Alert
               severity="info"
-              sx={{ mb: 0, fontSize: { xs: "0.8125rem", md: "0.875rem" } }}
+              sx={{ mb: 0 }}
             >
               Please log in to{" "}
               {isQuoteOnly ? "request a quote" : "purchase this item"}.
@@ -642,7 +623,7 @@ const ListingDetailPage = () => {
             variant="h6"
             fontWeight="600"
             gutterBottom
-            sx={{ mb: 2, fontSize: { xs: "1rem", md: "1.25rem" } }}
+            sx={{ mb: 2 }}
           >
             Seller Information
           </Typography>
@@ -674,14 +655,13 @@ const ListingDetailPage = () => {
               <Typography
                 variant="h6"
                 fontWeight="600"
-                sx={{ fontSize: { xs: "1rem", md: "1.125rem" } }}
               >
                 {displayName}
               </Typography>
               <Typography
                 variant="body2"
                 color="text.secondary"
-                sx={{ mb: 1, fontSize: { xs: "0.8125rem", md: "0.875rem" } }}
+                sx={{ mb: 1 }}
               >
                 @{username}
               </Typography>
@@ -712,7 +692,6 @@ const ListingDetailPage = () => {
                       minWidth: { xs: 0, sm: 150 },
                       width: { xs: "100%", sm: "auto" },
                       textTransform: "none",
-                      fontSize: { xs: "0.875rem", md: "1rem" },
                     }}
                   >
                     {chatLoading === "start" ? "Opening..." : "Message Seller"}
@@ -726,7 +705,6 @@ const ListingDetailPage = () => {
                     minWidth: { xs: 0, sm: 150 },
                     width: { xs: "100%", sm: "auto" },
                     textTransform: "none",
-                    fontSize: { xs: "0.875rem", md: "1rem" },
                   }}
                 >
                   Visit Shop

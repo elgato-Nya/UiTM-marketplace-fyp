@@ -77,17 +77,17 @@ function createAppTheme(mode, fontSize, highContrast) {
       main: isAccessible
         ? "#000000"
         : isDark
-          ? colors.primary[700]
+          ? "#7C3AED"
           : colors.primary[500],
       light: isAccessible
         ? "#333333"
         : isDark
-          ? colors.primary[600]
+          ? "#A78BFA"
           : colors.primary[400],
       dark: isAccessible
         ? "#000000"
         : isDark
-          ? colors.primary[900]
+          ? "#5B21B6"
           : colors.primary[600],
       contrastText: isAccessible ? "#FFFFFF" : "#FFFFFF",
     },
@@ -128,27 +128,49 @@ function createAppTheme(mode, fontSize, highContrast) {
       contrastText: isAccessible ? "#000000" : "#000000",
     },
     background: {
-      default: isAccessible ? "#FFFFFF" : isDark ? "#141313ff" : "#fafafaff",
-      paper: isAccessible ? "#FFFFFF" : isDark ? "#1E1E1E" : "#FFFFFF",
-      bold: isAccessible ? "#E0E0E0" : isDark ? "#0A0A0A" : "#F5F5F5",
+      default: isAccessible ? "#FFFFFF" : isDark ? "#0F1115" : "#fafafaff",
+      paper: isAccessible ? "#FFFFFF" : isDark ? "#171A21" : "#FFFFFF",
+      bold: isAccessible ? "#E0E0E0" : isDark ? "#1D2330" : "#F5F5F5",
+      elevated: isAccessible ? "#E0E0E0" : isDark ? "#1D2330" : "#F5F5F5",
     },
     text: {
-      primary: isAccessible ? "#000000" : isDark ? "#FFFFFF" : "#212121",
-      secondary: isAccessible ? "#000000" : isDark ? "#B3B3B3" : "#757575",
+      primary: isAccessible ? "#000000" : isDark ? "#F5F7FB" : "#212121",
+      secondary: isAccessible ? "#000000" : isDark ? "#A7B0C0" : "#757575",
       disabled: isAccessible ? "#666666" : isDark ? "#666666" : "#BDBDBD",
     },
-    divider: isAccessible ? "#000000" : isDark ? "#333333" : "#E0E0E0",
+    divider: isAccessible ? "#000000" : isDark ? "#2A3140" : "#E0E0E0",
+    action: {
+      hover: isAccessible
+        ? "rgba(0, 0, 0, 0.08)"
+        : isDark
+          ? "rgba(255, 255, 255, 0.04)"
+          : "rgba(0, 0, 0, 0.04)",
+      disabled: isAccessible
+        ? "rgba(0, 0, 0, 0.6)"
+        : isDark
+          ? "rgba(255, 255, 255, 0.38)"
+          : "rgba(0, 0, 0, 0.26)",
+      disabledBackground: isAccessible
+        ? "rgba(0, 0, 0, 0.12)"
+        : isDark
+          ? "rgba(255, 255, 255, 0.10)"
+          : "rgba(0, 0, 0, 0.12)",
+    },
     success: {
-      main: isAccessible ? "#000000" : isDark ? "#4CAF50" : "#2E7D32",
+      main: isAccessible ? "#0B6E2E" : isDark ? "#4CAF50" : "#2E7D32",
+      contrastText: isAccessible ? "#FFFFFF" : "#FFFFFF",
     },
     warning: {
-      main: isAccessible ? "#000000" : isDark ? "#FF9800" : "#ED6C02",
+      main: isAccessible ? "#8A5A00" : isDark ? "#FF9800" : "#ED6C02",
+      contrastText: isAccessible ? "#FFFFFF" : "#FFFFFF",
     },
     error: {
-      main: isAccessible ? "#000000" : isDark ? "#F44336" : "#D32F2F",
+      main: isAccessible ? "#B00020" : isDark ? "#F44336" : "#D32F2F",
+      contrastText: isAccessible ? "#FFFFFF" : "#FFFFFF",
     },
     info: {
-      main: isAccessible ? "#000000" : isDark ? "#2196F3" : "#0288d1ff",
+      main: isAccessible ? "#005A9C" : isDark ? "#2196F3" : "#0288d1ff",
+      contrastText: isAccessible ? "#FFFFFF" : "#FFFFFF",
     },
   };
 

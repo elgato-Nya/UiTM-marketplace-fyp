@@ -188,21 +188,20 @@ const ListingFilters = ({
                     py: 0.5,
                     textTransform: "none",
                     fontWeight: 600,
-                    fontSize: "0.75rem",
                     transition: "all 0.2s ease",
                     color: theme.palette.text.secondary,
                     flex: 1,
                     minWidth: 0,
                     "&.Mui-selected": {
                       bgcolor: theme.palette.primary.main,
-                      color: "white",
+                      color: theme.palette.primary.contrastText,
                       borderColor: `${theme.palette.primary.main} !important`,
                       "&:hover": {
                         bgcolor: theme.palette.primary.dark,
                       },
                     },
                     "&:hover:not(.Mui-selected)": {
-                      bgcolor: `${theme.palette.primary.main}10`,
+                      bgcolor: "action.hover",
                     },
                   },
                 }}
@@ -257,20 +256,19 @@ const ListingFilters = ({
                       py: 1,
                       textTransform: "none",
                       fontWeight: 600,
-                      fontSize: "0.875rem",
                       transition: "all 0.2s ease",
                       color: theme.palette.text.secondary,
                       minWidth: "auto",
                       "&.Mui-selected": {
                         bgcolor: theme.palette.primary.main,
-                        color: "white",
+                        color: theme.palette.primary.contrastText,
                         borderColor: `${theme.palette.primary.main} !important`,
                         "&:hover": {
                           bgcolor: theme.palette.primary.dark,
                         },
                       },
                       "&:hover:not(.Mui-selected)": {
-                        bgcolor: `${theme.palette.primary.main}10`,
+                        bgcolor: "action.hover",
                       },
                     },
                   }}
@@ -300,7 +298,6 @@ const ListingFilters = ({
                   sx={{
                     minWidth: 100,
                     px: 2,
-                    fontSize: "0.875rem",
                   }}
                 >
                   Reset
@@ -316,7 +313,6 @@ const ListingFilters = ({
               sx={{
                 display: "block",
                 mb: 0.75,
-                fontSize: isMobile ? "0.72rem" : "0.78rem",
                 fontWeight: 700,
                 letterSpacing: "0.04em",
                 textTransform: "uppercase",

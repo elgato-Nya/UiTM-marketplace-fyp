@@ -132,30 +132,8 @@ const ListingDetailPage = () => {
     return hasVariants ? variants.filter((v) => v.isAvailable !== false) : [];
   }, [hasVariants, variants]);
 
-  // Calculate price range for variants - always call useMemo
-  const priceRange = useMemo(() => {
-    if (!hasVariants || availableVariants.length === 0) {
-      return null;
-    }
-
-    const prices = availableVariants
-      .map((v) => Number(v.price) || 0)
-      .filter((p) => p > 0);
-    if (prices.length === 0) return null;
-
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-
-    return minPrice === maxPrice ? null : { min: minPrice, max: maxPrice };
-  }, [hasVariants, availableVariants]);
-
-  // Determine effective price and stock based on variant selection
+  // Determine effective price based on variant selection
   const effectivePrice = selectedVariant ? selectedVariant.price : price;
-  const effectiveStock = selectedVariant
-    ? selectedVariant.stock
-    : hasVariants
-      ? availableVariants.reduce((sum, v) => sum + (v.stock || 0), 0)
-      : stock;
 
   // Early returns after all hooks
   if (isLoading) {
@@ -214,15 +192,18 @@ const ListingDetailPage = () => {
       ? availableVariants.length > 0 // Can open dialog if there are available variants
       : isAvailable && (type === "service" || stock > 0);
 
-  // For Buy Now, if listing has variants, we need to open a modal for selection
+  // Buy Now opens dialog flow for both variant and non-variant listings
   // Quote-only listings cannot use Buy Now
   const canBuyNow = isQuoteOnly
     ? false
     : hasVariants
-      ? selectedVariant &&
-        selectedVariant.isAvailable !== false &&
-        (type === "service" || selectedVariant.stock > 0)
+      ? availableVariants.length > 0
       : isAvailable && (type === "service" || stock > 0);
+
+  const listingTypeLabel = type === "product" ? "Product" : "Service";
+  const mobileVariantGuidance = hasVariants
+    ? "Options available. Select when buying or adding to cart."
+    : null;
 
   // Get price display text for quote-based listings
   const getQuotePriceDisplay = () => {
@@ -277,36 +258,9 @@ const ListingDetailPage = () => {
     return `RM ${parts.join(".")}`;
   };
 
-  const handleBuyNow = async () => {
-    // If listing has variants, open modal for selection
-    if (hasVariants && !selectedVariant) {
-      setBuyNowDialogOpen(true);
-      return;
-    }
-
-    setIsBuyingNow(true);
-    try {
-      // For services, quantity is 1; for products, default to 1
-      const quantity = 1;
-
-      // Create checkout session for direct purchase
-      const sessionData = { listingId, quantity };
-      if (selectedVariant) {
-        sessionData.variantId = selectedVariant._id;
-      }
-
-      const result = await dispatch(
-        createSessionFromListing(sessionData),
-      ).unwrap();
-
-      // Navigate to checkout page
-      navigate(ROUTES.CHECKOUT.INDEX);
-      success("Redirecting to checkout...");
-    } catch (error) {
-      showError(error.message || "Failed to start checkout. Please try again.");
-    } finally {
-      setIsBuyingNow(false);
-    }
+  const handleBuyNow = () => {
+    if (!canBuyNow) return;
+    setBuyNowDialogOpen(true);
   };
 
   const handleAddToCartClick = () => {
@@ -325,10 +279,6 @@ const ListingDetailPage = () => {
     } catch (error) {
       showError(error.message || "Failed to update wishlist");
     }
-  };
-
-  const handleViewCart = () => {
-    navigate(ROUTES.CART);
   };
 
   const handleViewShop = () => {
@@ -393,14 +343,20 @@ const ListingDetailPage = () => {
         </Box>
 
         {/* Product Information */}
-        <Box sx={{ width: "100%", minWidth: 0 }}>
-          {/* Title */}
+        <Box
+          sx={{
+            width: "100%",
+            minWidth: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: { xs: 2, md: 2.5 },
+          }}
+        >
           <Typography
             variant="h4"
             component="h1"
             fontWeight="700"
             sx={{
-              mb: 1.5,
               fontSize: { xs: "1.5rem", md: "2rem" },
               lineHeight: 1.3,
               overflowWrap: "anywhere",
@@ -409,12 +365,56 @@ const ListingDetailPage = () => {
             {name}
           </Typography>
 
-          {/* Description */}
+          {isFree ? (
+            <Typography
+              variant="h3"
+              fontWeight="700"
+              color="success.main"
+              sx={{
+                fontSize: { xs: "1.75rem", md: "2.25rem" },
+              }}
+            >
+              FREE
+            </Typography>
+          ) : isQuoteOnly ? (
+            <Typography
+              variant="h3"
+              fontWeight="700"
+              color="primary.main"
+              sx={{
+                fontSize: { xs: "1.75rem", md: "2.25rem" },
+              }}
+            >
+              {getQuotePriceDisplay() || "Quote Required"}
+            </Typography>
+          ) : hasVariants && !selectedVariant ? (
+            <Typography
+              variant="h3"
+              fontWeight="700"
+              color="primary.main"
+              sx={{
+                fontSize: { xs: "1.75rem", md: "2.25rem" },
+              }}
+            >
+              {getVariantPriceDisplay() || formatPrice(effectivePrice)}
+            </Typography>
+          ) : (
+            <Typography
+              variant="h3"
+              fontWeight="700"
+              color="primary.main"
+              sx={{
+                fontSize: { xs: "1.75rem", md: "2.25rem" },
+              }}
+            >
+              {formatPrice(effectivePrice)}
+            </Typography>
+          )}
+
           <Typography
             variant="body1"
             color="text.secondary"
             sx={{
-              mb: 2,
               lineHeight: 1.6,
               whiteSpace: "pre-wrap",
               fontSize: { xs: "0.875rem", md: "1rem" },
@@ -426,141 +426,67 @@ const ListingDetailPage = () => {
             {description}
           </Typography>
 
-          {/* Price */}
-          {isFree ? (
-            <Typography
-              variant="h3"
-              fontWeight="700"
-              color="success.main"
-              sx={{
-                mb: 2,
-                fontSize: { xs: "1.75rem", md: "2.25rem" },
-              }}
-            >
-              FREE
-            </Typography>
-          ) : isQuoteOnly ? (
-            // Quote-only pricing display
-            <Typography
-              variant="h3"
-              fontWeight="700"
-              color="primary.main"
-              sx={{
-                mb: 2,
-                fontSize: { xs: "1.75rem", md: "2.25rem" },
-              }}
-            >
-              {getQuotePriceDisplay() || "Quote Required"}
-            </Typography>
-          ) : hasVariants && !selectedVariant ? (
-            // Variant price range display
-            <Typography
-              variant="h3"
-              fontWeight="700"
-              color="primary.main"
-              sx={{
-                mb: 2,
-                fontSize: { xs: "1.75rem", md: "2.25rem" },
-              }}
-            >
-              {getVariantPriceDisplay() || formatPrice(effectivePrice)}
-            </Typography>
-          ) : (
-            // Regular price display
-            <Typography
-              variant="h3"
-              fontWeight="700"
-              color="primary.main"
-              sx={{
-                mb: 2,
-                fontSize: { xs: "1.75rem", md: "2.25rem" },
-              }}
-            >
-              {formatPrice(effectivePrice)}
-              {hasVariants && !selectedVariant && (
-                <Typography
-                  component="span"
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ ml: 1, fontWeight: 400 }}
-                >
-                  (select variant)
-                </Typography>
-              )}
-            </Typography>
-          )}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              fontSize: { xs: "0.8125rem", md: "0.875rem" },
+              overflowWrap: "anywhere",
+            }}
+          >
+            {CATEGORY_LABELS[category] || category} - {listingTypeLabel}
+          </Typography>
 
-          {/* Variant Selector */}
           {hasVariants && (
-            <Box sx={{ mb: 2 }}>
-              <Typography
-                variant="subtitle2"
-                color="text.secondary"
-                sx={{ mb: 1.5, fontWeight: 600, overflowWrap: "anywhere" }}
-              >
-                Select Variant ({availableVariants.length} available)
-              </Typography>
-              <VariantAttributeSelector
-                variants={variants}
-                selectedVariant={selectedVariant}
-                onVariantSelect={(variant) => setSelectedVariant(variant)}
-              />
-            </Box>
-          )}
+            <>
+              <Box sx={{ display: { xs: "none", sm: "block" }, minWidth: 0 }}>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  sx={{ mb: 1.5, fontWeight: 600, overflowWrap: "anywhere" }}
+                >
+                  Select Variant ({availableVariants.length} available)
+                </Typography>
+                <VariantAttributeSelector
+                  variants={variants}
+                  selectedVariant={selectedVariant}
+                  onVariantSelect={(variant) => setSelectedVariant(variant)}
+                />
+              </Box>
 
-          {/* Stock Status for Products */}
-          {type === "product" && !hasVariants && (
-            <Box sx={{ mb: 2, mt: 2 }}>
               <Typography
                 variant="body2"
-                fontWeight="500"
-                color={
-                  stock > 0 && stock <= 5 ? "error.main" : "text.secondary"
-                }
-                sx={{ fontSize: { xs: "0.875rem", md: "1rem" } }}
+                color="text.secondary"
+                sx={{
+                  display: { xs: "block", sm: "none" },
+                  fontSize: { xs: "0.875rem", md: "0.9375rem" },
+                  lineHeight: 1.5,
+                  overflowWrap: "anywhere",
+                  minWidth: 0,
+                }}
               >
-                {stock > 0 ? `${stock} in stock` : "Out of stock"}
+                {mobileVariantGuidance}
               </Typography>
-            </Box>
+            </>
           )}
 
-          {/* Category & Type */}
-          <Box sx={{ mb: 2 }}>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{
-                fontSize: { xs: "0.8125rem", md: "0.875rem" },
-                overflowWrap: "anywhere",
-              }}
-            >
-              {CATEGORY_LABELS[category] || category} -{" "}
-              {type === "product" ? "Product" : "Service"}
-            </Typography>
-          </Box>
-
-          {/* Action Buttons */}
           {isAuthenticated ? (
             <>
-              {/* Show cart/buy buttons only if NOT quote-only */}
               {!isQuoteOnly && (
                 <Box
                   sx={{
                     display: "flex",
                     flexDirection: { xs: "column", sm: "row" },
                     gap: 1.5,
-                    mt: 3,
-                    mb: 0,
                     width: "100%",
                     minWidth: 0,
                   }}
-                  >
-                  {/* Buy Now - For variants, opens modal if no variant selected */}
+                >
                   <Button
                     variant="contained"
                     size="large"
                     onClick={handleBuyNow}
-                    disabled={!canAddToCart || isBuyingNow}
+                    disabled={!canBuyNow || isBuyingNow}
                     sx={{
                       py: 1.5,
                       fontSize: { xs: "0.875rem", sm: "1rem" },
@@ -576,10 +502,8 @@ const ListingDetailPage = () => {
                         <CircularProgress size={20} sx={{ mr: 1 }} />
                         Processing...
                       </>
-                    ) : !canAddToCart ? (
+                    ) : !canBuyNow ? (
                       "Unavailable"
-                    ) : hasVariants && !selectedVariant ? (
-                      "Buy Now"
                     ) : (
                       "Buy Now"
                     )}
@@ -595,7 +519,6 @@ const ListingDetailPage = () => {
                       minWidth: 0,
                     }}
                   >
-                    {/* Add to Cart - For variants, opens modal for selection */}
                     <Button
                       variant="outlined"
                       size="large"
@@ -614,7 +537,6 @@ const ListingDetailPage = () => {
                       Add to Cart
                     </Button>
 
-                    {/* Wishlist - Icon Only */}
                     <Tooltip
                       title={
                         inWishlist ? "Remove from wishlist" : "Add to wishlist"
@@ -648,14 +570,11 @@ const ListingDetailPage = () => {
                 </Box>
               )}
 
-              {/* Quote-only: Show only wishlist button if not showing buy/cart buttons */}
               {isQuoteOnly && (
                 <Box
                   sx={{
                     display: "flex",
                     gap: 1.5,
-                    mt: 3,
-                    mb: 0,
                     width: "100%",
                   }}
                 >
@@ -684,7 +603,6 @@ const ListingDetailPage = () => {
                 </Box>
               )}
 
-              {/* Quote Request Button - For services with quote settings */}
               {hasQuoteSettings && (
                 <Button
                   variant={isQuoteOnly ? "contained" : "outlined"}
@@ -694,7 +612,7 @@ const ListingDetailPage = () => {
                   startIcon={<QuoteIcon />}
                   sx={{
                     py: 1.5,
-                    mt: 2,
+                    mt: isQuoteOnly ? 0 : 0.5,
                     fontSize: { xs: "0.875rem", sm: "1rem" },
                     fontWeight: 600,
                     textTransform: "none",
@@ -827,36 +745,38 @@ const ListingDetailPage = () => {
         selectedVariant={hasVariants ? selectedVariant : null}
       />
 
-      {/* Buy Now Dialog - for variant selection before checkout */}
-      {hasVariants && (
-        <BuyNowDialog
-          open={buyNowDialogOpen}
-          onClose={() => setBuyNowDialogOpen(false)}
-          listing={currentListing}
-          selectedVariant={selectedVariant}
-          onBuyNow={async (variant) => {
-            setBuyNowDialogOpen(false);
+      {/* Buy Now Dialog - confirmation flow before checkout */}
+      <BuyNowDialog
+        open={buyNowDialogOpen}
+        onClose={() => setBuyNowDialogOpen(false)}
+        listing={currentListing}
+        selectedVariant={hasVariants ? selectedVariant : null}
+        onBuyNow={async (variant, quantity = 1) => {
+          setBuyNowDialogOpen(false);
+          if (variant) {
             setSelectedVariant(variant);
-            setIsBuyingNow(true);
-            try {
-              const sessionData = {
-                listingId,
-                quantity: 1,
-                variantId: variant._id,
-              };
-              await dispatch(createSessionFromListing(sessionData)).unwrap();
-              navigate(ROUTES.CHECKOUT.INDEX);
-              success("Redirecting to checkout...");
-            } catch (error) {
-              showError(
-                error.message || "Failed to start checkout. Please try again.",
-              );
-            } finally {
-              setIsBuyingNow(false);
+          }
+          setIsBuyingNow(true);
+          try {
+            const sessionData = {
+              listingId,
+              quantity,
+            };
+            if (variant?._id) {
+              sessionData.variantId = variant._id;
             }
-          }}
-        />
-      )}
+            await dispatch(createSessionFromListing(sessionData)).unwrap();
+            navigate(ROUTES.CHECKOUT.INDEX);
+            success("Redirecting to checkout...");
+          } catch (error) {
+            showError(
+              error.message || "Failed to start checkout. Please try again.",
+            );
+          } finally {
+            setIsBuyingNow(false);
+          }
+        }}
+      />
 
       {/* Quote Request Dialog */}
       {hasQuoteSettings && (

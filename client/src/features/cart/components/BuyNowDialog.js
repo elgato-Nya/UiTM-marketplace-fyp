@@ -8,9 +8,9 @@ import {
   Typography,
   Button,
   IconButton,
+  ButtonGroup,
   Divider,
   Chip,
-  Alert,
   CircularProgress,
   alpha,
 } from "@mui/material";
@@ -18,6 +18,8 @@ import {
   Close as CloseIcon,
   ShoppingBag as BuyNowIcon,
   CheckCircle as CheckIcon,
+  Add as AddIcon,
+  Remove as RemoveIcon,
 } from "@mui/icons-material";
 
 import VariantAttributeSelector from "../../listing/components/variants/VariantAttributeSelector";
@@ -43,9 +45,11 @@ const BuyNowDialog = ({
 }) => {
   const [internalSelectedVariant, setInternalSelectedVariant] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [quantity, setQuantity] = useState(1);
 
   // Destructure listing properties
-  const { name, price, images, variants = [] } = listing || {};
+  const { name, price, images, variants = [], type, stock, isAvailable } =
+    listing || {};
 
   // Check if listing has variants with attributes
   const hasVariants = variants && variants.length > 0;
@@ -64,6 +68,7 @@ const BuyNowDialog = ({
     if (open) {
       setInternalSelectedVariant(initialSelectedVariant);
       setLoading(false);
+      setQuantity(1);
     } else {
       setInternalSelectedVariant(null);
     }
@@ -71,6 +76,26 @@ const BuyNowDialog = ({
 
   // Determine effective price based on variant
   const effectivePrice = selectedVariant ? selectedVariant.price : price;
+  const effectiveStock = selectedVariant ? selectedVariant.stock : stock;
+  const isService = type === "service";
+  const selectionLabel = selectedVariant
+    ? selectedVariant.attributes
+      ? Object.values(selectedVariant.attributes).join(" - ")
+      : selectedVariant.name
+    : null;
+  const selectedStatusLabel = selectedVariant
+    ? selectedVariant.isAvailable === false
+      ? "Unavailable"
+      : "Ready to buy"
+    : hasVariants
+      ? "Options required"
+      : isService
+        ? isAvailable
+          ? "Ready to buy"
+          : "Unavailable"
+        : isAvailable && stock > 0
+          ? `${stock} in stock`
+          : "Unavailable";
 
   // Get display image
   const displayImage = useMemo(() => {
@@ -83,19 +108,34 @@ const BuyNowDialog = ({
 
   // Check if can proceed
   const canProceed = hasVariants
-    ? selectedVariant && selectedVariant.isAvailable !== false
-    : true;
+    ? selectedVariant &&
+      selectedVariant.isAvailable !== false &&
+      (isService || selectedVariant.stock > 0)
+    : isAvailable && (isService || stock > 0);
+  const maxStock = effectiveStock || 0;
+  const showQuantityControls =
+    !isService && (!hasVariants || Boolean(selectedVariant));
 
   // ========== Event Handlers ==========
 
   const handleClose = () => {
     setInternalSelectedVariant(null);
     setLoading(false);
+    setQuantity(1);
     onClose();
   };
 
   const handleVariantSelect = (variant) => {
     setInternalSelectedVariant(variant);
+    setQuantity(1);
+  };
+
+  const handleDecrease = () => {
+    if (quantity > 1) setQuantity(quantity - 1);
+  };
+
+  const handleIncrease = () => {
+    if (isService || quantity < maxStock) setQuantity(quantity + 1);
   };
 
   const handleBuyNow = async () => {
@@ -103,7 +143,7 @@ const BuyNowDialog = ({
 
     setLoading(true);
     try {
-      await onBuyNow(selectedVariant);
+      await onBuyNow(selectedVariant, isService ? 1 : quantity);
     } catch (error) {
       setLoading(false);
     }
@@ -118,38 +158,79 @@ const BuyNowDialog = ({
 
   if (!listing) return null;
 
+  const totalPrice = (effectivePrice * quantity).toFixed(2);
+
   return (
     <Dialog
       open={open}
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
+      aria-labelledby="buy-now-dialog-title"
       slotProps={{
         paper: {
           sx: {
-            borderRadius: 2,
-            maxWidth: { xs: "calc(100% - 32px)", sm: 560 },
+            borderRadius: { xs: 3, sm: 4 },
+            maxWidth: { xs: "calc(100% - 20px)", sm: 580 },
+            maxHeight: {
+              xs: "min(680px, calc(100dvh - 20px))",
+              sm: "min(720px, calc(100dvh - 40px))",
+            },
           },
         },
       }}
     >
       {/* Header */}
       <DialogTitle
+        id="buy-now-dialog-title"
         sx={{
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-start",
           justifyContent: "space-between",
-          py: { xs: 1.5, sm: 2 },
+          py: { xs: 1.25, sm: 1.5 },
           px: { xs: 2, sm: 3 },
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <BuyNowIcon color="primary" fontSize="small" />
-          <Typography variant="subtitle1" fontWeight={600}>
-            Buy Now
-          </Typography>
+        <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.25 }}>
+          <Box
+            sx={{
+              width: 32,
+              height: 32,
+              borderRadius: 1.5,
+              display: "grid",
+              placeItems: "center",
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+              color: "primary.main",
+              flexShrink: 0,
+            }}
+          >
+            <BuyNowIcon fontSize="small" />
+          </Box>
+          <Box>
+            <Typography
+              variant="subtitle1"
+              fontWeight={700}
+              sx={{ lineHeight: 1.2 }}
+            >
+              Buy Now
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mt: 0.25, display: "block" }}
+            >
+              {hasVariants
+                ? "Select options and continue."
+                : "Review and continue to checkout."}
+            </Typography>
+          </Box>
         </Box>
-        <IconButton onClick={handleClose} size="small">
+        <IconButton
+          onClick={handleClose}
+          size="small"
+          aria-label="Close buy now dialog"
+          sx={{ mt: -0.25, mr: -0.5 }}
+        >
           <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
@@ -158,17 +239,17 @@ const BuyNowDialog = ({
 
       <DialogContent
         sx={{
-          pt: { xs: 2, sm: 3 },
-          pb: { xs: 1, sm: 2 },
+          pt: { xs: 1.5, sm: 2 },
+          pb: { xs: 1, sm: 1.5 },
           px: { xs: 2, sm: 3 },
         }}
       >
-        {/* Product Info - Compact */}
         <Box
           sx={{
             display: "flex",
             gap: { xs: 1.5, sm: 2 },
-            mb: { xs: 2, sm: 3 },
+            mb: { xs: 1.5, sm: 2 },
+            alignItems: "flex-start",
           }}
         >
           {displayImage && (
@@ -177,28 +258,42 @@ const BuyNowDialog = ({
               src={displayImage}
               alt={name}
               sx={{
-                width: { xs: 72, sm: 96 },
-                height: { xs: 72, sm: 96 },
+                width: { xs: 60, sm: 72 },
+                height: { xs: 60, sm: 72 },
                 objectFit: "cover",
                 borderRadius: 1.5,
                 border: "1px solid",
                 borderColor: "divider",
+                flexShrink: 0,
               }}
             />
           )}
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
               variant="body2"
-              fontWeight={600}
+              color="text.secondary"
+              sx={{
+                mb: 0.5,
+                textTransform: "uppercase",
+                letterSpacing: 0.6,
+                fontSize: "0.72rem",
+                fontWeight: 700,
+              }}
+            >
+              Checkout item
+            </Typography>
+            <Typography
+              variant="subtitle1"
+              fontWeight={700}
               sx={{
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 display: "-webkit-box",
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: "vertical",
-                lineHeight: 1.4,
-                mb: 0.75,
-                fontSize: { xs: "0.875rem", sm: "1rem" },
+                lineHeight: 1.35,
+                mb: 0.4,
+                fontSize: { xs: "0.9rem", sm: "0.975rem" },
               }}
             >
               {name}
@@ -206,35 +301,95 @@ const BuyNowDialog = ({
             <Typography
               variant="subtitle1"
               color="primary"
-              fontWeight={700}
-              sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}
+              fontWeight={800}
+              sx={{ fontSize: { xs: "1rem", sm: "1.15rem" } }}
             >
               {formatPrice(effectivePrice)}
             </Typography>
-            {selectedVariant && (
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.6, mt: 0.75 }}>
               <Chip
-                label={
-                  selectedVariant.attributes
-                    ? Object.values(selectedVariant.attributes).join(" - ")
-                    : selectedVariant.name
-                }
+                label={selectedStatusLabel}
+                size="small"
+                sx={{
+                  height: 24,
+                  borderRadius: 999,
+                  bgcolor: (theme) => alpha(theme.palette.background.default, 0.5),
+                  border: "1px solid",
+                  borderColor: "divider",
+                  "& .MuiChip-label": {
+                    px: 0.9,
+                    fontSize: "0.72rem",
+                  },
+                }}
+              />
+              <Chip
+                label="Immediate checkout"
+                size="small"
+                sx={{
+                  height: 24,
+                  borderRadius: 999,
+                  bgcolor: (theme) => alpha(theme.palette.background.default, 0.5),
+                  border: "1px solid",
+                  borderColor: "divider",
+                  "& .MuiChip-label": {
+                    px: 0.9,
+                    fontSize: "0.72rem",
+                  },
+                }}
+              />
+            </Box>
+            {selectionLabel && (
+              <Chip
+                label={selectionLabel}
                 size="small"
                 color="primary"
                 variant="outlined"
                 icon={<CheckIcon sx={{ fontSize: 14 }} />}
-                sx={{ mt: 0.75, height: 24, fontSize: "0.75rem" }}
+                sx={{
+                  mt: 0.75,
+                  height: "auto",
+                  minHeight: 24,
+                  maxWidth: "100%",
+                  "& .MuiChip-label": {
+                    display: "block",
+                    whiteSpace: "normal",
+                    py: 0.25,
+                    fontSize: "0.72rem",
+                  },
+                }}
               />
             )}
           </Box>
         </Box>
 
-        {/* Attribute-based Variant Selector */}
         {hasAttributeVariants && (
-          <Box sx={{ mb: { xs: 2, sm: 2.5 } }}>
+          <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
+            <Typography
+              variant="subtitle2"
+              fontWeight={700}
+              sx={{ mb: 0.25, fontSize: { xs: "0.9rem", sm: "0.95rem" } }}
+            >
+              Choose options
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mb: 1, display: "block" }}
+            >
+              Select the option you want before continuing to checkout.
+            </Typography>
             {!selectedVariant && (
-              <Alert severity="info" sx={{ mb: 1.5, py: 0.5 }} icon={false}>
-                <Typography variant="caption">Select options below</Typography>
-              </Alert>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{
+                  mb: 1,
+                  display: "block",
+                  fontWeight: 600,
+                }}
+              >
+                Options are required before you can continue.
+              </Typography>
             )}
             <VariantAttributeSelector
               variants={variants}
@@ -245,18 +400,23 @@ const BuyNowDialog = ({
           </Box>
         )}
 
-        {/* Simple variant list (for variants without attributes) */}
         {hasVariants && !hasAttributeVariants && (
-          <Box sx={{ mb: { xs: 2, sm: 2.5 } }}>
+          <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
+            <Typography
+              variant="subtitle2"
+              fontWeight={700}
+              sx={{ mb: 0.25, fontSize: { xs: "0.9rem", sm: "0.95rem" } }}
+            >
+              Choose a variant
+            </Typography>
             <Typography
               variant="caption"
               color="text.secondary"
-              fontWeight={600}
               sx={{ mb: 1, display: "block" }}
             >
-              Select Variant
+              Pick one option to continue immediately.
             </Typography>
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
               {variants.map((variant) => {
                 const isSelected = variant._id === selectedVariant?._id;
                 const isDisabled = variant.isAvailable === false;
@@ -269,12 +429,19 @@ const BuyNowDialog = ({
                     sx={{
                       cursor: isDisabled ? "not-allowed" : "pointer",
                       opacity: isDisabled ? 0.4 : 1,
-                      fontWeight: isSelected ? 600 : 400,
+                      fontWeight: isSelected ? 700 : 500,
+                      minHeight: 30,
+                      borderRadius: 999,
                       border: "1.5px solid",
                       borderColor: isSelected ? "primary.main" : "divider",
                       bgcolor: isSelected
                         ? (t) => alpha(t.palette.primary.main, 0.12)
                         : "transparent",
+                      color: isSelected ? "primary.main" : "text.primary",
+                      "& .MuiChip-label": {
+                        px: 1,
+                        fontSize: "0.76rem",
+                      },
                     }}
                   />
                 );
@@ -283,14 +450,53 @@ const BuyNowDialog = ({
           </Box>
         )}
 
-        {/* Price Summary - Compact */}
+        {showQuantityControls && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              py: 1.5,
+              px: { xs: 1.5, sm: 2 },
+              bgcolor: "action.hover",
+              borderRadius: 1.5,
+              mb: 1.5,
+              gap: 1.5,
+            }}
+          >
+            <Box>
+              <Typography variant="body2" fontWeight={700}>
+                Quantity
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {maxStock > 0 ? `${maxStock} available` : "Out of stock"}
+              </Typography>
+            </Box>
+            <ButtonGroup variant="outlined" size="small">
+              <Button
+                onClick={handleDecrease}
+                disabled={quantity <= 1 || loading}
+                sx={{ minWidth: 36, borderRadius: 1.5 }}
+              >
+                <RemoveIcon fontSize="small" />
+              </Button>
+              <Button disabled sx={{ minWidth: 44, fontWeight: 700 }}>
+                {quantity}
+              </Button>
+              <Button
+                onClick={handleIncrease}
+                disabled={quantity >= maxStock || loading}
+                sx={{ minWidth: 36, borderRadius: 1.5 }}
+              >
+                <AddIcon fontSize="small" />
+              </Button>
+            </ButtonGroup>
+          </Box>
+        )}
+
         <Box
           sx={{
-            p: { xs: 1.5, sm: 2 },
-            bgcolor: (t) => alpha(t.palette.primary.main, 0.04),
-            borderRadius: 1.5,
-            border: "1px solid",
-            borderColor: "divider",
+            py: 0.5,
           }}
         >
           <Box
@@ -298,54 +504,51 @@ const BuyNowDialog = ({
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              gap: 1.5,
             }}
           >
-            <Typography
-              variant="body2"
-              fontWeight={600}
-              sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
-            >
+            <Typography variant="body2" fontWeight={700}>
               Total
             </Typography>
             <Typography
               variant="h6"
               color="primary"
-              fontWeight={700}
-              sx={{ fontSize: { xs: "1.25rem", sm: "1.5rem" } }}
+              fontWeight={800}
+              sx={{ fontSize: { xs: "1.1rem", sm: "1.2rem" } }}
             >
-              {formatPrice(effectivePrice)}
+              RM{isService ? effectivePrice.toFixed(2) : totalPrice}
             </Typography>
           </Box>
         </Box>
       </DialogContent>
 
-      {/* Actions */}
       <DialogActions
         sx={{
           px: { xs: 2, sm: 3 },
           pb: { xs: 2, sm: 2.5 },
-          pt: { xs: 1, sm: 1.5 },
-          gap: { xs: 1, sm: 1.5 },
+          pt: { xs: 0.75, sm: 1 },
         }}
       >
         <Button
-          onClick={handleClose}
-          variant="outlined"
-          size="medium"
-          sx={{ flex: 1, py: { xs: 0.75, sm: 1 } }}
-          disabled={loading}
-        >
-          Cancel
-        </Button>
-        <Button
           onClick={handleBuyNow}
           variant="contained"
-          size="medium"
-          sx={{ flex: 2, py: { xs: 0.75, sm: 1 } }}
+          size="large"
+          sx={{
+            width: "100%",
+            py: 1.1,
+            borderRadius: 2,
+            fontWeight: 700,
+            fontSize: { xs: "0.95rem", sm: "1rem" },
+            boxShadow: "none",
+            "&.Mui-disabled": {
+              bgcolor: "action.disabledBackground",
+              color: "text.disabled",
+            },
+          }}
           disabled={loading || !canProceed}
           startIcon={
             loading ? (
-              <CircularProgress size={16} />
+              <CircularProgress size={18} />
             ) : (
               <BuyNowIcon fontSize="small" />
             )
@@ -357,7 +560,7 @@ const BuyNowDialog = ({
               ? hasVariants && !selectedVariant
                 ? "Select Options"
                 : "Unavailable"
-              : "Checkout"}
+              : "Continue to Checkout"}
         </Button>
       </DialogActions>
     </Dialog>

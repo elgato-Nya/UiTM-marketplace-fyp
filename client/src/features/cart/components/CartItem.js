@@ -120,6 +120,25 @@ const CartItem = ({
       : maxStock;
   const variantOutOfStock = hasVariant && effectiveStock === 0;
 
+  const getVariantLabel = (snapshot) => {
+    if (!snapshot) return "";
+
+    const attributeValues =
+      snapshot.attributes && typeof snapshot.attributes === "object"
+        ? Object.values(snapshot.attributes)
+            .map((value) => (value == null ? "" : String(value).trim()))
+            .filter(Boolean)
+        : [];
+
+    if (attributeValues.length > 0) {
+      return attributeValues.join(" - ");
+    }
+
+    return snapshot.name == null ? "" : String(snapshot.name).trim();
+  };
+
+  const variantLabel = getVariantLabel(variantSnapshot);
+
   const handleQuantityChange = async (action) => {
     setLoadingAction(action);
     try {
@@ -256,15 +275,10 @@ const CartItem = ({
           </Typography>
 
           {/* Variant Info */}
-          {hasVariant && variantSnapshot && (
+          {hasVariant && variantSnapshot && variantLabel && (
             <Box sx={{ mb: 1 }}>
               <Chip
-                label={
-                  variantSnapshot.attributes &&
-                  Object.keys(variantSnapshot.attributes).length > 0
-                    ? Object.values(variantSnapshot.attributes).join(" - ")
-                    : variantSnapshot.name
-                }
+                label={variantLabel}
                 size="small"
                 color="primary"
                 variant="outlined"
@@ -322,7 +336,7 @@ const CartItem = ({
         <Box
           sx={{
             display: "flex",
-            alignItems: "center",
+            alignItems: { xs: "stretch", sm: "center" },
             justifyContent: "space-between",
             flexWrap: "wrap",
             gap: 1,
@@ -356,13 +370,21 @@ const CartItem = ({
             </ButtonGroup>
           )}
 
-          <Box sx={{ display: "flex", alignItems: "flex-end", gap: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              ml: "auto",
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+            }}
+          >
             <Typography
               variant="subtitle1"
               sx={{
                 color: theme.palette.info.main,
                 fontWeight: 600,
-                fontSize: 16,
               }}
             >
               RM{(effectivePrice * (isService ? 1 : quantity)).toFixed(2)}

@@ -101,12 +101,11 @@ const DeliveryMethodSection = ({
           )}
 
           <Typography
-            variant="caption"
+            variant="body2"
             color="text.secondary"
             sx={{
               mb: 2,
               display: "block",
-              fontSize: "0.75rem",
             }}
           >
             Delivery methods available depend on your selected address type.

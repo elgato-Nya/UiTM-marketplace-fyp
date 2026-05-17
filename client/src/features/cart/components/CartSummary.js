@@ -25,6 +25,7 @@ const CartSummary = ({
   } = summary || {};
 
   const canCheckout = totalItems > 0 && !hasUnavailableItems;
+  const hasCheckoutHelper = hasUnavailableItems || totalItems > 0;
 
   return (
     <Card
@@ -108,6 +109,9 @@ const CartSummary = ({
           startIcon={<ShoppingCartIcon />}
           onClick={onCheckout}
           disabled={!canCheckout || isLoading}
+          aria-describedby={
+            hasCheckoutHelper ? "cart-summary-checkout-helper" : undefined
+          }
           sx={{
             py: 1.5,
             fontWeight: 600,
@@ -121,6 +125,7 @@ const CartSummary = ({
         {/* Info Text */}
         {hasUnavailableItems && (
           <Typography
+            id="cart-summary-checkout-helper"
             variant="caption"
             color="error"
             sx={{
@@ -135,6 +140,7 @@ const CartSummary = ({
 
         {!hasUnavailableItems && totalItems > 0 && (
           <Typography
+            id="cart-summary-checkout-helper"
             variant="caption"
             color="text.secondary"
             sx={{

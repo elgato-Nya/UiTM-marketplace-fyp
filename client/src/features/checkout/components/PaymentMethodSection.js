@@ -70,10 +70,7 @@ const PaymentMethodSectionContent = ({
             id="payment-method-heading"
             variant="h6"
             component="h2"
-            sx={{
-              mb: 2,
-              fontSize: { xs: "1.1rem", sm: "1.25rem" },
-            }}
+            sx={{ mb: 2 }}
           >
             Payment Method
           </Typography>
@@ -187,7 +184,6 @@ const PaymentMethodSectionContent = ({
                                 color: isDisabled
                                   ? "text.disabled"
                                   : "text.primary",
-                                fontSize: { xs: "0.9rem", sm: "1rem" },
                               }}
                             >
                               {method.label}
@@ -199,7 +195,7 @@ const PaymentMethodSectionContent = ({
                                 isDisabled ? "text.disabled" : "text.secondary"
                               }
                               sx={{
-                                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                fontSize: { xs: "0.875rem", sm: "0.875rem" },
                               }}
                             >
                               {method.description}

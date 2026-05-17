@@ -9,6 +9,7 @@ import {
   CircularProgress,
   useMediaQuery,
 } from "@mui/material";
+import { ShoppingCart as ShoppingCartIcon } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useTheme } from "../../hooks/useTheme";
@@ -34,6 +35,8 @@ import DeliveryMethodSection from "../../features/checkout/components/DeliveryMe
 import PaymentMethodSection from "../../features/checkout/components/PaymentMethodSection";
 import OrderSummary from "../../features/checkout/components/OrderSummary";
 import { checkoutService } from "../../features/checkout/service/checkoutService";
+import EmptyState from "../../components/common/EmptyState";
+import DynamicSkeleton from "../../components/ui/Skeleton/DynamicSkeleton";
 
 const CheckoutPage = () => {
   const { theme } = useTheme();
@@ -343,43 +346,82 @@ const CheckoutPage = () => {
     });
   };
 
+  const isConfirmButtonDisabled =
+    isConfirming || isLoading || isRedirectingToPayment || hasSubmittedOrder;
+
+  const getConfirmButtonHelperMessage = () => {
+    if (!session?._id) {
+      return "Checkout session is unavailable. Please restart checkout from your cart.";
+    }
+
+    if (isLoading) {
+      return "Checkout details are still loading. Please wait.";
+    }
+
+    if (isConfirming) {
+      return "Creating your order and payment link. Please wait.";
+    }
+
+    if (isRedirectingToPayment) {
+      return "Redirecting to payment provider. Please wait.";
+    }
+
+    if (hasSubmittedOrder) {
+      return "Order submission is already in progress.";
+    }
+
+    if (!selectedAddressId) {
+      return "Select a delivery address to continue.";
+    }
+
+    if (!deliveryMethod) {
+      return "Select a delivery method to continue.";
+    }
+
+    if (!paymentMethod) {
+      return "Select a payment method to continue.";
+    }
+
+    return "Review your order details, then confirm to continue.";
+  };
+
+  const confirmButtonHelperMessage = getConfirmButtonHelperMessage();
+
   if (isLoading && !session) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: "60vh",
-          }}
-        >
-          <CircularProgress />
-        </Box>
-      </Container>
+      <DynamicSkeleton
+        type="page"
+        location={location.pathname}
+        config={{
+          showHeader: false,
+          showSidebar: false,
+          showFooter: false,
+          contentType: "checkout",
+          animated: true,
+        }}
+      />
     );
   }
 
   if (!session) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="error">
-          Failed to load checkout session. Please try again.
-        </Alert>
-        <Button
-          variant="contained"
-          onClick={() => navigate(ROUTES.CART)}
-          sx={{ mt: 2 }}
-        >
-          Go to Cart
-        </Button>
-        <Button
-          variant="outlined"
-          onClick={() => navigate(ROUTES.ORDERS.PURCHASES)}
-          sx={{ mt: 2, ml: 2 }}
-        >
-          Go to Purchases
-        </Button>
+        <EmptyState
+          icon={<ShoppingCartIcon />}
+          title="Checkout session not found"
+          description="Your checkout session may have expired or is no longer available. Return to your cart to start checkout again."
+          actionLabel="Go to Cart"
+          onAction={() => navigate(ROUTES.CART)}
+          actionVariant="contained"
+        />
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 1.5 }}>
+          <Button
+            variant="outlined"
+            onClick={() => navigate(ROUTES.ORDERS.PURCHASES)}
+          >
+            View Purchases
+          </Button>
+        </Box>
       </Container>
     );
   }
@@ -468,12 +510,8 @@ const CheckoutPage = () => {
                 variant="contained"
                 size="large"
                 onClick={handleConfirmOrder}
-                disabled={
-                  isConfirming ||
-                  isLoading ||
-                  isRedirectingToPayment ||
-                  hasSubmittedOrder
-                }
+                disabled={isConfirmButtonDisabled}
+                aria-describedby="checkout-confirm-helper"
                 sx={{ mt: 2 }}
               >
                 {isConfirming ? (
@@ -485,6 +523,15 @@ const CheckoutPage = () => {
                   `Confirm Order (RM ${(session.pricing?.totalAmount || 0).toFixed(2)})`
                 )}
               </Button>
+
+              <Typography
+                id="checkout-confirm-helper"
+                variant="caption"
+                color={isConfirmButtonDisabled ? "text.secondary" : "text.primary"}
+                sx={{ display: "block", textAlign: "center", mt: 1 }}
+              >
+                {confirmButtonHelperMessage}
+              </Typography>
 
               <Typography
                 variant="caption"

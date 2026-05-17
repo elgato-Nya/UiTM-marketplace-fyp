@@ -32,6 +32,23 @@ const OrderSummary = ({
     }).format(amount || 0);
   };
 
+  const getVariantLabel = (snapshot) => {
+    if (!snapshot) return "";
+
+    const attributeValues =
+      snapshot.attributes && typeof snapshot.attributes === "object"
+        ? Object.values(snapshot.attributes)
+            .map((value) => (value == null ? "" : String(value).trim()))
+            .filter(Boolean)
+        : [];
+
+    if (attributeValues.length > 0) {
+      return attributeValues.join(" - ");
+    }
+
+    return snapshot.name == null ? "" : String(snapshot.name).trim();
+  };
+
   return (
     <Paper
       elevation={2}
@@ -108,17 +125,20 @@ const OrderSummary = ({
 
               {/** Item List */}
               <Stack spacing={1.5} sx={{ mb: 2 }}>
-                {group.items.map((item) => (
-                  <Box
-                    key={item.listingId}
-                    sx={{
-                      display: "flex",
-                      gap: 2,
-                      p: 1.5,
-                      bgcolor: "background.default",
-                      borderRadius: 1,
-                    }}
-                  >
+                {group.items.map((item) => {
+                  const variantLabel = getVariantLabel(item.variantSnapshot);
+
+                  return (
+                    <Box
+                      key={item.listingId}
+                      sx={{
+                        display: "flex",
+                        gap: 2,
+                        p: 1.5,
+                        bgcolor: "background.default",
+                        borderRadius: 1,
+                      }}
+                    >
                     {/* Item Image */}
                     {item.images?.[0] && (
                       <Avatar
@@ -149,17 +169,9 @@ const OrderSummary = ({
                         {item.name}
                       </Typography>
                       {/* Variant Info */}
-                      {item.variantSnapshot && (
+                      {variantLabel && (
                         <Chip
-                          label={
-                            item.variantSnapshot.attributes &&
-                            Object.keys(item.variantSnapshot.attributes)
-                              .length > 0
-                              ? Object.values(
-                                  item.variantSnapshot.attributes
-                                ).join(" - ")
-                              : item.variantSnapshot.name
-                          }
+                          label={variantLabel}
                           size="small"
                           color="primary"
                           variant="outlined"
@@ -196,7 +208,8 @@ const OrderSummary = ({
                       {formatPrice(item.itemTotal)}
                     </Typography>
                   </Box>
-                ))}
+                  );
+                })}
               </Stack>
 
               {/* Seller Pricing Breakdown */}

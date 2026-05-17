@@ -41,6 +41,7 @@ const ListingCard = ({
   onToggle,
   showActions = false,
   isWishlistContext = false,
+  hideSellerInfo = false,
 }) => {
   const { theme } = useTheme();
   const navigate = useNavigate();
@@ -423,59 +424,63 @@ const ListingCard = ({
               {CATEGORY_LABELS[category] || category}
             </Typography>
 
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 0.75,
-                flexWrap: "wrap",
-                minHeight: 24,
-              }}
-            >
+            {!hideSellerInfo && (
               <Box
                 sx={{
-                  display: "inline-flex",
+                  display: "flex",
                   alignItems: "center",
-                  gap: 0.5,
-                  minWidth: 0,
-                  maxWidth: "100%",
+                  gap: 0.75,
+                  flexWrap: "wrap",
+                  minHeight: 24,
                 }}
               >
-                <StorefrontIcon
-                  sx={{ fontSize: 14, color: "text.secondary", flexShrink: 0 }}
-                />
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
+                <Box
                   sx={{
-                    fontWeight: 600,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    maxWidth: isMobile ? "130px" : "170px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    minWidth: 0,
+                    maxWidth: "100%",
                   }}
-                  title={sellerDisplayName}
                 >
-                  {sellerDisplayName}
-                </Typography>
+                  <StorefrontIcon
+                    sx={{ fontSize: 14, color: "text.secondary", flexShrink: 0 }}
+                  />
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{
+                      fontWeight: 600,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      maxWidth: isMobile ? "130px" : "170px",
+                    }}
+                    title={sellerDisplayName}
+                  >
+                    {sellerDisplayName}
+                  </Typography>
+                </Box>
+                {isSellerVerified && (
+                  <Chip
+                    icon={
+                      <VerifiedIcon sx={{ fontSize: "0.8rem !important" }} />
+                    }
+                    label="Verified"
+                    size="small"
+                    color="success"
+                    variant="outlined"
+                    aria-label="Verified merchant"
+                    sx={{
+                      minHeight: 20,
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                      "& .MuiChip-label": { px: 0.75 },
+                    }}
+                  />
+                )}
               </Box>
-              {isSellerVerified && (
-                <Chip
-                  icon={<VerifiedIcon sx={{ fontSize: "0.8rem !important" }} />}
-                  label="Verified"
-                  size="small"
-                  color="success"
-                  variant="outlined"
-                  aria-label="Verified merchant"
-                  sx={{
-                    minHeight: 20,
-                    fontSize: "0.7rem",
-                    fontWeight: 700,
-                    "& .MuiChip-label": { px: 0.75 },
-                  }}
-                />
-              )}
-            </Box>
+            )}
 
             <Box
               sx={{

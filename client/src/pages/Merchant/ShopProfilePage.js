@@ -10,7 +10,6 @@ import {
   Avatar,
   Grid,
   Skeleton,
-  Alert,
   Divider,
   TextField,
   InputAdornment,
@@ -52,6 +51,9 @@ import { useChatActions } from "../../features/chat/hooks/useChatActions";
 import { useAuth } from "../../features/auth/hooks/useAuth";
 import ListingCard from "../../features/listing/components/ListingCard";
 import ListingListItem from "../../features/listing/components/ListingListItem";
+import ListingListItemSkeleton from "../../components/ui/Skeleton/ListingListItemSkeleton";
+import ListingCardSkeleton from "../../components/ui/Skeleton/ListingCardSkeleton";
+import EmptyState from "../../components/common/EmptyState";
 
 /**
  * ShopProfilePage Component
@@ -239,6 +241,19 @@ function ShopProfilePage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const handleRetryLoadShop = () => {
+    if (!shopSlug) return;
+    loadShopBySlug(shopSlug).catch((err) => {
+      console.error("Failed to retry shop load:", err);
+    });
+  };
+
+  const clearSearchAndCategoryFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory("");
+    setCurrentPage(1);
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -250,25 +265,92 @@ function ShopProfilePage() {
     );
   }
 
-  // Error state
-  if (error) {
+  const isShopNotFound =
+    error?.statusCode === 404 ||
+    error?.type === "not_found" ||
+    (!isLoading && !error && !viewedShop);
+  const isShopAccessRestricted =
+    error?.statusCode === 401 ||
+    error?.statusCode === 403 ||
+    error?.type === "authentication" ||
+    error?.type === "authorization";
+  const hasShopLoadError = Boolean(error) && !isShopNotFound;
+
+  // Shop not found state
+  if (isShopNotFound) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error.message || "Failed to load shop"}
-        </Alert>
-        <Button variant="contained" onClick={() => navigate(ROUTES.HOME)}>
-          Go Back Home
+        <EmptyState
+          icon={<Store />}
+          title="Shop not found"
+          description="This shop may have been removed, renamed, or is no longer available."
+          actionLabel="Browse listings"
+          onAction={() => navigate(ROUTES.LISTINGS.ALL)}
+        />
+        <Button
+          variant="text"
+          onClick={() => navigate(ROUTES.HOME)}
+          sx={{ display: "block", mx: "auto", mt: -2 }}
+        >
+          Go home
         </Button>
       </Container>
     );
   }
 
-  // No shop found
+  // Error state (network/server/unknown + access restrictions)
+  if (hasShopLoadError) {
+    const errorTitle = isShopAccessRestricted
+      ? "Unable to access shop"
+      : "Unable to load shop";
+    const errorDescription = isShopAccessRestricted
+      ? "This shop is currently unavailable or restricted."
+      : "We couldn't load this shop right now. Please check your connection and try again.";
+
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <EmptyState
+          icon={<Store />}
+          title={errorTitle}
+          description={errorDescription}
+          actionLabel="Try again"
+          onAction={handleRetryLoadShop}
+        />
+        <Stack
+          direction="row"
+          spacing={1}
+          justifyContent="center"
+          sx={{ mt: -2, flexWrap: "wrap" }}
+        >
+          <Button variant="text" onClick={() => navigate(ROUTES.LISTINGS.ALL)}>
+            Browse listings
+          </Button>
+          <Button variant="text" onClick={() => navigate(ROUTES.HOME)}>
+            Go home
+          </Button>
+        </Stack>
+      </Container>
+    );
+  }
+
+  // Defensive fallback for unexpected missing shop payload
   if (!viewedShop) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="info">Shop not found</Alert>
+        <EmptyState
+          icon={<Store />}
+          title="Shop not found"
+          description="This shop may have been removed, renamed, or is no longer available."
+          actionLabel="Browse listings"
+          onAction={() => navigate(ROUTES.LISTINGS.ALL)}
+        />
+        <Button
+          variant="text"
+          onClick={() => navigate(ROUTES.HOME)}
+          sx={{ display: "block", mx: "auto", mt: -2 }}
+        >
+          Go home
+        </Button>
       </Container>
     );
   }
@@ -642,7 +724,7 @@ function ShopProfilePage() {
       <Card>
         <CardContent sx={{ px: isMobile ? 1 : 3, py: isMobile ? 2 : 3 }}>
           {/* Header with Search and Filters */}
-          <Box sx={{ mb: 3 }}>
+          <Box sx={{ mb: { xs: 2.5, md: 3 } }}>
             <Typography
               variant="h6"
               gutterBottom
@@ -657,6 +739,7 @@ function ShopProfilePage() {
               placeholder="Search listings..."
               value={searchQuery}
               onChange={handleSearch}
+              inputProps={{ "aria-label": "Search shop listings" }}
               size={isMobile ? "small" : "medium"}
               slotProps={{
                 input: {
@@ -668,8 +751,8 @@ function ShopProfilePage() {
                 },
               }}
               sx={{
-                mt: 2,
-                mb: 2,
+                mt: { xs: 1.5, md: 2 },
+                mb: { xs: 1.5, md: 2 },
                 "& .MuiInputBase-input": {
                   fontSize: isMobile ? "0.875rem" : "1rem",
                 },
@@ -680,7 +763,7 @@ function ShopProfilePage() {
             <Stack
               direction="row"
               spacing={isMobile ? 0.5 : 1}
-              sx={{ mb: 2, width: "100%" }}
+              sx={{ mb: { xs: 1.5, md: 2 }, width: "100%" }}
               alignItems="center"
             >
               {/* Category Filter Dropdown */}
@@ -696,6 +779,7 @@ function ShopProfilePage() {
                   id="category-filter"
                   value={selectedCategory}
                   label="Category"
+                  inputProps={{ "aria-label": "Filter shop listings by category" }}
                   onChange={(e) => {
                     setSelectedCategory(e.target.value);
                     setCurrentPage(1);
@@ -761,6 +845,7 @@ function ShopProfilePage() {
                   id="sort-filter"
                   value={sortOption}
                   label="Sort By"
+                  inputProps={{ "aria-label": "Sort shop listings" }}
                   onChange={(e) => {
                     setSortOption(e.target.value);
                     setCurrentPage(1);
@@ -861,30 +946,38 @@ function ShopProfilePage() {
           {/* Listings Display */}
           {isLoadingListings ? (
             <Box sx={{ py: 4 }}>
-              <Grid container spacing={isMobile ? 1 : 3}>
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
-                    <Skeleton variant="rectangular" height={250} />
-                    <Skeleton variant="text" sx={{ mt: 1 }} />
-                    <Skeleton variant="text" width="60%" />
-                  </Grid>
-                ))}
-              </Grid>
+              {isMobile ? (
+                <Stack spacing={1.25} sx={{ mx: -0.5 }}>
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <ListingListItemSkeleton key={`shop-listing-list-skeleton-${index}`} />
+                  ))}
+                </Stack>
+              ) : (
+                <Grid container spacing={3}>
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
+                      <ListingCardSkeleton />
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
             </Box>
           ) : listings && listings.length > 0 ? (
             <>
               {/* List view for mobile, Grid for desktop */}
               {isMobile ? (
-                <Stack spacing={1.25} sx={{ mx: -0.5 }}>
+                <Stack spacing={1.25} sx={{ mx: -0.5, mt: 0.5 }} role="list">
                   {listings.map((listing) => (
-                    <ListingListItem key={listing._id} listing={listing} />
+                    <Box key={listing._id} role="listitem">
+                      <ListingListItem listing={listing} hideSellerInfo />
+                    </Box>
                   ))}
                 </Stack>
               ) : (
                 <Grid container spacing={3}>
                   {listings.map((listing) => (
                     <Grid size={{ xs: 12, sm: 6, md: 3 }} key={listing._id}>
-                      <ListingCard listing={listing} />
+                      <ListingCard listing={listing} hideSellerInfo />
                     </Grid>
                   ))}
                 </Grid>
@@ -932,17 +1025,24 @@ function ShopProfilePage() {
               </Typography>
             </>
           ) : (
-            <Box sx={{ py: 8, textAlign: "center" }}>
-              <Store sx={{ fontSize: 64, color: "text.disabled", mb: 2 }} />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                No listings found
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {searchQuery || selectedCategory
-                  ? "Try adjusting your search or filters"
-                  : "This shop hasn't listed any products or services yet"}
-              </Typography>
-            </Box>
+            <EmptyState
+              icon={<Store />}
+              title="No listings found"
+              description={
+                searchQuery || selectedCategory
+                  ? "No listings match your current search or category filter."
+                  : "This shop hasn't listed any products or services yet."
+              }
+              actionLabel={
+                searchQuery || selectedCategory ? "Clear search & filters" : null
+              }
+              onAction={
+                searchQuery || selectedCategory
+                  ? clearSearchAndCategoryFilters
+                  : null
+              }
+              sx={{ py: 8 }}
+            />
           )}
         </CardContent>
       </Card>

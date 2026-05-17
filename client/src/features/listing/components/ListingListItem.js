@@ -30,7 +30,11 @@ import useWishlist from "../../wishlist/hook/useWishlist";
  * PURPOSE: Display listing in horizontal list format (mobile-optimized)
  * USAGE: Used in mobile view for better scrolling experience
  */
-const ListingListItem = ({ listing, isWishlistContext = false }) => {
+const ListingListItem = ({
+  listing,
+  isWishlistContext = false,
+  hideSellerInfo = false,
+}) => {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { success, error: showError } = useSnackbar();
@@ -200,7 +204,7 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
             }}
           >
             {/* Type Badge */}
-            <Box sx={{ mb: 0.25 }}>
+            <Box sx={{ mb: 0.5 }}>
               <Chip
                 label={type === "product" ? "Product" : "Service"}
                 size="small"
@@ -215,7 +219,7 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
               component="h3"
               sx={{
                 fontWeight: 600,
-                mb: 0.25,
+                mb: 0.4,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 display: "-webkit-box",
@@ -233,7 +237,7 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
               color="text.secondary"
               sx={{
                 display: "block",
-                mb: 0.25,
+                mb: 0.5,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -243,61 +247,63 @@ const ListingListItem = ({ listing, isWishlistContext = false }) => {
               {CATEGORY_LABELS[category] || category}
             </Typography>
 
-            <Stack
-              direction="row"
-              spacing={0.5}
-              alignItems="center"
-              sx={{ mb: 0.5, minWidth: 0 }}
-            >
-              <Avatar
-                sx={{
-                  width: 18,
-                  height: 18,
-                  fontSize: "0.7rem",
-                  bgcolor: "primary.light",
-                  color: "primary.contrastText",
-                }}
+            {!hideSellerInfo && (
+              <Stack
+                direction="row"
+                spacing={0.5}
+                alignItems="center"
+                sx={{ mb: 0.75, minWidth: 0 }}
               >
-                {sellerDisplayName.charAt(0).toUpperCase()}
-              </Avatar>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{
-                  fontWeight: 600,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  minWidth: 0,
-                  flex: 1,
-                }}
-                title={sellerDisplayName}
-              >
-                {sellerDisplayName}
-              </Typography>
-              {isSellerVerified && (
-                <Chip
-                  label="Verified"
-                  size="small"
-                  color="success"
-                  variant="outlined"
-                  aria-label="Verified merchant"
+                <Avatar
                   sx={{
-                    minHeight: 18,
-                    fontSize: "0.68rem",
-                    fontWeight: 700,
-                    "& .MuiChip-label": { px: 0.6 },
+                    width: 18,
+                    height: 18,
+                    fontSize: "0.7rem",
+                    bgcolor: "primary.light",
+                    color: "primary.contrastText",
                   }}
-                />
-              )}
-            </Stack>
+                >
+                  {sellerDisplayName.charAt(0).toUpperCase()}
+                </Avatar>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{
+                    fontWeight: 600,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    minWidth: 0,
+                    flex: 1,
+                  }}
+                  title={sellerDisplayName}
+                >
+                  {sellerDisplayName}
+                </Typography>
+                {isSellerVerified && (
+                  <Chip
+                    label="Verified"
+                    size="small"
+                    color="success"
+                    variant="outlined"
+                    aria-label="Verified merchant"
+                    sx={{
+                      minHeight: 18,
+                      fontSize: "0.68rem",
+                      fontWeight: 700,
+                      "& .MuiChip-label": { px: 0.75 },
+                    }}
+                  />
+                )}
+              </Stack>
+            )}
 
             {/* Price and Actions Row */}
             <Stack
               direction="row"
               justifyContent="space-between"
               alignItems="center"
-              sx={{ mt: "auto" }}
+              sx={{ mt: "auto", pt: 0.25 }}
             >
               {/* Price */}
               <Typography

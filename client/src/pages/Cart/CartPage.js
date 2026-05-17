@@ -71,19 +71,24 @@ const CartPage = () => {
   const handleIncreaseQuantity = async (
     listingId,
     currentQuantity,
-    maxStock
+    maxStock,
+    variantId = null
   ) => {
     try {
-      await increaseQuantity(listingId, currentQuantity, maxStock);
+      await increaseQuantity(listingId, currentQuantity, maxStock, variantId);
       // Removed success notification for better UX (optimistic update is instant)
     } catch (error) {
       showErrorSnack(error.message || "Failed to increase quantity");
     }
   };
 
-  const handleDecreaseQuantity = async (listingId, currentQuantity) => {
+  const handleDecreaseQuantity = async (
+    listingId,
+    currentQuantity,
+    variantId = null
+  ) => {
     try {
-      await decreaseQuantity(listingId, currentQuantity);
+      await decreaseQuantity(listingId, currentQuantity, variantId);
       // Removed success notification for better UX (optimistic update is instant)
     } catch (error) {
       showErrorSnack(error.message || "Failed to decrease quantity");

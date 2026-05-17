@@ -106,10 +106,7 @@ const OrderSummary = ({
                   >
                     {group.sellerName}
                   </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "text.secondary" }}
-                  >
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
                     {group.items.length} item
                     {group.items.length !== 1 ? "s" : ""}
                   </Typography>
@@ -139,18 +136,18 @@ const OrderSummary = ({
                         borderRadius: 1,
                       }}
                     >
-                    {/* Item Image */}
-                    {item.images?.[0] && (
-                      <Avatar
-                        src={item.images[0]}
-                        alt={item.name}
-                        variant="rounded"
-                        sx={{
-                          width: 56,
-                          height: 56,
-                        }}
-                      />
-                    )}
+                      {/* Item Image */}
+                      {item.images?.[0] && (
+                        <Avatar
+                          src={item.images[0]}
+                          alt={item.name}
+                          variant="rounded"
+                          sx={{
+                            width: 56,
+                            height: 56,
+                          }}
+                        />
+                      )}
 
                     {/* Item Details */}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -170,25 +167,27 @@ const OrderSummary = ({
                       </Typography>
                       {/* Variant Info */}
                       {variantLabel && (
-                        <Chip
-                          label={variantLabel}
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                          sx={{
-                            fontSize: "0.7rem",
-                            height: 20,
-                            mb: 0.5,
-                            maxWidth: "100%",
-                            "& .MuiChip-label": {
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            },
-                          }}
-                        />
+                        <Box sx={{ mb: 0.5 }}>
+                          <Chip
+                            label={variantLabel}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                            sx={{
+                              fontSize: "0.7rem",
+                              height: 20,
+                              maxWidth: "100%",
+                              "& .MuiChip-label": {
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              },
+                            }}
+                          />
+                        </Box>
                       )}
                       <Typography
                         variant="caption"
+                        component="div"
                         sx={{ color: "text.secondary" }}
                       >
                         {formatPrice(item.price)} × {item.quantity}

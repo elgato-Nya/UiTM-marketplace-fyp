@@ -74,6 +74,7 @@ const CartItem = ({
         </Box>
         <IconButton
           size="small"
+          aria-label="Remove unavailable item from cart"
           onClick={async () => {
             setLoadingAction("remove");
             try {
@@ -370,6 +371,7 @@ const CartItem = ({
             <Tooltip title="Move to wishlist">
               <IconButton
                 size="small"
+                aria-label={`Move ${listing.name} to wishlist`}
                 onClick={handleMoveToWishlist}
                 disabled={isLoading || loadingAction === "wishlist"}
               >
@@ -379,6 +381,7 @@ const CartItem = ({
             <Tooltip title="Remove from cart">
               <IconButton
                 size="small"
+                aria-label={`Remove ${listing.name} from cart`}
                 onClick={handleRemove}
                 disabled={isLoading || loadingAction === "remove"}
               >

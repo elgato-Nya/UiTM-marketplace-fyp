@@ -41,17 +41,30 @@ const CartList = ({
       role="list"
       aria-live="polite"
     >
-      {sortedItems.map((item) => (
-        <CartItem
-          key={item._id || item.listing?._id || Math.random()}
-          item={item}
-          onQuantityDecrease={onQuantityDecrease}
-          onQuantityIncrease={onQuantityIncrease}
-          onRemove={onRemove}
-          onMoveToWishlist={onMoveToWishlist}
-          isLoading={isLoading}
-        />
-      ))}
+      {sortedItems.map((item, index) => {
+        const key =
+          item._id ||
+          item.id ||
+          item.cartItemId ||
+          item.listingId ||
+          (item.listing?._id && item.variantId
+            ? `${item.listing._id}:${item.variantId}`
+            : item.listing?._id) ||
+          `${item.listing?.name || "unknown"}:${item.priceWhenAdded ?? "na"}:${item.quantity ?? "na"}:${index}`;
+
+        return (
+          <Box key={key} role="listitem">
+            <CartItem
+              item={item}
+              onQuantityDecrease={onQuantityDecrease}
+              onQuantityIncrease={onQuantityIncrease}
+              onRemove={onRemove}
+              onMoveToWishlist={onMoveToWishlist}
+              isLoading={isLoading}
+            />
+          </Box>
+        );
+      })}
     </Box>
   );
 };

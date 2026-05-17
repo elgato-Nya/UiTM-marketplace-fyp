@@ -156,7 +156,16 @@ const MerchantAnalyticsPage = () => {
 
   // Show skeleton while loading initial data
   if (isLoading && !analytics) {
-    return <DynamicSkeleton type="dashboard" />;
+    return (
+      <DynamicSkeleton
+        type="page"
+        config={{
+          contentType: "dashboard",
+          showHeader: false,
+          showSidebar: false,
+        }}
+      />
+    );
   }
 
   return (

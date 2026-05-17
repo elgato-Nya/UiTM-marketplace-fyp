@@ -185,7 +185,10 @@ function OrderDetailPage() {
   if (isLoading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <DynamicSkeleton type="page" showHeader showSidebar={false} />
+        <DynamicSkeleton
+          type="page"
+          config={{ showHeader: true, showSidebar: false }}
+        />
       </Container>
     );
   }

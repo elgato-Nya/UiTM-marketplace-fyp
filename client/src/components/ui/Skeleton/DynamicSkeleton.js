@@ -21,6 +21,8 @@ import {
   ProfileSkeleton,
 } from "./PageSkeletons";
 
+const warnedNonPageTypes = new Set();
+
 /**
  * DynamicSkeleton - A flexible skeleton orchestrator that composes different skeleton types
  *
@@ -83,6 +85,16 @@ function DynamicSkeleton({
 
   // Single skeleton (for simple use cases)
   if (type !== "page") {
+    if (
+      process.env.NODE_ENV !== "production" &&
+      !warnedNonPageTypes.has(type)
+    ) {
+      warnedNonPageTypes.add(type);
+      console.warn(
+        `[DynamicSkeleton] Received type="${type}". Non-page types render a generic MUI Skeleton fallback. ` +
+          `Use type="page" with config.contentType (for example "dashboard", "grid", "list") for composed page skeletons.`,
+      );
+    }
     return <Skeleton variant={variant} {...props} {...skeletonProps} />;
   }
 

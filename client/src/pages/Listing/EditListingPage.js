@@ -69,6 +69,7 @@ const EditListingPage = () => {
     removeImageByUrl,
     variants,
     setVariants,
+    setVariationConfig,
     variantsEnabled,
     enableVariants,
     disableVariants,
@@ -100,7 +101,8 @@ const EditListingPage = () => {
     if (listing?.variants) {
       setVariants(listing.variants);
     }
-  }, [listing, setImages, setVariants]);
+    setVariationConfig(listing?.variationConfig || []);
+  }, [listing, setImages, setVariants, setVariationConfig]);
 
   useEffect(() => {
     if (isSuccess) {

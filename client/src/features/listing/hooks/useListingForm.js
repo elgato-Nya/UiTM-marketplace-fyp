@@ -5,6 +5,49 @@ import {
   LISTING_CATEGORIES,
 } from "../../../constants/listingConstant";
 
+const normalizeVariationConfig = (config = []) => {
+  if (!Array.isArray(config)) {
+    return [];
+  }
+
+  return config
+    .slice(0, 2)
+    .map((layer, index) => {
+      const normalizedOptions = Array.isArray(layer?.options)
+        ? layer.options
+            .map((option) => {
+              const value = option?.value?.toString().trim();
+              const imageUrl = option?.imageUrl?.toString().trim();
+
+              if (!value) {
+                return null;
+              }
+
+              return imageUrl ? { value, imageUrl } : { value };
+            })
+            .filter(Boolean)
+        : [];
+
+      const key = layer?.key?.toString().trim();
+      const label = layer?.label?.toString().trim();
+
+      if (!key || !label || normalizedOptions.length === 0) {
+        return null;
+      }
+
+      return {
+        key,
+        label,
+        position:
+          Number.isFinite(layer?.position) && layer.position >= 0
+            ? layer.position
+            : index,
+        options: normalizedOptions,
+      };
+    })
+    .filter(Boolean);
+};
+
 /**
  * useListingForm Hook
  *
@@ -63,6 +106,9 @@ const useListingForm = (options = {}) => {
   const [variants, setVariants] = useState(() =>
     initialData?.variants ? [...initialData.variants] : []
   );
+  const [variationConfig, setVariationConfig] = useState(() =>
+    normalizeVariationConfig(initialData?.variationConfig)
+  );
   const [variantsEnabled, setVariantsEnabled] = useState(
     () => initialData?.variants?.length > 0 || false
   );
@@ -81,16 +127,18 @@ const useListingForm = (options = {}) => {
       formData,
       images,
       variants,
+      variationConfig,
       quoteSettings,
     });
     const initial = JSON.stringify({
       formData: initialDataRef.current,
       images: initialData?.images || [],
       variants: initialData?.variants || [],
+      variationConfig: normalizeVariationConfig(initialData?.variationConfig),
       quoteSettings: initialData?.quoteSettings || null,
     });
     return currentData !== initial;
-  }, [formData, images, variants, quoteSettings, initialData]);
+  }, [formData, images, variants, variationConfig, quoteSettings, initialData]);
 
   const isProduct = useMemo(() => formData.type === "product", [formData.type]);
   const isService = useMemo(() => formData.type === "service", [formData.type]);
@@ -196,6 +244,7 @@ const useListingForm = (options = {}) => {
     setVariantsEnabled(false);
     if (clearAll) {
       setVariants([]);
+      setVariationConfig([]);
     }
   }, []);
 
@@ -225,6 +274,10 @@ const useListingForm = (options = {}) => {
 
   const clearVariants = useCallback(() => {
     setVariants([]);
+  }, []);
+
+  const clearVariationConfig = useCallback(() => {
+    setVariationConfig([]);
   }, []);
 
   // ========== Quote Settings Methods ==========
@@ -366,6 +419,7 @@ const useListingForm = (options = {}) => {
         formData,
         images,
         variants,
+        variationConfig,
         variantsEnabled,
         quoteSettings,
         savedAt: new Date().toISOString(),
@@ -377,7 +431,15 @@ const useListingForm = (options = {}) => {
       console.error("Failed to save draft:", error);
       return false;
     }
-  }, [draftKey, formData, images, variants, variantsEnabled, quoteSettings]);
+  }, [
+    draftKey,
+    formData,
+    images,
+    variants,
+    variationConfig,
+    variantsEnabled,
+    quoteSettings,
+  ]);
 
   const loadDraft = useCallback(() => {
     if (!draftKey) return null;
@@ -390,6 +452,7 @@ const useListingForm = (options = {}) => {
       setFormData(draft.formData);
       setImages(draft.images || []);
       setVariants(draft.variants || []);
+      setVariationConfig(normalizeVariationConfig(draft.variationConfig));
       setVariantsEnabled(draft.variantsEnabled || false);
       setQuoteSettings(draft.quoteSettings || null);
       return draft;
@@ -415,6 +478,7 @@ const useListingForm = (options = {}) => {
     setFormData(getDefaultFormData());
     setImages(initialData?.images ? [...initialData.images] : []);
     setVariants(initialData?.variants ? [...initialData.variants] : []);
+    setVariationConfig(normalizeVariationConfig(initialData?.variationConfig));
     setVariantsEnabled(initialData?.variants?.length > 0 || false);
     setQuoteSettings(initialData?.quoteSettings || null);
     setErrors({});
@@ -470,6 +534,13 @@ const useListingForm = (options = {}) => {
 
         return cleanVariant;
       });
+
+      const normalizedVariationConfig =
+        normalizeVariationConfig(variationConfig);
+
+      if (normalizedVariationConfig.length > 0) {
+        submitData.variationConfig = normalizedVariationConfig;
+      }
     } else {
       submitData.hasVariants = false;
       submitData.variants = [];
@@ -506,6 +577,7 @@ const useListingForm = (options = {}) => {
     isProduct,
     isService,
     variants,
+    variationConfig,
     variantsEnabled,
     quoteSettings,
   ]);
@@ -517,6 +589,7 @@ const useListingForm = (options = {}) => {
       setFormData(getDefaultFormData());
       setImages(initialData.images ? [...initialData.images] : []);
       setVariants(initialData.variants ? [...initialData.variants] : []);
+      setVariationConfig(normalizeVariationConfig(initialData.variationConfig));
       setVariantsEnabled(initialData.variants?.length > 0 || false);
       setQuoteSettings(initialData.quoteSettings || null);
       initialDataRef.current = getDefaultFormData();
@@ -543,6 +616,8 @@ const useListingForm = (options = {}) => {
     // Variants
     variants,
     setVariants,
+    variationConfig,
+    setVariationConfig,
     variantsEnabled,
     enableVariants,
     disableVariants,
@@ -550,6 +625,7 @@ const useListingForm = (options = {}) => {
     updateVariant,
     removeVariant,
     clearVariants,
+    clearVariationConfig,
     hasVariants,
     canAddMoreVariants,
 

@@ -47,6 +47,8 @@ const CreateListingPage = () => {
     removeImageByUrl,
     variants,
     setVariants,
+    variationConfig,
+    setVariationConfig,
     addVariant,
     updateVariant,
     removeVariant,
@@ -427,6 +429,9 @@ const CreateListingPage = () => {
             {variantsEnabled ? (
               <VariantManager
                 variants={variants}
+                variationConfig={variationConfig}
+                onVariationConfigChange={setVariationConfig}
+                uploadSubfolder="temp"
                 listingType={formData.type}
                 onAddVariant={handleAddVariant}
                 onUpdateVariant={handleUpdateVariant}

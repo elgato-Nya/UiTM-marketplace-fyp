@@ -8,6 +8,9 @@ import { VARIANT_LIMITS } from "../../../constants/listingConstant";
 
 const VariantManager = ({
   variants = [],
+  variationConfig = [],
+  onVariationConfigChange,
+  uploadSubfolder = "temp",
   listingType = "product",
   onBulkChange,
   isLoading = false,
@@ -60,6 +63,9 @@ const VariantManager = ({
       {onBulkChange && (
         <VariantBuilder
           variants={variants}
+          variationConfig={variationConfig}
+          onVariationConfigChange={onVariationConfigChange}
+          uploadSubfolder={uploadSubfolder}
           onChange={handleBuilderChange}
           listingType={listingType}
           disabled={disabled || isLoading}
@@ -90,6 +96,9 @@ VariantManager.propTypes = {
       attributes: PropTypes.object,
     })
   ),
+  variationConfig: PropTypes.array,
+  onVariationConfigChange: PropTypes.func,
+  uploadSubfolder: PropTypes.string,
   listingType: PropTypes.oneOf(["product", "service"]),
   onBulkChange: PropTypes.func,
   isLoading: PropTypes.bool,

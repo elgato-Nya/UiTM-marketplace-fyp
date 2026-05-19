@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import { Add as AddIcon } from "@mui/icons-material";
 import { useTheme } from "../../../../hooks/useTheme";
+import PrimaryOptionImageManager from "./PrimaryOptionImageManager";
 import VariationTypeSelector from "./VariationTypeSelector";
 import VariationValueInput from "./VariationValueInput";
 import VariantMatrixTable from "./VariantMatrixTable";
@@ -21,6 +22,129 @@ import {
   calculateVariantCount,
   VARIANT_BUILDER_LIMITS,
 } from "../../../../constants/variantAttributes";
+
+const KNOWN_VARIATION_TYPES = ["color", "size", "material", "style"];
+
+const getVariationKey = (variationType) =>
+  variationType.type === "custom"
+    ? variationType.customLabel.trim().toLowerCase()
+    : variationType.type;
+
+const getVariationLabel = (variationType) =>
+  variationType.type === "custom"
+    ? variationType.customLabel.trim()
+    : variationType.type.charAt(0).toUpperCase() + variationType.type.slice(1);
+
+const normalizeVariationConfig = (config = []) => {
+  if (!Array.isArray(config)) {
+    return [];
+  }
+
+  return config
+    .slice(0, VARIANT_BUILDER_LIMITS.MAX_VARIATION_TYPES)
+    .map((layer, index) => {
+      const options = Array.isArray(layer?.options)
+        ? layer.options
+            .map((option) => {
+              const value = option?.value?.toString().trim();
+              const imageUrl = option?.imageUrl?.toString().trim();
+
+              if (!value) {
+                return null;
+              }
+
+              return imageUrl ? { value, imageUrl } : { value };
+            })
+            .filter(Boolean)
+        : [];
+
+      const key = layer?.key?.toString().trim();
+      const label = layer?.label?.toString().trim();
+
+      if (!key || !label || options.length === 0) {
+        return null;
+      }
+
+      return {
+        key,
+        label,
+        position:
+          Number.isFinite(layer?.position) && layer.position >= 0
+            ? layer.position
+            : index,
+        options,
+      };
+    })
+    .filter(Boolean);
+};
+
+const buildVariationTypesFromConfig = (config = []) =>
+  normalizeVariationConfig(config).map((layer) => {
+    const normalizedKey = layer.key.toLowerCase();
+    const normalizedLabel = layer.label.trim();
+    const isKnownType = KNOWN_VARIATION_TYPES.includes(normalizedKey);
+
+    return {
+      type: isKnownType ? normalizedKey : "custom",
+      customLabel: isKnownType ? "" : normalizedLabel,
+      values: layer.options.map((option) => option.value),
+    };
+  });
+
+const buildVariationConfigFromTypes = (
+  variationTypes = [],
+  existingConfig = []
+) => {
+  const primaryOptionImageMap = new Map(
+    (normalizeVariationConfig(existingConfig)[0]?.options || []).map((option) => [
+      option.value,
+      option.imageUrl,
+    ])
+  );
+
+  return variationTypes
+    .filter(
+      (variationType) =>
+        variationType.type &&
+        variationType.values?.length > 0 &&
+        (variationType.type !== "custom" || variationType.customLabel.trim())
+    )
+    .slice(0, VARIANT_BUILDER_LIMITS.MAX_VARIATION_TYPES)
+    .map((variationType, index) => {
+      const options = variationType.values
+        .map((value) => {
+          const trimmedValue = value?.trim();
+
+          if (!trimmedValue) {
+            return null;
+          }
+
+          if (index === 0) {
+            const imageUrl = primaryOptionImageMap.get(trimmedValue);
+            return imageUrl ? { value: trimmedValue, imageUrl } : { value: trimmedValue };
+          }
+
+          return { value: trimmedValue };
+        })
+        .filter(Boolean);
+
+      if (options.length === 0) {
+        return null;
+      }
+
+      return {
+        key: getVariationKey(variationType),
+        label: getVariationLabel(variationType),
+        position: index,
+        options,
+      };
+    })
+    .filter(Boolean);
+};
+
+const areVariationConfigsEqual = (left = [], right = []) =>
+  JSON.stringify(normalizeVariationConfig(left)) ===
+  JSON.stringify(normalizeVariationConfig(right));
 
 /**
  * VariantBuilder - Enterprise-grade variant management (Shopee/Amazon style)
@@ -41,6 +165,9 @@ import {
  */
 const VariantBuilder = ({
   variants = [],
+  variationConfig = [],
+  onVariationConfigChange,
+  uploadSubfolder = "temp",
   onChange,
   listingType = "product",
   disabled = false,
@@ -80,6 +207,15 @@ const VariantBuilder = ({
   useEffect(() => {
     if (hasInitialized) return;
 
+    const configTypes = buildVariationTypesFromConfig(variationConfig);
+
+    if (configTypes.length > 0 && variationTypes.length === 0) {
+      setVariationTypes(configTypes);
+      setHasGenerated(normalizedVariants.length > 0);
+      setHasInitialized(true);
+      return;
+    }
+
     if (
       normalizedVariants.length > 0 &&
       variationTypes.length === 0 &&
@@ -100,9 +236,8 @@ const VariantBuilder = ({
                 .filter(Boolean)
             ),
           ];
-          // Check if it's a known type or custom
-          const knownTypes = ["color", "size", "material", "style"];
-          const isKnownType = knownTypes.includes(type.toLowerCase());
+          const isKnownType = KNOWN_VARIATION_TYPES.includes(type.toLowerCase());
+
           return {
             type: isKnownType ? type.toLowerCase() : "custom",
             customLabel: isKnownType ? "" : type,
@@ -119,7 +254,13 @@ const VariantBuilder = ({
       setVariationTypes([{ type: "", customLabel: "", values: [] }]);
       setHasInitialized(true);
     }
-  }, [normalizedVariants, variationTypes.length, hasGenerated, hasInitialized]);
+  }, [
+    normalizedVariants,
+    variationTypes.length,
+    hasGenerated,
+    hasInitialized,
+    variationConfig,
+  ]);
 
   // Calculate potential variant count
   const potentialVariantCount = useMemo(
@@ -336,6 +477,75 @@ const VariantBuilder = ({
     onChange([]);
   }, [onChange]);
 
+  useEffect(() => {
+    if (!hasInitialized || !onVariationConfigChange) {
+      return;
+    }
+
+    const nextVariationConfig = buildVariationConfigFromTypes(
+      variationTypes,
+      variationConfig
+    );
+
+    if (!areVariationConfigsEqual(nextVariationConfig, variationConfig)) {
+      onVariationConfigChange(nextVariationConfig);
+    }
+  }, [
+    hasInitialized,
+    onVariationConfigChange,
+    variationTypes,
+    variationConfig,
+  ]);
+
+  const primaryVariationOptions = useMemo(
+    () => normalizeVariationConfig(variationConfig)[0]?.options || [],
+    [variationConfig]
+  );
+
+  const shouldShowPrimaryOptionImages = useMemo(() => {
+    const primaryVariationType = variationTypes[0];
+
+    return Boolean(
+      primaryVariationType?.type &&
+        primaryVariationType.values?.length > 0 &&
+        (primaryVariationType.type !== "custom" ||
+          primaryVariationType.customLabel.trim())
+    );
+  }, [variationTypes]);
+
+  const handlePrimaryOptionImageChange = useCallback(
+    (optionValue, imageUrl) => {
+      if (!onVariationConfigChange) {
+        return;
+      }
+
+      const nextVariationConfig = buildVariationConfigFromTypes(
+        variationTypes,
+        variationConfig
+      ).map((layer, index) => {
+        if (index !== 0) {
+          return layer;
+        }
+
+        return {
+          ...layer,
+          options: layer.options.map((option) => {
+            if (option.value !== optionValue) {
+              return option;
+            }
+
+            return imageUrl
+              ? { ...option, imageUrl }
+              : { value: option.value };
+          }),
+        };
+      });
+
+      onVariationConfigChange(nextVariationConfig);
+    },
+    [onVariationConfigChange, variationTypes, variationConfig]
+  );
+
   return (
     <Box>
       {/* Usage Description */}
@@ -492,6 +702,15 @@ const VariantBuilder = ({
         )}
       </Paper>
 
+      {shouldShowPrimaryOptionImages && (
+        <PrimaryOptionImageManager
+          options={primaryVariationOptions}
+          uploadSubfolder={uploadSubfolder}
+          disabled={disabled}
+          onImageChange={handlePrimaryOptionImageChange}
+        />
+      )}
+
       {/* Validation Errors - only show after user attempts to generate */}
       {attemptedGenerate &&
         !validation.isValid &&
@@ -585,6 +804,9 @@ const VariantBuilder = ({
 
 VariantBuilder.propTypes = {
   variants: PropTypes.array,
+  variationConfig: PropTypes.array,
+  onVariationConfigChange: PropTypes.func,
+  uploadSubfolder: PropTypes.string,
   onChange: PropTypes.func.isRequired,
   listingType: PropTypes.oneOf(["product", "service"]),
   disabled: PropTypes.bool,

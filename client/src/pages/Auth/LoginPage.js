@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Box, Button, Link, Divider, Typography, Alert } from "@mui/material";
 import { Link as RouterLink, useLocation } from "react-router-dom";
 
@@ -6,11 +6,52 @@ import { useTheme } from "../../hooks/useTheme";
 import { useAuth } from "../../features/auth/hooks/useAuth";
 import { useSnackbar } from "../../hooks/useSnackbar";
 import DynamicForm from "../../components/common/Form/DynamicForm";
-import DynamicSkeleton from "../../components/ui/Skeleton/DynamicSkeleton";
 import { loginFormConfig } from "../../config/forms/authForms";
 import { loginValidation } from "../../validation/authValidator";
 import authService from "../../features/auth/service/authService";
 import { ROUTES } from "../../constants/routes";
+
+const formatAuthDisplayError = (
+  rawError,
+  fallbackMessage = "Unable to complete login. Please try again."
+) => {
+  if (!rawError) return null;
+
+  const message =
+    rawError?.message ||
+    rawError?.error?.message ||
+    fallbackMessage;
+
+  const safeValidationErrors = Array.isArray(rawError?.validationErrors)
+    ? rawError.validationErrors
+        .map((err) => {
+          const field = err?.field || err?.path || err?.param || "unknown";
+          const errMessage = err?.message || err?.msg;
+          if (!errMessage) return null;
+          return { field, message: String(errMessage).trim() };
+        })
+        .filter(Boolean)
+        .filter((err, index, arr) => {
+          return (
+            arr.findIndex(
+              (candidate) =>
+                candidate.field === err.field &&
+                candidate.message.toLowerCase() === err.message.toLowerCase()
+            ) === index
+          );
+        })
+    : null;
+
+  const safeMessage = String(message || fallbackMessage).trim();
+
+  return {
+    message: safeMessage,
+    validationErrors:
+      safeValidationErrors && safeValidationErrors.length > 0
+        ? safeValidationErrors
+        : null,
+  };
+};
 
 // Forgot Password Link Component
 const ForgotPasswordLink = ({ theme }) => (
@@ -37,24 +78,33 @@ function LoginPage() {
   const { showSnackbar } = useSnackbar();
   const location = useLocation();
 
-  const [loginError, setLoginError] = useState("");
+  const [loginError, setLoginError] = useState(null);
   const [isResending, setIsResending] = useState(false);
   const [lastEmail, setLastEmail] = useState("");
+  const isReadyForErrorSyncRef = useRef(false);
 
   // Clear auth error on component mount, unmount, and location change
   useEffect(() => {
+    isReadyForErrorSyncRef.current = false;
     clearAuthError();
-    setLoginError("");
+    setLoginError(null);
+
+    const syncGuardTimer = setTimeout(() => {
+      isReadyForErrorSyncRef.current = true;
+    }, 0);
 
     return () => {
+      clearTimeout(syncGuardTimer);
       clearAuthError();
-      setLoginError("");
+      setLoginError(null);
     };
   }, [clearAuthError, location.pathname]);
 
   useEffect(() => {
+    if (!isReadyForErrorSyncRef.current) return;
+
     if (error && error.message) {
-      setLoginError(error.message);
+      setLoginError(formatAuthDisplayError(error));
 
       // Check if it's an email verification error - show toast notification
       if (
@@ -84,12 +134,21 @@ function LoginPage() {
       );
     } catch (error) {
       // Extract error from server response structure
-      const responseData = error.response?.data;
-      const errorMessage =
-        responseData?.error?.message || // Development format
-        responseData?.message || // Production format
-        "Unable to resend verification email. Please try again.";
-      showSnackbar(errorMessage, "error");
+      const rawMessage =
+        error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        error.message ||
+        "";
+      const lowered = rawMessage.toLowerCase();
+
+      const safeMessage =
+        lowered.includes("wait") ||
+        lowered.includes("too many") ||
+        lowered.includes("rate limit")
+          ? "Please wait a few minutes before requesting another verification email."
+          : "Unable to resend verification email right now. Please try again.";
+
+      showSnackbar(safeMessage, "error");
     } finally {
       setIsResending(false);
     }
@@ -97,7 +156,7 @@ function LoginPage() {
 
   const handleLogin = async (data) => {
     try {
-      setLoginError("");
+      setLoginError(null);
       clearAuthError();
       setLastEmail(data.email.toLowerCase());
 
@@ -108,7 +167,7 @@ function LoginPage() {
     } catch (error) {
       // Error is already set in Redux state and will be handled by useEffect
       if (error.message) {
-        setLoginError(error.message);
+        setLoginError(formatAuthDisplayError(error));
 
         // Show toast for email verification error
         if (
@@ -121,21 +180,10 @@ function LoginPage() {
     }
   };
 
-  // Show skeleton while loading
-  if (isLoading) {
-    return (
-      <DynamicSkeleton
-        type="page"
-        location="/auth/login"
-        config={{
-          contentType: "form",
-          centered: true,
-          showHeader: false,
-          showFooter: false,
-        }}
-      />
-    );
-  }
+  const loginErrorMessage =
+    typeof loginError === "string" ? loginError : loginError?.message || "";
+  const loginErrorCode =
+    (typeof loginError === "object" ? loginError?.code : null) || error?.code;
 
   return (
     <Box>
@@ -172,13 +220,14 @@ function LoginPage() {
         onSubmit={handleLogin}
         isLoading={isLoading}
         error={loginError}
+        mapServerErrors={false}
         customContent={<ForgotPasswordLink theme={theme} />}
       />
 
       {/* Resend Verification Link - shown when email not verified */}
       {loginError &&
-        (error?.code === "EMAIL_NOT_VERIFIED" ||
-          loginError.includes("verify your email")) &&
+        (loginErrorCode === "EMAIL_NOT_VERIFIED" ||
+          loginErrorMessage.includes("verify your email")) &&
         lastEmail && (
           <Box sx={{ textAlign: "center", mt: { xs: 1.5, sm: 2 } }}>
             <Button

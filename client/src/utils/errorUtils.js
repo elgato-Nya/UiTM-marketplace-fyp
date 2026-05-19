@@ -77,8 +77,12 @@ export const parseError = (error) => {
   // Determine error type
   const errorType = determineErrorType(error, statusCode, responseData);
 
-  // Extract validation errors if present
-  const validationErrors = extractValidationErrors(responseData);
+  // Extract validation errors if present.
+  // Prefer server-response derived errors, but preserve already-normalized
+  // thunk payloads that provide top-level validationErrors.
+  const validationErrors =
+    extractValidationErrors(responseData) ||
+    (Array.isArray(error.validationErrors) ? error.validationErrors : null);
 
   // Get error message
   const message = extractErrorMessage(error, errorType, responseData);

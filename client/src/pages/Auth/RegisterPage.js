@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Box, Typography, Link } from "@mui/material";
 import { Link as RouterLink, useNavigate, useLocation } from "react-router-dom";
 
@@ -7,12 +7,53 @@ import { useAuth } from "../../features/auth/hooks/useAuth";
 import { useSnackbar } from "../../hooks/useSnackbar";
 import { register } from "../../features/auth/store/authSlice";
 import DynamicForm from "../../components/common/Form/DynamicForm";
-import DynamicSkeleton from "../../components/ui/Skeleton/DynamicSkeleton";
 import RegistrationSuccessModal from "../../components/common/Modal/RegistrationSuccessModal";
 import { registerFormConfig } from "../../config/forms/authForms";
 import { registerValidator } from "../../validation/authValidator";
 import { ROUTES } from "../../constants/routes";
 import { isUiTMEmail } from "../../utils/emailUtils";
+
+const formatAuthDisplayError = (
+  rawError,
+  fallbackMessage = "Unable to complete registration. Please try again."
+) => {
+  if (!rawError) return null;
+
+  const message =
+    rawError?.message ||
+    rawError?.error?.message ||
+    fallbackMessage;
+
+  const safeValidationErrors = Array.isArray(rawError?.validationErrors)
+    ? rawError.validationErrors
+        .map((err) => {
+          const field = err?.field || err?.path || err?.param || "unknown";
+          const errMessage = err?.message || err?.msg;
+          if (!errMessage) return null;
+          return { field, message: String(errMessage).trim() };
+        })
+        .filter(Boolean)
+        .filter((err, index, arr) => {
+          return (
+            arr.findIndex(
+              (candidate) =>
+                candidate.field === err.field &&
+                candidate.message.toLowerCase() === err.message.toLowerCase()
+            ) === index
+          );
+        })
+    : null;
+
+  const safeMessage = String(message || fallbackMessage).trim();
+
+  return {
+    message: safeMessage,
+    validationErrors:
+      safeValidationErrors && safeValidationErrors.length > 0
+        ? safeValidationErrors
+        : null,
+  };
+};
 
 function RegisterPage() {
   const { theme } = useTheme();
@@ -21,8 +62,9 @@ function RegisterPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [registerError, setRegisterError] = useState("");
+  const [registerError, setRegisterError] = useState(null);
   const [registeredEmail, setRegisteredEmail] = useState("");
+  const isReadyForErrorSyncRef = useRef(false);
 
   // Modal state - simplified
   const [modalOpen, setModalOpen] = useState(false);
@@ -30,18 +72,26 @@ function RegisterPage() {
 
   // Clear errors on mount, unmount, and location change
   useEffect(() => {
+    isReadyForErrorSyncRef.current = false;
     clearAuthError();
-    setRegisterError("");
+    setRegisterError(null);
+
+    const syncGuardTimer = setTimeout(() => {
+      isReadyForErrorSyncRef.current = true;
+    }, 0);
 
     return () => {
+      clearTimeout(syncGuardTimer);
       clearAuthError();
-      setRegisterError("");
+      setRegisterError(null);
     };
   }, [clearAuthError, location.pathname]);
 
   useEffect(() => {
+    if (!isReadyForErrorSyncRef.current) return;
+
     if (error && error.message) {
-      setRegisterError(error.message);
+      setRegisterError(formatAuthDisplayError(error));
       // Close modal and show error in form
       setModalOpen(false);
       setIsRegistering(false);
@@ -50,7 +100,7 @@ function RegisterPage() {
 
   const handleRegister = async (data) => {
     try {
-      setRegisterError("");
+      setRegisterError(null);
       clearAuthError();
       setIsRegistering(true);
       setModalOpen(true);
@@ -88,15 +138,18 @@ function RegisterPage() {
         }, 3000);
       } else if (result.payload?.message) {
         // Handle registration failure
-        setRegisterError(result.payload.message);
+        const safeError = formatAuthDisplayError(result.payload);
+        setRegisterError(safeError);
         setModalOpen(false);
         setIsRegistering(false);
-        showSnackbar(result.payload.message, "error");
+        showSnackbar(safeError?.message || "Registration failed", "error");
       }
     } catch (err) {
+      const safeError = formatAuthDisplayError(err);
+      setRegisterError(safeError);
       setModalOpen(false);
       setIsRegistering(false);
-      showSnackbar(err.message || "Registration failed", "error");
+      showSnackbar(safeError?.message || "Registration failed", "error");
     }
   };
 
@@ -114,22 +167,6 @@ function RegisterPage() {
       });
     }
   };
-
-  // Show skeleton while loading
-  if (isLoading) {
-    return (
-      <DynamicSkeleton
-        type="page"
-        location="/auth/register"
-        config={{
-          contentType: "form",
-          centered: true,
-          showHeader: false,
-          showFooter: false,
-        }}
-      />
-    );
-  }
 
   return (
     <Box>
@@ -159,6 +196,7 @@ function RegisterPage() {
         onSubmit={handleRegister}
         isLoading={isLoading}
         error={registerError}
+        mapServerErrors={false}
       />
 
       {/* Sign in link */}

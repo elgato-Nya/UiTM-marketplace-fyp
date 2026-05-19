@@ -1,6 +1,6 @@
 const { User } = require("../../models/user");
 const logger = require("../../utils/logger");
-const { createAuthError, createConflictError } = require("../../utils/errors");
+const { AppError, createAuthError } = require("../../utils/errors");
 const { handleServiceError, handleNotFoundError } = require("../base.service");
 const { verifyRefreshToken } = require("../jwt.service");
 const {
@@ -19,6 +19,68 @@ const { NotificationType } = require("../../utils/enums/notification.enum");
 
 const createUser = async (userData, password) => {
   try {
+    const normalizedEmail = userData.email?.toLowerCase().trim();
+    const normalizedUsername = userData.profile?.username?.trim();
+    const normalizedPhoneNumber = userData.profile?.phoneNumber?.trim();
+
+    const duplicateQuery = [];
+    if (normalizedEmail) duplicateQuery.push({ email: normalizedEmail });
+    if (normalizedUsername)
+      duplicateQuery.push({ "profile.username": normalizedUsername });
+    if (normalizedPhoneNumber)
+      duplicateQuery.push({ "profile.phoneNumber": normalizedPhoneNumber });
+
+    if (duplicateQuery.length > 0) {
+      const existingUsers = await User.find({ $or: duplicateQuery })
+        .select("email profile.username profile.phoneNumber")
+        .lean();
+
+      const conflicts = [];
+
+      if (normalizedEmail) {
+        const emailExists = existingUsers.some(
+          (user) => user.email?.toLowerCase() === normalizedEmail
+        );
+        if (emailExists) {
+          conflicts.push({ field: "email", message: "Email already exists" });
+        }
+      }
+
+      if (normalizedUsername) {
+        const usernameExists = existingUsers.some(
+          (user) => user.profile?.username === normalizedUsername
+        );
+        if (usernameExists) {
+          conflicts.push({
+            field: "profile.username",
+            message: "Username already exists",
+          });
+        }
+      }
+
+      if (normalizedPhoneNumber) {
+        const phoneExists = existingUsers.some(
+          (user) => user.profile?.phoneNumber === normalizedPhoneNumber
+        );
+        if (phoneExists) {
+          conflicts.push({
+            field: "profile.phoneNumber",
+            message: "Phone number already exists",
+          });
+        }
+      }
+
+      if (conflicts.length > 0) {
+        const duplicateError = new AppError(
+          "Some details need your attention.",
+          409,
+          "DUPLICATE_FIELD"
+        );
+        duplicateError.errors = conflicts;
+        throw duplicateError;
+      }
+    }
+
     const completedData = { ...userData, password };
 
     // 🎯 AUTO-VERIFICATION LOGIC: Detect UiTM email at registration

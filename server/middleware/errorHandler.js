@@ -26,6 +26,43 @@ const {
 } = require("../utils/errors");
 const logger = require("../utils/logger");
 
+const SENSITIVE_KEYS = new Set([
+  "password",
+  "confirmpassword",
+  "token",
+  "refreshtoken",
+  "accesstoken",
+  "authorization",
+  "cookie",
+  "secret",
+  "apikey",
+  "otp",
+  "pin",
+  "card",
+  "cvv",
+]);
+
+const redactSensitiveData = (value) => {
+  if (Array.isArray(value)) {
+    return value.map(redactSensitiveData);
+  }
+
+  if (value && typeof value === "object") {
+    const redacted = {};
+    Object.entries(value).forEach(([key, nestedValue]) => {
+      const normalizedKey = String(key).toLowerCase();
+      if (SENSITIVE_KEYS.has(normalizedKey)) {
+        redacted[key] = "[REDACTED]";
+      } else {
+        redacted[key] = redactSensitiveData(nestedValue);
+      }
+    });
+    return redacted;
+  }
+
+  return value;
+};
+
 // Handle specific MongoDB/Mongoose errors and convert to AppError
 const handleCastErrorDB = (err) => {
   const message = `Invalid ${err.path}: ${err.value}`;
@@ -83,6 +120,16 @@ const handleJWTExpiredError = () => {
 
 // Send error response in development environment
 const sendErrorDev = (err, req, res) => {
+  const safeRequest = {
+    url: req.originalUrl,
+    method: req.method,
+    body: redactSensitiveData(req.body),
+    params: redactSensitiveData(req.params),
+    query: redactSensitiveData(req.query),
+    correlationId: req.correlationId || "undefined",
+    requestId: req.requestId || "undefined",
+  };
+
   const logContext = {
     action: err.action || "unknown_action",
     originalUrl: req.originalUrl,
@@ -91,15 +138,23 @@ const sendErrorDev = (err, req, res) => {
     correlationId: req.correlationId || "undefined",
     requestId: req.requestId || "undefined",
     environment: "development",
-    body: req.body, // Logger will sanitize this automatically
-    ...(Object.keys(req.params).length > 0 && { params: req.params }),
-    ...(Object.keys(req.query).length > 0 && { query: req.query }),
+    body: safeRequest.body,
+    ...(Object.keys(req.params).length > 0 && {
+      params: redactSensitiveData(req.params),
+    }),
+    ...(Object.keys(req.query).length > 0 && {
+      query: redactSensitiveData(req.query),
+    }),
   };
 
   logger.errorWithStack(err, logContext);
 
   return res.status(err.statusCode).json({
     success: false,
+    message: err.message,
+    code: err.code,
+    correlationId: req.correlationId || "undefined",
+    ...(err.errors && { errors: err.errors }),
     error: {
       statusCode: err.statusCode,
       status: err.status,
@@ -116,16 +171,9 @@ const sendErrorDev = (err, req, res) => {
       message: err.message,
       name: err.name,
       ...(err.details && { details: err.details }), // Include validation details
+      ...(err.errors && { errors: err.errors }),
     },
-    request: {
-      url: req.originalUrl,
-      method: req.method,
-      body: req.body,
-      params: req.params,
-      query: req.query,
-      correlationId: req.correlationId || "undefined",
-      requestId: req.requestId || "undefined",
-    },
+    request: safeRequest,
   });
 };
 
@@ -152,6 +200,7 @@ const sendErrorProd = (err, req, res) => {
       message: err.message,
       code: err.code,
       correlationId: req.correlationId || "undefined",
+      ...(err.errors && { errors: err.errors }),
       ...(err.details && { details: err.details }), // Include validation details in production too
     });
   } else {

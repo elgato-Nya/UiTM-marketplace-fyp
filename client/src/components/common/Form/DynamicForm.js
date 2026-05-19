@@ -94,7 +94,7 @@ function DynamicForm({
 
     // Check if values actually changed (deep comparison for key fields)
     const hasChanged = Object.keys(values || {}).some(
-      (key) => values[key] !== prevValues?.[key]
+      (key) => values[key] !== prevValues?.[key],
     );
 
     if (hasChanged && !isInternalUpdate.current) {
@@ -121,7 +121,7 @@ function DynamicForm({
         }, 0);
       }
     },
-    [isControlled, onChange]
+    [isControlled, onChange],
   );
 
   // Watch for form changes and notify parent
@@ -210,7 +210,7 @@ function DynamicForm({
           stepErrors.length === 1
             ? stepErrors[0]
             : `Please fix ${stepErrors.length} error${stepErrors.length > 1 ? "s" : ""} before continuing`,
-          "error"
+          "error",
         );
       }
       return;
@@ -245,7 +245,7 @@ function DynamicForm({
         const errorCount = countErrors(errors);
         showSnackbar(
           `Please fix ${errorCount} validation error${errorCount > 1 ? "s" : ""} before submitting`,
-          "error"
+          "error",
         );
         return;
       }

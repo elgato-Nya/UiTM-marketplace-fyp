@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Box,
   Typography,
@@ -13,6 +13,7 @@ import {
   Favorite as FavoriteIcon,
   FavoriteBorder as FavoriteBorderIcon,
   ShoppingCart as ShoppingCartIcon,
+  ImageNotSupported as NoImageIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 
@@ -40,6 +41,7 @@ const ListingListItem = ({
   const { success, error: showError } = useSnackbar();
   const { isAuthenticated } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [hasImageError, setHasImageError] = useState(false);
 
   const { isInCart, addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
@@ -56,6 +58,7 @@ const ListingListItem = ({
     isFree,
     isAvailable,
     seller,
+    variants,
   } = listing;
 
   const isService = type === "service";
@@ -66,9 +69,8 @@ const ListingListItem = ({
   const inWishlist = isInWishlist(_id);
   const primaryImage = images?.[0];
   const imageSrc =
-    typeof primaryImage === "string"
-      ? primaryImage
-      : primaryImage?.url || "https://via.placeholder.com/150";
+    typeof primaryImage === "string" ? primaryImage : primaryImage?.url;
+  const hasValidImage = Boolean(imageSrc) && !hasImageError;
   const sellerUser = seller?.userId || seller || {};
   const sellerMerchant = sellerUser?.merchantDetails || {};
   const sellerDisplayName =
@@ -83,6 +85,18 @@ const ListingListItem = ({
       seller?.isVerifiedMerchant ||
       sellerMerchant?.verificationStatus === "verified",
   );
+  const displayPrice = useMemo(() => {
+    if (isFree) return 0;
+    if (!variants || variants.length === 0) return price;
+
+    const availableVariants = variants.filter((v) => v.isAvailable !== false);
+    if (availableVariants.length === 0) return price;
+
+    const lowestPrice = Math.min(
+      ...availableVariants.map((v) => Number(v.price) || 0),
+    );
+    return lowestPrice > 0 ? lowestPrice : price;
+  }, [variants, price, isFree]);
 
   // Format price with spaces (e.g., 1 234 567.89)
   const formatPrice = (price) => {
@@ -147,6 +161,10 @@ const ListingListItem = ({
     setDialogOpen(false);
   };
 
+  const handleImageError = () => {
+    setHasImageError(true);
+  };
+
   const handleConfirmAddToCart = async (quantity) => {
     try {
       await addToCart(_id, quantity);
@@ -175,16 +193,49 @@ const ListingListItem = ({
       >
         {/* Image */}
         <Box
-          component="img"
-          src={imageSrc}
-          alt={name}
           sx={{
             width: { xs: 110, sm: 124 },
             aspectRatio: "4 / 3",
-            objectFit: "cover",
             flexShrink: 0,
+            bgcolor: hasValidImage ? "transparent" : "background.default",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden",
           }}
-        />
+        >
+          {hasValidImage ? (
+            <Box
+              component="img"
+              src={imageSrc}
+              alt={name}
+              onError={handleImageError}
+              sx={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
+            />
+          ) : (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 0.5,
+                color: "text.disabled",
+                px: 1,
+              }}
+              aria-label={`No image available for ${name}`}
+            >
+              <NoImageIcon sx={{ fontSize: 28 }} />
+              <Typography variant="caption" color="text.disabled">
+                No Image
+              </Typography>
+            </Box>
+          )}
+        </Box>
 
         {/* Content */}
         <Box
@@ -319,7 +370,9 @@ const ListingListItem = ({
                   flexShrink: 1,
                 }}
               >
-                {formatPrice(price)}
+                {variants && variants.length > 0
+                  ? `From ${formatPrice(displayPrice)}`
+                  : formatPrice(price)}
               </Typography>
 
               {/* Actions */}

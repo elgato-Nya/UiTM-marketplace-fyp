@@ -115,6 +115,7 @@ const handleUpdateListing = asyncHandler(async (req, res) => {
     "isFree",
     "hasVariants",
     "variants",
+    "variationConfig",
     "isQuoteBased",
     "quoteSettings",
     "isAvailable",

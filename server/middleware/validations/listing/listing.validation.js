@@ -22,6 +22,7 @@ const {
   isValidListingDescription,
   isValidListingStock,
   isValidType,
+  isValidVariationConfig,
   isValidVariantName,
   isValidSku,
   isValidVariantPrice,
@@ -122,6 +123,16 @@ const listingImagesValidation = (fieldname = "images") => {
       return isValidImagesArray(images);
     })
     .withMessage(listingErrorMessages.images.invalid.format);
+};
+
+const listingVariationConfigValidation = (fieldname = "variationConfig") => {
+  return body(fieldname)
+    .optional({ nullable: true })
+    .isArray({ max: VariantLimits.MAX_VARIATION_CONFIGS })
+    .withMessage(listingErrorMessages.variationConfig.invalid)
+    .bail()
+    .custom((variationConfig) => isValidVariationConfig(variationConfig))
+    .withMessage(listingErrorMessages.variant.variationConfig.invalid);
 };
 
 const listingStockValidation = (fieldname = "stock") => {
@@ -308,6 +319,7 @@ const validateCreateListing = [
   conditionalPriceValidation("price"), // Conditional based on variants/quote
   listingCategoryValidation("category"),
   listingImagesValidation("images"),
+  listingVariationConfigValidation("variationConfig"),
   listingStockValidation("stock"), // Conditional based on variants
   listingVariantsValidation("variants"), // Optional variants array
   listingQuoteSettingsValidation("quoteSettings"), // Optional quote settings (services only)
@@ -325,6 +337,7 @@ const validateUpdateListing = [
   listingPriceValidation("price").optional(),
   listingCategoryValidation("category").optional(),
   listingImagesValidation("images").optional(),
+  listingVariationConfigValidation("variationConfig").optional(),
   listingStockValidation("stock").optional(),
   listingVariantsValidation("variants").optional(),
   listingQuoteSettingsValidation("quoteSettings").optional(),

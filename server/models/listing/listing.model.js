@@ -16,9 +16,53 @@ const {
   isValidListingName,
   isValidListingDescription,
   isValidImagesArray,
+  isValidVariationConfig,
   isValidVariantsArray,
   isValidQuoteSettings,
 } = ListingValidator;
+
+const VariationOptionSchema = new mongoose.Schema(
+  {
+    value: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    imageUrl: {
+      type: String,
+      trim: true,
+      default: undefined,
+    },
+  },
+  { _id: false }
+);
+
+const VariationConfigItemSchema = new mongoose.Schema(
+  {
+    key: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    label: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    position: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: VariantLimits.MAX_VARIATION_CONFIGS - 1,
+    },
+    options: {
+      type: [VariationOptionSchema],
+      required: true,
+      default: undefined,
+    },
+  },
+  { _id: false }
+);
 
 /**
  * Listing Model
@@ -89,6 +133,15 @@ const ListingSchema = new mongoose.Schema(
       validate: [
         isValidImagesArray,
         listingErrorMessages.images.invalid.format,
+      ],
+    },
+
+    variationConfig: {
+      type: [VariationConfigItemSchema],
+      default: undefined,
+      validate: [
+        isValidVariationConfig,
+        listingErrorMessages.variationConfig.invalid,
       ],
     },
 

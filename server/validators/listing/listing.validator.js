@@ -143,6 +143,116 @@ class ListingValidator {
     return UploadValidator.isValidImageUrl(imageUrl);
   }
 
+  // ==================== VARIATION CONFIG VALIDATION METHODS ====================
+
+  /**
+   * Validates a variation option object
+   * @param {Object} option
+   * @returns {boolean}
+   * NOTE: Option value is required, imageUrl is optional
+   */
+  static isValidVariationOption(option) {
+    if (!option || typeof option !== "object" || Array.isArray(option)) {
+      return false;
+    }
+
+    if (!option.value || typeof option.value !== "string") {
+      return false;
+    }
+
+    const trimmedValue = option.value.trim();
+    if (
+      trimmedValue.length === 0 ||
+      trimmedValue.length > VariantLimits.MAX_ATTRIBUTE_VALUE_LENGTH
+    ) {
+      return false;
+    }
+
+    if (
+      option.imageUrl !== undefined &&
+      option.imageUrl !== null &&
+      !ListingValidator.isValidImageUrl(option.imageUrl)
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Validates a variation config item
+   * @param {Object} configItem
+   * @returns {boolean}
+   * NOTE: Supports up to two variation layers, matching current variant builder
+   */
+  static isValidVariationConfigItem(configItem) {
+    if (
+      !configItem ||
+      typeof configItem !== "object" ||
+      Array.isArray(configItem)
+    ) {
+      return false;
+    }
+
+    if (!configItem.key || typeof configItem.key !== "string") {
+      return false;
+    }
+
+    const trimmedKey = configItem.key.trim();
+    if (
+      trimmedKey.length === 0 ||
+      trimmedKey.length > VariantLimits.MAX_ATTRIBUTE_KEY_LENGTH
+    ) {
+      return false;
+    }
+
+    if (!configItem.label || typeof configItem.label !== "string") {
+      return false;
+    }
+
+    const trimmedLabel = configItem.label.trim();
+    if (
+      trimmedLabel.length === 0 ||
+      trimmedLabel.length > VariantLimits.MAX_ATTRIBUTE_VALUE_LENGTH
+    ) {
+      return false;
+    }
+
+    if (
+      typeof configItem.position !== "number" ||
+      !Number.isInteger(configItem.position) ||
+      configItem.position < 0 ||
+      configItem.position >= VariantLimits.MAX_VARIATION_CONFIGS
+    ) {
+      return false;
+    }
+
+    if (!Array.isArray(configItem.options) || configItem.options.length === 0) {
+      return false;
+    }
+
+    return configItem.options.every((option) =>
+      ListingValidator.isValidVariationOption(option)
+    );
+  }
+
+  /**
+   * Validates variation config array
+   * @param {Array} variationConfig
+   * @returns {boolean}
+   */
+  static isValidVariationConfig(variationConfig) {
+    if (variationConfig === null || variationConfig === undefined) return true;
+    if (!Array.isArray(variationConfig)) return false;
+    if (variationConfig.length > VariantLimits.MAX_VARIATION_CONFIGS) {
+      return false;
+    }
+
+    return variationConfig.every((configItem) =>
+      ListingValidator.isValidVariationConfigItem(configItem)
+    );
+  }
+
   // ==================== VARIANT VALIDATION METHODS ====================
 
   /**
@@ -612,6 +722,17 @@ const listingErrorMessages = {
         "Images must be an array of valid S3 URLs, HTTPS URLs, or base64 strings. Empty array is allowed.",
     },
   },
+  variationConfig: {
+    invalid: `variationConfig must be an array with at most ${VariantLimits.MAX_VARIATION_CONFIGS} items`,
+    itemInvalid:
+      "Each variationConfig item requires key, label, position, and a non-empty options array",
+    keyInvalid: `Variation config key must be between 1 and ${VariantLimits.MAX_ATTRIBUTE_KEY_LENGTH} characters`,
+    labelInvalid: `Variation config label must be between 1 and ${VariantLimits.MAX_ATTRIBUTE_VALUE_LENGTH} characters`,
+    positionInvalid: `Variation config position must be an integer between 0 and ${VariantLimits.MAX_VARIATION_CONFIGS - 1}`,
+    optionInvalid:
+      "Each variationConfig option requires a value, and imageUrl must be a valid image URL if provided",
+    optionValueInvalid: `Variation config option value must be between 1 and ${VariantLimits.MAX_ATTRIBUTE_VALUE_LENGTH} characters`,
+  },
   stock: {
     required: "Stock quantity is required",
     invalid: "Stock quantity cannot be negative",
@@ -665,6 +786,9 @@ const listingErrorMessages = {
     },
     images: {
       invalid: `Variant images must be an array with max ${VariantLimits.MAX_VARIANT_IMAGES} URLs`,
+    },
+    variationConfig: {
+      invalid: `Variation config must be an array with max ${VariantLimits.MAX_VARIATION_CONFIGS} layers`,
     },
     isAvailable: {
       invalid: "isAvailable must be a boolean",

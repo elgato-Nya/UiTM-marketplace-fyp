@@ -112,6 +112,53 @@ describe("Listing Model Integration Tests", () => {
       expect(listing.isFree).toBe(true);
       expect(listing.price).toBe(0);
     });
+
+    it("should persist optional variationConfig metadata", async () => {
+      const listing = await Listing.create({
+        name: "Variant Image Product",
+        description: "Product with primary option metadata",
+        price: 120,
+        category: "clothing",
+        type: "product",
+        images: ["https://example.com/shirt.jpg"],
+        seller: {
+          userId: merchantUser._id,
+          username: merchantUser.profile.username,
+        },
+        stock: 5,
+        variationConfig: [
+          {
+            key: "color",
+            label: "Color",
+            position: 0,
+            options: [
+              {
+                value: "Red",
+                imageUrl: "https://example.com/shirt-red.jpg",
+              },
+              { value: "Blue" },
+            ],
+          },
+          {
+            key: "size",
+            label: "Size",
+            position: 1,
+            options: [{ value: "S" }, { value: "M" }],
+          },
+        ],
+      });
+
+      expect(listing.variationConfig).toHaveLength(2);
+      expect(listing.variationConfig[0]).toMatchObject({
+        key: "color",
+        label: "Color",
+        position: 0,
+      });
+      expect(listing.variationConfig[0].options[0]).toMatchObject({
+        value: "Red",
+        imageUrl: "https://example.com/shirt-red.jpg",
+      });
+    });
   });
 
   describe("Service Listing Creation", () => {

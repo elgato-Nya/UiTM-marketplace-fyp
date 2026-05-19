@@ -313,6 +313,90 @@ describe("Variant Validator - Unit Tests", () => {
     });
   });
 
+  // ==================== isValidVariationConfig ====================
+  describe("isValidVariationConfig", () => {
+    const validVariationConfig = [
+      {
+        key: "color",
+        label: "Color",
+        position: 0,
+        options: [
+          {
+            value: "Red",
+            imageUrl: "https://example.com/listings/red.jpg",
+          },
+          { value: "Blue" },
+        ],
+      },
+      {
+        key: "size",
+        label: "Size",
+        position: 1,
+        options: [{ value: "S" }, { value: "M" }],
+      },
+    ];
+
+    it("should accept valid variation config", () => {
+      expect(ListingValidator.isValidVariationConfig(validVariationConfig)).toBe(
+        true
+      );
+    });
+
+    it("should accept optional values", () => {
+      expect(ListingValidator.isValidVariationConfig(null)).toBe(true);
+      expect(ListingValidator.isValidVariationConfig(undefined)).toBe(true);
+    });
+
+    it("should reject invalid variation config values", () => {
+      const invalidConfigs = [
+        "not-an-array",
+        {},
+        [
+          {
+            key: "color",
+            label: "Color",
+            position: 0,
+            options: [],
+          },
+        ],
+        [
+          {
+            key: "color",
+            label: "Color",
+            position: 0,
+            options: [{ value: "", imageUrl: "https://example.com/a.jpg" }],
+          },
+        ],
+        [
+          {
+            key: "color",
+            label: "Color",
+            position: 2,
+            options: [{ value: "Red" }],
+          },
+        ],
+        [
+          {
+            key: "color",
+            label: "Color",
+            position: 0,
+            options: [{ value: "Red", imageUrl: "invalid-url" }],
+          },
+        ],
+        Array(VariantLimits.MAX_VARIATION_CONFIGS + 1).fill({
+          key: "color",
+          label: "Color",
+          position: 0,
+          options: [{ value: "Red" }],
+        }),
+      ];
+
+      invalidConfigs.forEach((config) => {
+        expect(ListingValidator.isValidVariationConfig(config)).toBe(false);
+      });
+    });
+  });
+
   // ==================== isValidVariant ====================
   describe("isValidVariant", () => {
     const validProductVariant = {

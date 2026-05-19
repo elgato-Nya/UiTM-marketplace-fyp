@@ -28,6 +28,7 @@ const ListingType = Object.freeze({
  */
 const VariantLimits = Object.freeze({
   MAX_VARIANTS_PER_LISTING: 100,
+  MAX_VARIATION_CONFIGS: 2,
   MAX_VARIANT_NAME_LENGTH: 100,
   MIN_VARIANT_NAME_LENGTH: 1,
   MAX_SKU_LENGTH: 50,

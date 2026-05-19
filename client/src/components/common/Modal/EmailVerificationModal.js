@@ -118,6 +118,7 @@ const EmailVerificationModal = ({
         {/* Close Button */}
         <IconButton
           onClick={onClose}
+          aria-label="Close dialog"
           sx={{
             position: "absolute",
             right: 16,
@@ -214,7 +215,7 @@ const EmailVerificationModal = ({
               }}
             >
               <Typography variant="caption" color="text.secondary">
-                ✓ Your account is safe. This is a temporary issue on our end.
+                Your account is safe. This is a temporary issue on our end.
               </Typography>
             </Box>
           )}
@@ -301,6 +302,7 @@ const EmailVerificationModal = ({
         {/* Close Button */}
         <IconButton
           onClick={onClose}
+          aria-label="Close dialog"
           sx={{
             position: "absolute",
             right: 16,
@@ -403,7 +405,7 @@ const EmailVerificationModal = ({
             }}
           >
             <Typography variant="caption" color="text.secondary">
-              ⏱️ Link expires in {config.expiryTime}. Check spam if not found.
+              Link expires in {config.expiryTime}. Check spam if not found.
             </Typography>
           </Box>
 
@@ -466,3 +468,4 @@ const EmailVerificationModal = ({
 };
 
 export default EmailVerificationModal;
+

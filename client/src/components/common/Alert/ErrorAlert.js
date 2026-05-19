@@ -121,8 +121,8 @@ const ErrorAlert = ({
   const bannerStyles = {
     display: "flex",
     alignItems: "flex-start",
-    gap: 1.5,
-    p: 2,
+    gap: 1.25,
+    p: 1.5,
     borderRadius: "8px",
     backgroundColor: config.bgColor,
     border: `1px solid ${config.borderColor}`,
@@ -202,39 +202,41 @@ const ErrorAlert = ({
               fontWeight: 600,
               color: config.textColor,
               lineHeight: 1.5,
-              mb: 1,
+              mb: 0.5,
             }}
           >
             {validationErrors.length === 1
               ? "Please fix the following issue:"
               : `Please fix the following ${validationErrors.length} issues:`}
           </Typography>
-          <Box sx={{ bgcolor: config.fieldBg, borderRadius: "6px", p: 1.5 }}>
-            <List
-              dense
-              disablePadding
-              sx={{ "& .MuiListItem-root": { py: 0.25, px: 0 } }}
-            >
-              {visibleErrors.map((err, index) => (
-                <ListItem key={index}>
-                  <ListItemText
-                    primary={
-                      <Typography
-                        variant="body2"
-                        component="div"
-                        sx={{ display: "flex", gap: 0.5 }}
+          <List
+            dense
+            disablePadding
+            sx={{ "& .MuiListItem-root": { py: 0.125, px: 0 } }}
+          >
+            {visibleErrors.map((err, index) => (
+              <ListItem key={index}>
+                <ListItemText
+                  primary={
+                    <Typography
+                      variant="body2"
+                      component="div"
+                      sx={{ display: "flex", gap: 0.5, lineHeight: 1.4 }}
+                    >
+                      <Box
+                        component="span"
+                        sx={{ fontWeight: 600, color: config.iconColor }}
                       >
+                        -
+                      </Box>
+                      <Box component="span">
                         <Box
                           component="span"
-                          sx={{ fontWeight: 600, color: config.iconColor }}
-                        ></Box>
+                          sx={{ fontWeight: 600, color: config.textColor }}
+                        >
+                          {formatFieldName(err.field)}:
+                        </Box>{" "}
                         <Box component="span">
-                          <Box
-                            component="span"
-                            sx={{ fontWeight: 600, color: config.textColor }}
-                          >
-                            {formatFieldName(err.field)}:
-                          </Box>{" "}
                           <Box
                             component="span"
                             sx={{ color: config.mutedText }}
@@ -242,43 +244,43 @@ const ErrorAlert = ({
                             {err.message}
                           </Box>
                         </Box>
-                      </Typography>
-                    }
-                  />
-                </ListItem>
-              ))}
-            </List>
-            {showCollapse && (
-              <Button
-                size="small"
-                onClick={() => setDetailsExpanded(!detailsExpanded)}
-                endIcon={
-                  detailsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />
-                }
-                sx={{
-                  mt: 0.5,
-                  fontSize: "11px",
-                  fontWeight: 500,
-                  textTransform: "none",
-                  color: config.mutedText,
-                  p: 0,
-                  minWidth: "auto",
-                  "&:hover": {
-                    backgroundColor: "transparent",
-                    color: config.iconColor,
-                  },
-                }}
-              >
-                {detailsExpanded
-                  ? "Show less"
-                  : `Show ${validationErrors.length - 5} more`}
-              </Button>
-            )}
-          </Box>
+                      </Box>
+                    </Typography>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+          {showCollapse && (
+            <Button
+              size="small"
+              onClick={() => setDetailsExpanded(!detailsExpanded)}
+              endIcon={
+                detailsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />
+              }
+              sx={{
+                mt: 0.25,
+                fontSize: "11px",
+                fontWeight: 500,
+                textTransform: "none",
+                color: config.mutedText,
+                p: 0,
+                minWidth: "auto",
+                "&:hover": {
+                  backgroundColor: "transparent",
+                  color: config.iconColor,
+                },
+              }}
+            >
+              {detailsExpanded
+                ? "Show less"
+                : `Show ${validationErrors.length - 5} more`}
+            </Button>
+          )}
           {hint && (
             <Typography
               variant="caption"
-              sx={{ display: "block", mt: 1, color: config.mutedText }}
+              sx={{ display: "block", mt: 0.75, color: config.mutedText }}
             >
               {" "}
               {hint}
@@ -290,7 +292,7 @@ const ErrorAlert = ({
               onClick={onRetry}
               startIcon={<RefreshIcon />}
               sx={{
-                mt: 1.5,
+                mt: 1,
                 px: 2,
                 py: 0.5,
                 fontSize: "12px",

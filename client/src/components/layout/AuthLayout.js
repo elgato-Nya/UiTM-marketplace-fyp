@@ -39,6 +39,7 @@ function AuthLayout() {
         <IconButton
           component={Link}
           to="/"
+          aria-label="Back to home"
           sx={{
             color: theme.palette.text.primary,
             "&:hover": {
@@ -109,7 +110,7 @@ function AuthLayout() {
           color="text.secondary"
           sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
         >
-          © {new Date().getFullYear()} MarKet. All rights reserved.
+          (c) {new Date().getFullYear()} MarKet. All rights reserved.
         </Typography>
       </Box>
     </Box>
@@ -117,3 +118,4 @@ function AuthLayout() {
 }
 
 export default AuthLayout;
+

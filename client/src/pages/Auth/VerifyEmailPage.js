@@ -23,6 +23,26 @@ const VerifyEmailPage = () => {
   const token = searchParams.get("token");
   const email = searchParams.get("email");
 
+  const getSafeVerifyEmailErrorMessage = (error) => {
+    const rawMessage =
+      error?.response?.data?.message || error?.message || "";
+    const lowered = rawMessage.toLowerCase();
+
+    if (lowered.includes("expired") || lowered.includes("invalid")) {
+      return "This verification link is invalid or has expired.";
+    }
+
+    if (
+      lowered.includes("wait") ||
+      lowered.includes("too many") ||
+      lowered.includes("rate limit")
+    ) {
+      return "Please wait a few minutes before requesting another verification email.";
+    }
+
+    return "Unable to complete email verification right now. Please try again.";
+  };
+
   useEffect(() => {
     if (hasAttemptedVerification.current) {
       return undefined;
@@ -40,16 +60,13 @@ const VerifyEmailPage = () => {
       }
 
       try {
-        const response = await api.post("/auth/verify-email", {
+        await api.post("/auth/verify-email", {
           email: decodeURIComponent(email),
           token: token,
         });
 
         setStatus("success");
-        setMessage(
-          response.data.message ||
-            "Email verified successfully! Redirecting to login..."
-        );
+        setMessage("Email verified successfully! Redirecting to login...");
 
         // Start countdown
         let count = 5;
@@ -65,10 +82,7 @@ const VerifyEmailPage = () => {
         return () => clearInterval(interval);
       } catch (error) {
         setStatus("error");
-        const errorMsg =
-          error.response?.data?.message ||
-          "Failed to verify email. The link may have expired.";
-        setMessage(errorMsg);
+        setMessage(getSafeVerifyEmailErrorMessage(error));
       }
     };
 
@@ -88,9 +102,7 @@ const VerifyEmailPage = () => {
       setMessage("Verification email sent! Please check your inbox.");
     } catch (error) {
       setStatus("error");
-      setMessage(
-        error.response?.data?.message || "Failed to resend verification email."
-      );
+      setMessage(getSafeVerifyEmailErrorMessage(error));
     }
   };
 

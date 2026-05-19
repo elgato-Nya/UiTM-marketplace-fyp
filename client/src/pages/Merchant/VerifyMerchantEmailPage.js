@@ -40,6 +40,26 @@ function VerifyMerchantEmailPage() {
   const [state, setState] = useState(VERIFICATION_STATES.LOADING);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const getSafeMerchantVerifyErrorMessage = (error) => {
+    const rawMessage =
+      error?.response?.data?.message || error?.message || "";
+    const lowered = rawMessage.toLowerCase();
+
+    if (lowered.includes("expired") || lowered.includes("invalid")) {
+      return "Verification failed. This link is invalid or has expired.";
+    }
+
+    if (
+      lowered.includes("wait") ||
+      lowered.includes("too many") ||
+      lowered.includes("rate limit")
+    ) {
+      return "Please wait a few minutes before requesting another verification email.";
+    }
+
+    return "Unable to verify your email right now. Please try again.";
+  };
+
   useEffect(() => {
     const token = searchParams.get("token");
 
@@ -65,10 +85,7 @@ function VerifyMerchantEmailPage() {
       }, 3000);
     } catch (error) {
       setState(VERIFICATION_STATES.ERROR);
-      setErrorMessage(
-        error.response?.data?.message ||
-          "Verification failed. Token may be invalid or expired."
-      );
+      setErrorMessage(getSafeMerchantVerifyErrorMessage(error));
     }
   };
 
@@ -101,7 +118,7 @@ function VerifyMerchantEmailPage() {
               mt={2}
               gutterBottom
             >
-              🎉 Verification Successful!
+              Verification Successful!
             </Typography>
             <Typography variant="body1" color="text.secondary" paragraph>
               Your UiTM email has been verified successfully
@@ -119,7 +136,7 @@ function VerifyMerchantEmailPage() {
               mx="auto"
             >
               <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                �?What's Next?
+                What's Next?
               </Typography>
               <Typography
                 variant="caption"
@@ -179,7 +196,7 @@ function VerifyMerchantEmailPage() {
               mx="auto"
             >
               <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                ⚠️ Possible Reasons:
+                Possible Reasons:
               </Typography>
               <Typography
                 variant="caption"
@@ -244,7 +261,7 @@ function VerifyMerchantEmailPage() {
               mx="auto"
             >
               <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                💡 How to Verify:
+                How to Verify:
               </Typography>
               <Typography
                 variant="caption"
@@ -298,3 +315,4 @@ function VerifyMerchantEmailPage() {
 }
 
 export default VerifyMerchantEmailPage;
+

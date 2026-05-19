@@ -78,6 +78,7 @@ const RegistrationSuccessModal = ({
       {/* Close Button */}
       <IconButton
         onClick={onClose}
+        aria-label="Close dialog"
         sx={{
           position: "absolute",
           right: 12,

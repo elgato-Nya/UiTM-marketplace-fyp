@@ -297,6 +297,10 @@ const ResetPasswordPage = () => {
                       <IconButton
                         onClick={() => setShowPassword(!showPassword)}
                         edge="end"
+                        aria-label={
+                          showPassword ? "Hide new password" : "Show new password"
+                        }
+                        aria-pressed={showPassword}
                       >
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
@@ -324,6 +328,12 @@ const ResetPasswordPage = () => {
                           setShowConfirmPassword(!showConfirmPassword)
                         }
                         edge="end"
+                        aria-label={
+                          showConfirmPassword
+                            ? "Hide confirm new password"
+                            : "Show confirm new password"
+                        }
+                        aria-pressed={showConfirmPassword}
                       >
                         {showConfirmPassword ? (
                           <VisibilityOff />
@@ -341,13 +351,13 @@ const ResetPasswordPage = () => {
               <Typography variant="body2">
                 <strong>Password requirements:</strong>
                 <br />
-                �?At least 8 characters
+                - At least 8 characters
                 <br />
-                �?One uppercase letter
+                - One uppercase letter
                 <br />
-                �?One lowercase letter
+                - One lowercase letter
                 <br />
-                �?One number
+                - One number
               </Typography>
             </Alert>
 
@@ -359,7 +369,14 @@ const ResetPasswordPage = () => {
               disabled={isSubmitting}
               sx={{ mb: 2 }}
             >
-              {isSubmitting ? <CircularProgress size={24} /> : "Reset Password"}
+              {isSubmitting ? (
+                <>
+                  <CircularProgress size={24} sx={{ mr: 1 }} />
+                  <span>Resetting password...</span>
+                </>
+              ) : (
+                "Reset Password"
+              )}
             </Button>
 
             <Box sx={{ textAlign: "center" }}>
@@ -379,3 +396,4 @@ const ResetPasswordPage = () => {
 };
 
 export default ResetPasswordPage;
+

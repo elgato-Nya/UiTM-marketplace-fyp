@@ -45,9 +45,8 @@ const ForgotPasswordPage = () => {
 
   // Helper function to parse technical errors into user-friendly messages
   const parseErrorMessage = (error) => {
-    const serverError = error.response?.data?.error;
-    let errorMessage =
-      serverError?.message ||
+    const errorMessage =
+      error.response?.data?.error?.message ||
       error.response?.data?.message ||
       error.message ||
       "";
@@ -78,9 +77,17 @@ const ForgotPasswordPage = () => {
       return "Unable to connect to the server. Please try again later.";
     }
 
-    return (
-      errorMessage || "Unable to send password reset email. Please try again."
-    );
+    const lowered = errorMessage.toLowerCase();
+    if (
+      lowered.includes("wait") ||
+      lowered.includes("too many") ||
+      lowered.includes("rate limit") ||
+      lowered.includes("5 minutes")
+    ) {
+      return "Please wait a few minutes before requesting another reset link.";
+    }
+
+    return "Unable to process your request right now. Please try again.";
   };
 
   const onSubmit = async (data) => {
@@ -93,10 +100,9 @@ const ForgotPasswordPage = () => {
 
       // Check if rate limited
       if (response.data?.rateLimited) {
-        const message =
-          response.data?.message ||
-          "Email was already sent, please wait for 5 minutes before requesting again";
-        setModalError(message);
+        setModalError(
+          "Please wait a few minutes before requesting another reset link."
+        );
         setModalStatus("error");
         setModalOpen(true);
         return;
@@ -153,10 +159,9 @@ const ForgotPasswordPage = () => {
       });
 
       if (response.data?.rateLimited) {
-        const message =
-          response.data?.message ||
-          "Email was already sent, please wait for 5 minutes before requesting again";
-        setModalError(message);
+        setModalError(
+          "Please wait a few minutes before requesting another reset link."
+        );
         setModalStatus("error");
         setModalOpen(true);
         return;

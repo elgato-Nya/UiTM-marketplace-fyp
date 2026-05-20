@@ -25,6 +25,8 @@ import {
   isRecoverableError,
 } from "../../../utils/errorUtils";
 
+const HIDDEN_ERROR_CODES = new Set(["LISTING_LIMIT_REACHED"]);
+
 const ErrorAlert = ({
   error,
   message = null,
@@ -345,7 +347,9 @@ const ErrorAlert = ({
             {hint}
           </Typography>
         )}
-        {parsedError.code && showDetails && (
+        {parsedError.code &&
+          showDetails &&
+          !HIDDEN_ERROR_CODES.has(parsedError.code) && (
           <Typography
             variant="caption"
             sx={{

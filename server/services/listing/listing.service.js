@@ -8,6 +8,7 @@
  */
 const Listing = require("../../models/listing/listing.model");
 const User = require("../../models/user/user.model");
+const config = require("../../config/env.config");
 const { sanitizeObject } = require("../../utils/sanitizer");
 const { createForbiddenError } = require("../../utils/errors");
 const {
@@ -21,6 +22,39 @@ const logger = require("../../utils/logger");
 const Fuse = require("fuse.js");
 const { getActiveSellerPlan } = require("../plan/plan.service");
 
+const LISTING_LIMIT_REACHED_MESSAGE =
+  "You've reached your active listing limit. Deactivate an existing listing or upgrade your plan to add more.";
+
+const shouldEnforceListingLimits = () =>
+  config.finance?.enforceListingLimits !== false;
+
+const enforceActiveListingLimit = async (userId, options = {}) => {
+  if (!shouldEnforceListingLimits()) {
+    return;
+  }
+
+  const { excludeListingId = null } = options;
+  const countQuery = {
+    "seller.userId": userId,
+    isAvailable: true,
+  };
+
+  if (excludeListingId) {
+    countQuery._id = { $ne: excludeListingId };
+  }
+
+  const activeListingCount = await Listing.countDocuments(countQuery);
+  const sellerPlan = await getActiveSellerPlan(userId);
+  const listingLimit = sellerPlan.rules?.listingLimit ?? 5;
+
+  if (activeListingCount >= listingLimit) {
+    throw createForbiddenError(
+      LISTING_LIMIT_REACHED_MESSAGE,
+      "LISTING_LIMIT_REACHED",
+    );
+  }
+};
+
 /**
  *  Create new listing
  *  @param {String} userId - ID of the user creating the listing
@@ -31,19 +65,8 @@ const createListing = async (userId, listingData) => {
   try {
     const sanitizedData = sanitizeObject(listingData);
 
-    const activeListingCount = await Listing.countDocuments({
-      "seller.userId": userId,
-      isAvailable: true,
-    });
-
-    const sellerPlan = await getActiveSellerPlan(userId);
-    const listingLimit = sellerPlan.rules?.listingLimit ?? 5;
-
-    if (activeListingCount >= listingLimit) {
-      throw createForbiddenError(
-        `Your current plan allows a maximum of ${listingLimit} active listings`,
-        "LISTING_LIMIT_REACHED",
-      );
+    if (sanitizedData.isAvailable !== false) {
+      await enforceActiveListingLimit(userId);
     }
 
     const listing = new Listing({
@@ -486,6 +509,7 @@ const updateListing = async (listingId, userId, updateData) => {
       );
     }
 
+    const listingOwnerId = listing.seller?.userId || userId;
     const sanitizedData = sanitizeObject(updateData);
 
     // Prevent updating protected fields (following your security pattern)
@@ -493,6 +517,15 @@ const updateListing = async (listingId, userId, updateData) => {
     delete sanitizedData._id;
     delete sanitizedData.createdAt;
     delete sanitizedData.updatedAt;
+
+    const isReactivating =
+      listing.isAvailable === false && sanitizedData.isAvailable === true;
+
+    if (isReactivating) {
+      await enforceActiveListingLimit(listingOwnerId, {
+        excludeListingId: listingId,
+      });
+    }
 
     Object.assign(listing, sanitizedData);
     await listing.save();
@@ -586,6 +619,14 @@ const toggleAvailability = async (listingId, userId) => {
         "toggleAvailability",
         { listingId, userId }
       );
+    }
+
+    const listingOwnerId = listing.seller?.userId || userId;
+
+    if (listing.isAvailable === false) {
+      await enforceActiveListingLimit(listingOwnerId, {
+        excludeListingId: listingId,
+      });
     }
 
     listing.isAvailable = !listing.isAvailable;
@@ -1003,6 +1044,7 @@ const restoreVariantStock = async (listingId, variantId, quantity) => {
 
 module.exports = {
   createListing,
+  enforceActiveListingLimit,
   getListingById,
   getAllListings,
   getSellerListings,

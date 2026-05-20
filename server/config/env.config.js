@@ -224,6 +224,7 @@ const config = {
     proPlanPrice: getFloatEnv("PRO_PLAN_PRICE", 9),
     featuredSlotPrice: getFloatEnv("FEATURED_SLOT_PRICE", 5),
     minWithdrawal: getFloatEnv("MIN_WITHDRAWAL", 10),
+    enforceListingLimits: getBoolEnv("ENFORCE_LISTING_LIMITS", true),
   },
 
   // Rate Limiting

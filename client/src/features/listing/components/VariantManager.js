@@ -1,4 +1,4 @@
-﻿import { useCallback } from "react";
+import { useCallback } from "react";
 import { Box, Typography, Chip, CircularProgress } from "@mui/material";
 import { Inventory as InventoryIcon } from "@mui/icons-material";
 import PropTypes from "prop-types";
@@ -17,6 +17,7 @@ const VariantManager = ({
   disabled = false,
   defaultPrice = 0,
   defaultStock = 0,
+  syncErrorMessage = "",
 }) => {
   const { isDark } = useTheme();
   const maxVariants = VARIANT_LIMITS.MAX_VARIANTS_PER_LISTING;
@@ -71,6 +72,7 @@ const VariantManager = ({
           disabled={disabled || isLoading}
           defaultPrice={defaultPrice}
           defaultStock={defaultStock}
+          syncErrorMessage={syncErrorMessage}
         />
       )}
 
@@ -105,6 +107,7 @@ VariantManager.propTypes = {
   disabled: PropTypes.bool,
   defaultPrice: PropTypes.number,
   defaultStock: PropTypes.number,
+  syncErrorMessage: PropTypes.string,
 };
 
 export default VariantManager;

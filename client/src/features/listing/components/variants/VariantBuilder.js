@@ -173,6 +173,7 @@ const VariantBuilder = ({
   disabled = false,
   defaultPrice = 0,
   defaultStock = 0,
+  syncErrorMessage = "",
 }) => {
   const { isDark: isDarkMode } = useTheme();
 
@@ -444,6 +445,18 @@ const VariantBuilder = ({
   // Delete a variant
   const handleDeleteVariant = useCallback(
     (variantId) => {
+      const variantToDelete = variants.find(
+        (variant) => variant._id === variantId || variant.id === variantId
+      );
+      const variantLabel = variantToDelete?.name || "this variant";
+      const confirmed = window.confirm(
+        `Remove ${variantLabel} from the current variant list? If you are removing a combination entirely, also update the variation values and regenerate before saving.`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
       const updatedVariants = variants.filter(
         (v) => v._id !== variantId && v.id !== variantId
       );
@@ -472,10 +485,21 @@ const VariantBuilder = ({
 
   // Clear all
   const handleClearAll = useCallback(() => {
+    const hasVariantSetup = variationTypes.length > 0 || variants.length > 0;
+    if (hasVariantSetup) {
+      const confirmed = window.confirm(
+        "Clear all variation types, values, and generated variants from this form? This cannot be undone."
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
     setVariationTypes([]);
     setHasGenerated(false);
     onChange([]);
-  }, [onChange]);
+  }, [onChange, variationTypes.length, variants.length]);
 
   useEffect(() => {
     if (!hasInitialized || !onVariationConfigChange) {
@@ -711,6 +735,15 @@ const VariantBuilder = ({
         />
       )}
 
+      {syncErrorMessage && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          <Typography variant="body2" fontWeight={500}>
+            Regenerate variants required
+          </Typography>
+          <Typography variant="body2">{syncErrorMessage}</Typography>
+        </Alert>
+      )}
+
       {/* Validation Errors - only show after user attempts to generate */}
       {attemptedGenerate &&
         !validation.isValid &&
@@ -812,6 +845,7 @@ VariantBuilder.propTypes = {
   disabled: PropTypes.bool,
   defaultPrice: PropTypes.number,
   defaultStock: PropTypes.number,
+  syncErrorMessage: PropTypes.string,
 };
 
 export default VariantBuilder;

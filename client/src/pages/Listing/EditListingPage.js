@@ -77,6 +77,8 @@ const EditListingPage = () => {
     quoteSettings,
     updateQuoteSettings,
     isService,
+    variantsRequireRegeneration,
+    variantSyncError,
     getSubmitData,
     getValidationErrors,
   } = useListingForm({
@@ -234,6 +236,11 @@ const EditListingPage = () => {
 
   const handleSubmit = useCallback(async () => {
     try {
+      if (variantsRequireRegeneration) {
+        showError(variantSyncError);
+        return;
+      }
+
       // Run validation and get explicit error messages
       const validationErrors = getValidationErrors();
       if (validationErrors.length > 0) {
@@ -272,6 +279,8 @@ const EditListingPage = () => {
     listingId,
     updateListing,
     showError,
+    variantSyncError,
+    variantsRequireRegeneration,
   ]);
 
   // Check if details section is complete
@@ -470,6 +479,7 @@ const EditListingPage = () => {
                 isLoading={variantLoading}
                 disabled={updateLoading}
                 defaultMode="builder"
+                syncErrorMessage={variantSyncError}
               />
             ) : (
               <Box

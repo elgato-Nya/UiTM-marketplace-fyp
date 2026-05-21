@@ -48,6 +48,62 @@ const normalizeVariationConfig = (config = []) => {
     .filter(Boolean);
 };
 
+const normalizeVariantAttributeKey = (value) =>
+  value?.toString().trim().toLowerCase() || "";
+
+const normalizeVariantAttributeValue = (value) =>
+  value?.toString().trim().toLowerCase() || "";
+
+const buildVariantSignature = (attributes = {}) => {
+  if (!attributes || typeof attributes !== "object" || Array.isArray(attributes)) {
+    return "";
+  }
+
+  return Object.entries(attributes)
+    .map(([key, value]) => [
+      normalizeVariantAttributeKey(key),
+      normalizeVariantAttributeValue(value),
+    ])
+    .filter(([key, value]) => key && value)
+    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+    .map(([key, value]) => `${key}:${value}`)
+    .join("|");
+};
+
+const buildExpectedVariantSignatures = (config = []) => {
+  const normalizedConfig = normalizeVariationConfig(config);
+
+  if (normalizedConfig.length === 0) {
+    return [];
+  }
+
+  const layers = normalizedConfig.map((layer) => ({
+    key: normalizeVariantAttributeKey(layer.key),
+    options: layer.options
+      .map((option) => normalizeVariantAttributeValue(option.value))
+      .filter(Boolean),
+  }));
+
+  if (layers.some((layer) => !layer.key || layer.options.length === 0)) {
+    return [];
+  }
+
+  if (layers.length === 1) {
+    return layers[0].options.map((value) =>
+      buildVariantSignature({ [layers[0].key]: value })
+    );
+  }
+
+  return layers[0].options.flatMap((firstValue) =>
+    layers[1].options.map((secondValue) =>
+      buildVariantSignature({
+        [layers[0].key]: firstValue,
+        [layers[1].key]: secondValue,
+      })
+    )
+  );
+};
+
 /**
  * useListingForm Hook
  *
@@ -152,6 +208,59 @@ const useListingForm = (options = {}) => {
     () => variants.length < VARIANT_LIMITS.MAX_VARIANTS_PER_LISTING,
     [variants]
   );
+
+  const variantsRequireRegeneration = useMemo(() => {
+    if (!variantsEnabled || variants.length === 0) {
+      return false;
+    }
+
+    const normalizedConfig = normalizeVariationConfig(variationConfig);
+    if (normalizedConfig.length === 0) {
+      return false;
+    }
+
+    const variantsHaveComparableAttributes = variants.every((variant) => {
+      const signature = buildVariantSignature(variant?.attributes);
+      return Boolean(signature);
+    });
+
+    if (!variantsHaveComparableAttributes) {
+      return false;
+    }
+
+    const expectedSignatures = buildExpectedVariantSignatures(normalizedConfig);
+    if (expectedSignatures.length === 0) {
+      return false;
+    }
+
+    const actualSignatures = variants.map((variant) =>
+      buildVariantSignature(variant.attributes)
+    );
+
+    if (actualSignatures.length !== expectedSignatures.length) {
+      return true;
+    }
+
+    const expectedSet = new Set(expectedSignatures);
+    const actualSet = new Set(actualSignatures);
+
+    if (actualSet.size !== expectedSet.size) {
+      return true;
+    }
+
+    return (
+      expectedSignatures.some((signature) => !actualSet.has(signature)) ||
+      actualSignatures.some((signature) => !expectedSet.has(signature))
+    );
+  }, [variationConfig, variants, variantsEnabled]);
+
+  const variantSyncError = useMemo(() => {
+    if (!variantsRequireRegeneration) {
+      return "";
+    }
+
+    return "Variant options changed. Regenerate variants before saving so the variant list matches your current variation types and values.";
+  }, [variantsRequireRegeneration]);
 
   // ========== Form Data Methods ==========
   const updateField = useCallback((fieldName, value) => {
@@ -403,8 +512,14 @@ const useListingForm = (options = {}) => {
   // Get validation errors as array of messages
   const getValidationErrors = useCallback(() => {
     const validationErrors = validateForm();
-    return Object.values(validationErrors);
-  }, [validateForm]);
+    const messages = Object.values(validationErrors);
+
+    if (variantsRequireRegeneration) {
+      messages.push(variantSyncError);
+    }
+
+    return messages;
+  }, [validateForm, variantSyncError, variantsRequireRegeneration]);
 
   const isValid = useMemo(() => {
     return Object.keys(errors).length === 0;
@@ -628,6 +743,8 @@ const useListingForm = (options = {}) => {
     clearVariationConfig,
     hasVariants,
     canAddMoreVariants,
+    variantsRequireRegeneration,
+    variantSyncError,
 
     // Quote settings
     quoteSettings,

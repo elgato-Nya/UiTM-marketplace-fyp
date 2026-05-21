@@ -59,6 +59,8 @@ const CreateListingPage = () => {
     updateQuoteSettings,
     isService,
     isDirty,
+    variantsRequireRegeneration,
+    variantSyncError,
     getSubmitData,
     getValidationErrors,
     saveDraft,
@@ -195,6 +197,11 @@ const CreateListingPage = () => {
 
   const handleSubmit = useCallback(async () => {
     try {
+      if (variantsRequireRegeneration) {
+        showError(variantSyncError);
+        return;
+      }
+
       // Run validation and get explicit error messages
       const validationErrors = getValidationErrors();
       if (validationErrors.length > 0) {
@@ -226,7 +233,14 @@ const CreateListingPage = () => {
 
       showError(errorMessage);
     }
-  }, [getValidationErrors, getSubmitData, createListing, showError]);
+  }, [
+    createListing,
+    getSubmitData,
+    getValidationErrors,
+    showError,
+    variantSyncError,
+    variantsRequireRegeneration,
+  ]);
 
   // Memoize form config - now uses single-step fields array
   const formConfigWithoutImages = useMemo(
@@ -442,6 +456,7 @@ const CreateListingPage = () => {
                 isLoading={false}
                 disabled={isLoading}
                 defaultMode="builder"
+                syncErrorMessage={variantSyncError}
               />
             ) : (
               <Box

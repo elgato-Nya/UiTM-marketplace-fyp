@@ -5,7 +5,8 @@ import { useImageUpload } from "../../../hooks/useImageUpload";
 import ImageUploadZone from "./ImageUploadZone";
 import ImagePreviewGrid from "./ImagePreviewGrid";
 import ListingImageCropDialog from "./ListingImageCropDialog";
-import { cropListingImage, getImageDimensions } from "../../../utils/imageCrop";
+import { cropListingImage } from "../../../utils/imageCrop";
+import { formatErrorForSnackbar } from "../../../utils/errorUtils";
 
 /**
  * ListingImageUpload - Listing-specific image upload component
@@ -39,13 +40,17 @@ function ListingImageUpload({
   maxImages = 10,
   showHeader = false,
 }) {
-  const { error: showError, success: showSuccess } = useSnackbar();
+  const {
+    error: showError,
+    success: showSuccess,
+    warning: showWarning,
+    info: showInfo,
+  } = useSnackbar();
   const { uploadListing, isUploading, uploadProgress } = useImageUpload();
 
   const [localExistingImages, setLocalExistingImages] =
     useState(existingImages);
   const [localNewImages, setLocalNewImages] = useState(newlyUploadedImages);
-  const [selectedFiles, setSelectedFiles] = useState([]);
   const [cropDialog, setCropDialog] = useState(false);
   const [currentFile, setCurrentFile] = useState(null);
   const [currentPreview, setCurrentPreview] = useState(null);
@@ -54,6 +59,9 @@ function ListingImageUpload({
   // Use refs to track previous values for proper comparison
   const prevExistingRef = useRef(existingImages);
   const prevNewRef = useRef(newlyUploadedImages);
+  const pendingFilesRef = useRef([]);
+  const currentFileRef = useRef(null);
+  const uploadedCountRef = useRef(0);
 
   // Sync existing images only when content actually changes
   useEffect(() => {
@@ -81,6 +89,48 @@ function ListingImageUpload({
     }
   }, [newlyUploadedImages]);
 
+  useEffect(() => {
+    pendingFilesRef.current = pendingFiles;
+  }, [pendingFiles]);
+
+  useEffect(() => {
+    currentFileRef.current = currentFile;
+  }, [currentFile]);
+
+  const resetBatchState = () => {
+    setCropDialog(false);
+    setCurrentFile(null);
+    setCurrentPreview(null);
+    setPendingFiles([]);
+    uploadedCountRef.current = 0;
+  };
+
+  const readFilePreview = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = () =>
+        reject(new Error("Failed to read the selected image."));
+      reader.readAsDataURL(file);
+    });
+
+  const openCropForFile = async (file) => {
+    const preview = await readFilePreview(file);
+    setCurrentFile(file);
+    setCurrentPreview(preview);
+    setCropDialog(true);
+  };
+
+  const showBatchCompleteMessage = (uploadedCount) => {
+    if (uploadedCount <= 0) return;
+
+    showSuccess(
+      uploadedCount === 1
+        ? "Image uploaded successfully!"
+        : `${uploadedCount} images uploaded successfully!`
+    );
+  };
+
   /**
    * Handle file selection - Open crop dialog for first file
    */
@@ -88,23 +138,13 @@ function ListingImageUpload({
     if (files.length === 0) return;
 
     try {
-      // Store all files
+      uploadedCountRef.current = 0;
       setPendingFiles(files);
-
-      // Show crop dialog for first file
-      const firstFile = files[0];
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-        setCurrentFile(firstFile);
-        setCurrentPreview(e.target.result);
-        setCropDialog(true);
-      };
-
-      reader.readAsDataURL(firstFile);
+      await openCropForFile(files[0]);
     } catch (error) {
       console.error("File selection error:", error);
-      showError("Failed to process selected files");
+      resetBatchState();
+      showError("Failed to prepare the selected image. Please try again.");
     }
   };
 
@@ -125,70 +165,64 @@ function ListingImageUpload({
         onUploadComplete(result);
       }
 
-      // Remove uploaded file from pending
-      const remainingFiles = pendingFiles.filter((f) => f !== currentFile);
+      uploadedCountRef.current += 1;
+
+      const activeFile = file || currentFileRef.current;
+      const remainingFiles = pendingFilesRef.current.filter(
+        (pendingFile) => pendingFile !== activeFile
+      );
       setPendingFiles(remainingFiles);
 
-      // If there are more files, show crop dialog for next file
       if (remainingFiles.length > 0) {
-        const nextFile = remainingFiles[0];
-        const reader = new FileReader();
-
-        reader.onload = (e) => {
-          setCurrentFile(nextFile);
-          setCurrentPreview(e.target.result);
-          // Dialog stays open
-        };
-
-        reader.readAsDataURL(nextFile);
+        await openCropForFile(remainingFiles[0]);
       } else {
-        // All files processed
-        setCropDialog(false);
-        setCurrentFile(null);
-        setCurrentPreview(null);
-        setSelectedFiles([]);
-        const totalUploaded = pendingFiles.length;
-        showSuccess(
-          `${totalUploaded === 1 ? "Image" : `${totalUploaded} images`} uploaded successfully!`
-        );
+        const uploadedCount = uploadedCountRef.current;
+        resetBatchState();
+        showBatchCompleteMessage(uploadedCount);
       }
     } catch (error) {
       console.error("Upload error:", error);
-
-      // Enhanced error message handling
-      let errorMessage = "Failed to upload image";
-
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (error.statusCode === 413) {
-        errorMessage =
-          "File is too large. Please compress your image (max 5MB per file) and try again.";
-      } else if (error.statusCode === 400) {
-        errorMessage =
-          error.details?.message ||
-          "Invalid file. Please check file type (JPG, PNG, WEBP only) and size (max 5MB each).";
-      }
-
-      showError(errorMessage);
-
-      // Close dialog on error
-      setCropDialog(false);
-      setCurrentFile(null);
-      setCurrentPreview(null);
-      setPendingFiles([]);
-      setSelectedFiles([]);
+      const { message } = formatErrorForSnackbar(error);
+      showError(message || "Failed to upload image. Please try again.");
     }
   };
 
   /**
    * Handle crop dialog close
    */
-  const handleCropClose = () => {
-    setCropDialog(false);
-    setCurrentFile(null);
-    setCurrentPreview(null);
-    setPendingFiles([]);
-    setSelectedFiles([]);
+  const handleCropClose = async () => {
+    const activeFile = currentFileRef.current;
+    const remainingFiles = pendingFilesRef.current.filter(
+      (pendingFile) => pendingFile !== activeFile
+    );
+
+    if (remainingFiles.length === 0) {
+      const uploadedCount = uploadedCountRef.current;
+      resetBatchState();
+
+      if (uploadedCount > 0) {
+        showInfo(
+          uploadedCount === 1
+            ? "1 image uploaded. The last image was skipped."
+            : `${uploadedCount} images uploaded. The last image was skipped.`
+        );
+      } else {
+        showInfo("Image upload canceled.");
+      }
+
+      return;
+    }
+
+    setPendingFiles(remainingFiles);
+
+    try {
+      await openCropForFile(remainingFiles[0]);
+      showWarning("Image skipped. Continue cropping the remaining images.");
+    } catch (error) {
+      console.error("Crop dialog close error:", error);
+      resetBatchState();
+      showError("Failed to continue with the remaining images. Please try again.");
+    }
   };
 
   /**
@@ -278,6 +312,13 @@ function ListingImageUpload({
 
       {/* Upload Zone - hide internal preview, we show our own below */}
       <Box component="section" aria-label="File upload area">
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mb: 1.5 }}
+        >
+          Recommended ratio: 4:3. Wider or taller images may be cropped.
+        </Typography>
         <ImageUploadZone
           onFilesSelected={handleFilesSelected}
           multiple={true}

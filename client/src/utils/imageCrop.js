@@ -14,6 +14,8 @@
  * @param {File|string} source - File object or image URL
  * @returns {Promise<HTMLImageElement>}
  */
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
 export const loadImage = (source) => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -73,14 +75,6 @@ export const cropImage = async (file, cropData = {}, circular = false) => {
     // Set canvas size to desired output size
     canvas.width = width;
     canvas.height = height;
-
-    // Debug logging
-    console.log("=== CROP DEBUG ===");
-    console.log("Image natural size:", img.width, "x", img.height);
-    console.log("Output canvas size:", width, "x", height);
-    console.log("User crop data:", { x, y, scale });
-    console.log("Object fit mode:", objectFit);
-    console.log("Preview container size:", previewWidth, "x", previewHeight);
 
     // For circular crop, create clipping path BEFORE drawing
     if (circular) {
@@ -147,35 +141,21 @@ export const cropImage = async (file, cropData = {}, circular = false) => {
       }
     }
 
-    console.log(
-      `Contained size (before user zoom, mode: ${objectFit}):`,
-      containedWidth,
-      "x",
-      containedHeight
-    );
-
     // Step 2: Apply user's zoom scale to the contained size
     const scaledWidth = containedWidth * scale;
     const scaledHeight = containedHeight * scale;
-
-    console.log(
-      "Scaled size (after user zoom):",
-      scaledWidth,
-      "x",
-      scaledHeight
-    );
 
     // Step 3: Center the scaled image in preview space (before user's drag offset)
     const centerX = (previewContainerWidth - scaledWidth) / 2;
     const centerY = (previewContainerHeight - scaledHeight) / 2;
 
-    console.log("Center offset (preview space):", centerX, centerY);
-
     // Step 4: Apply user's drag offset (in preview space)
-    const finalX = centerX + x;
-    const finalY = centerY + y;
-
-    console.log("Final position (preview space):", finalX, finalY);
+    const maxOffsetX = Math.max(0, (scaledWidth - previewContainerWidth) / 2);
+    const maxOffsetY = Math.max(0, (scaledHeight - previewContainerHeight) / 2);
+    const safeX = clamp(x, -maxOffsetX, maxOffsetX);
+    const safeY = clamp(y, -maxOffsetY, maxOffsetY);
+    const finalX = centerX + safeX;
+    const finalY = centerY + safeY;
 
     // Step 5: Calculate scale factor from preview to output canvas
     const previewToOutputScale = Math.min(
@@ -183,22 +163,11 @@ export const cropImage = async (file, cropData = {}, circular = false) => {
       height / previewContainerHeight
     );
 
-    console.log("Preview to output scale:", previewToOutputScale);
-
     // Step 6: Scale everything to output canvas dimensions
     const outputScaledWidth = scaledWidth * previewToOutputScale;
     const outputScaledHeight = scaledHeight * previewToOutputScale;
     const outputX = finalX * previewToOutputScale;
     const outputY = finalY * previewToOutputScale;
-
-    console.log(
-      "Output dimensions:",
-      outputScaledWidth,
-      "x",
-      outputScaledHeight
-    );
-    console.log("Output position:", outputX, outputY);
-    console.log("==================");
 
     // Step 7: Draw the image on canvas at output scale
     ctx.drawImage(
@@ -241,19 +210,16 @@ export const cropImage = async (file, cropData = {}, circular = false) => {
  * @returns {Promise<File>} - Cropped image file
  */
 export const cropListingImage = async (file, cropData) => {
-  // For listing images, maintain aspect ratio from original
-  const img = await loadImage(file);
-
-  // Use square output to match square preview
-  const maxDimension = 1200;
+  const outputWidth = 1200;
+  const outputHeight = 900;
 
   return cropImage(
     file,
     {
       ...cropData,
-      width: maxDimension,
-      height: maxDimension,
-      objectFit: "contain", // Listing images use contain to preserve aspect ratio
+      width: outputWidth,
+      height: outputHeight,
+      objectFit: "cover",
     },
     false
   );

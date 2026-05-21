@@ -208,7 +208,7 @@ const ListingFormLayout = ({
               expanded={expandedSections[section.id]}
               onToggle={() => toggleSection(section.id)}
               isComplete={section.isComplete}
-              errorCount={errors[section.id]}
+              hasError={Boolean(errors[section.id])}
               optional={section.optional}
             >
               {section.content}

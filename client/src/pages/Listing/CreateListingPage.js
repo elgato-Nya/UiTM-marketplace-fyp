@@ -33,6 +33,32 @@ import VariantManager from "../../features/listing/components/VariantManager";
 import QuoteSettings from "../../features/listing/components/QuoteSettings";
 import useListingForm from "../../features/listing/hooks/useListingForm";
 import ListingFormLayout from "../../components/listing/ListingFormLayout";
+import { formatErrorForSnackbar } from "../../utils/errorUtils";
+
+const buildValidationAlert = (entries = [], message) => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return null;
+  }
+
+  return {
+    message,
+    validationErrors: entries.map(({ field, message: errorMessage }) => ({
+      field,
+      message: errorMessage,
+    })),
+  };
+};
+
+const formatValidationSnackbarMessage = (entries = []) => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return "";
+  }
+
+  const errorMessages = entries.slice(0, 3).map((entry) => entry.message).join(". ");
+  const moreCount = entries.length - 3;
+  const moreText = moreCount > 0 ? ` (+${moreCount} more errors)` : "";
+  return `${errorMessages}${moreText}`;
+};
 
 const CreateListingPage = () => {
   const navigate = useNavigate();
@@ -41,7 +67,7 @@ const CreateListingPage = () => {
   // Centralized form state hook
   const {
     formData,
-    handleFormChange,
+    handleFormChange: handleFormValuesChange,
     images,
     addImages,
     removeImageByUrl,
@@ -56,18 +82,20 @@ const CreateListingPage = () => {
     enableVariants,
     disableVariants,
     quoteSettings,
-    updateQuoteSettings,
+    updateQuoteSettings: updateListingQuoteSettings,
     isService,
     isDirty,
     variantsRequireRegeneration,
     variantSyncError,
     getSubmitData,
-    getValidationErrors,
+    getValidationSummary,
     saveDraft,
     loadDraft,
     clearDraft,
     hasDraft,
     lastSaved,
+    sectionValidation,
+    sectionErrorCounts,
   } = useListingForm({
     mode: "create",
     draftKey: "listing_draft_create",
@@ -78,6 +106,7 @@ const CreateListingPage = () => {
   // Restore draft dialog state
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const [draftChecked, setDraftChecked] = useState(false);
+  const [showSubmitError, setShowSubmitError] = useState(false);
 
   const [createListing, { isLoading, error, isSuccess }] =
     useCreateListingMutation();
@@ -103,6 +132,7 @@ const CreateListingPage = () => {
 
   useEffect(() => {
     if (isSuccess) {
+      setShowSubmitError(false);
       clearDraft();
       showSuccess("Listing created successfully!");
       setTimeout(() => {
@@ -113,60 +143,80 @@ const CreateListingPage = () => {
 
   // Restore draft handlers
   const handleRestoreDraft = useCallback(() => {
+    setShowSubmitError(false);
     loadDraft();
     setShowRestoreDialog(false);
     showSuccess("Draft restored successfully");
   }, [loadDraft, showSuccess]);
 
   const handleDiscardDraft = useCallback(() => {
+    setShowSubmitError(false);
     clearDraft();
     setShowRestoreDialog(false);
   }, [clearDraft]);
 
+  const clearSubmitError = useCallback(() => {
+    setShowSubmitError(false);
+  }, []);
+
+  const handleFormChange = useCallback(
+    (data) => {
+      clearSubmitError();
+      handleFormValuesChange(data);
+    },
+    [clearSubmitError, handleFormValuesChange]
+  );
+
   const handleImageUploadComplete = useCallback(
     (result) => {
+      clearSubmitError();
       const uploadedImages = result.data?.images || result.images || [];
       const imageUrls = uploadedImages.map((img) => img.main.url);
       addImages(imageUrls);
     },
-    [addImages],
+    [addImages, clearSubmitError],
   );
 
   const handleDeleteImage = useCallback(
     (url) => {
+      clearSubmitError();
       removeImageByUrl(url);
     },
-    [removeImageByUrl],
+    [clearSubmitError, removeImageByUrl],
   );
 
   // Variant handlers
   const handleAddVariant = useCallback(
     async (variantData) => {
+      clearSubmitError();
       addVariant(variantData);
       return { success: true };
     },
-    [addVariant],
+    [addVariant, clearSubmitError],
   );
 
   const handleUpdateVariant = useCallback(
     async (variantId, variantData) => {
+      clearSubmitError();
       updateVariant(variantId, variantData);
       return { success: true };
     },
-    [updateVariant],
+    [clearSubmitError, updateVariant],
   );
 
   const handleDeleteVariant = useCallback(
     async (variantId) => {
+      clearSubmitError();
       removeVariant(variantId);
       return { success: true };
     },
-    [removeVariant],
+    [clearSubmitError, removeVariant],
   );
 
   // Variant toggle handlers
   const handleVariantToggle = useCallback(
     (event) => {
+      clearSubmitError();
       if (event.target.checked) {
         enableVariants();
       } else {
@@ -178,13 +228,14 @@ const CreateListingPage = () => {
         }
       }
     },
-    [enableVariants, disableVariants, variants.length],
+    [clearSubmitError, enableVariants, disableVariants, variants.length],
   );
 
   const handleConfirmDisableVariants = useCallback(() => {
+    clearSubmitError();
     disableVariants(true); // Clear all variants
     setShowDisableDialog(false);
-  }, [disableVariants]);
+  }, [clearSubmitError, disableVariants]);
 
   const handleCancelDisableVariants = useCallback(() => {
     setShowDisableDialog(false);
@@ -195,21 +246,26 @@ const CreateListingPage = () => {
     showSuccess("Draft saved locally");
   }, [saveDraft, showSuccess]);
 
+  const handleQuoteSettingsChange = useCallback(
+    (settings) => {
+      clearSubmitError();
+      updateListingQuoteSettings(settings);
+    },
+    [clearSubmitError, updateListingQuoteSettings]
+  );
+
   const handleSubmit = useCallback(async () => {
     try {
+      setShowSubmitError(false);
+
       if (variantsRequireRegeneration) {
         showError(variantSyncError);
         return;
       }
 
-      // Run validation and get explicit error messages
-      const validationErrors = getValidationErrors();
-      if (validationErrors.length > 0) {
-        // Show first 3 errors
-        const errorMessages = validationErrors.slice(0, 3).join(". ");
-        const moreCount = validationErrors.length - 3;
-        const moreText = moreCount > 0 ? ` (+${moreCount} more errors)` : "";
-        showError(`${errorMessages}${moreText}`);
+      const validationSummary = getValidationSummary();
+      if (validationSummary.length > 0) {
+        showError(formatValidationSnackbarMessage(validationSummary));
         return;
       }
 
@@ -219,24 +275,14 @@ const CreateListingPage = () => {
     } catch (err) {
       console.error("Failed to create listing:", err);
 
-      let errorMessage = "Failed to create listing";
-
-      if (err?.data?.message) {
-        errorMessage = err.data.message;
-      } else if (err?.data?.errors && Array.isArray(err.data.errors)) {
-        errorMessage = err.data.errors
-          .map((e) => e.msg || e.message)
-          .join(". ");
-      } else if (err?.message) {
-        errorMessage = err.message;
-      }
-
-      showError(errorMessage);
+      setShowSubmitError(true);
+      const snackbarError = formatErrorForSnackbar(err);
+      showError(snackbarError.message);
     }
   }, [
     createListing,
     getSubmitData,
-    getValidationErrors,
+    getValidationSummary,
     showError,
     variantSyncError,
     variantsRequireRegeneration,
@@ -309,11 +355,20 @@ const CreateListingPage = () => {
         defaultExpanded: true,
         content: (
           <>
-            {error && (
+            {showSubmitError && error && (
               <ErrorAlert
                 error={error}
                 show={!!error}
                 fallback="Failed to create listing. Please try again."
+                sx={{ mb: 3 }}
+              />
+            )}
+            {sectionValidation.details.length > 0 && (
+              <ErrorAlert
+                error={buildValidationAlert(
+                  sectionValidation.details,
+                  "Please review the listing details before submitting."
+                )}
                 sx={{ mb: 3 }}
               />
             )}
@@ -345,6 +400,15 @@ const CreateListingPage = () => {
               onDeleteExisting={handleDeleteImage}
               maxImages={10}
             />
+            {sectionValidation.images.length > 0 && (
+              <ErrorAlert
+                error={buildValidationAlert(
+                  sectionValidation.images,
+                  "Please fix the image requirements before submitting."
+                )}
+                sx={{ mb: 2 }}
+              />
+            )}
             {images.length === 0 && (
               <Box
                 sx={{
@@ -406,6 +470,15 @@ const CreateListingPage = () => {
         defaultExpanded: variantsEnabled,
         content: (
           <Box>
+            {sectionValidation.variants.length > 0 && (
+              <ErrorAlert
+                error={buildValidationAlert(
+                  sectionValidation.variants,
+                  "Please fix the variant setup before submitting."
+                )}
+                sx={{ mb: 2 }}
+              />
+            )}
             {/* Variant Toggle */}
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
               <FormControlLabel
@@ -517,7 +590,7 @@ const CreateListingPage = () => {
         content: (
           <QuoteSettings
             settings={quoteSettings}
-            onChange={updateQuoteSettings}
+            onChange={handleQuoteSettingsChange}
             disabled={isLoading}
             isLoading={isLoading}
           />
@@ -539,6 +612,7 @@ const CreateListingPage = () => {
     isDetailsComplete,
     isImagesComplete,
     error,
+    showSubmitError,
     handleSubmit,
     handleImageUploadComplete,
     handleDeleteImage,
@@ -547,7 +621,8 @@ const CreateListingPage = () => {
     handleDeleteVariant,
     handleVariantToggle,
     setVariants,
-    updateQuoteSettings,
+    handleQuoteSettingsChange,
+    sectionValidation,
   ]);
 
   return (
@@ -556,6 +631,7 @@ const CreateListingPage = () => {
         title="Create New Listing"
         subtitle="Add a new product or service to your store"
         sections={sections}
+        errors={sectionErrorCounts}
         onSaveDraft={handleSaveDraft}
         onPublish={handleSubmit}
         isLoading={isLoading}

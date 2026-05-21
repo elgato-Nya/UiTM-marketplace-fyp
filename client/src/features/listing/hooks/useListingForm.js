@@ -104,6 +104,18 @@ const buildExpectedVariantSignatures = (config = []) => {
   );
 };
 
+const FIELD_SECTION_MAP = {
+  type: "details",
+  name: "details",
+  description: "details",
+  category: "details",
+  price: "details",
+  stock: "details",
+  images: "images",
+  variants: "variants",
+  quoteSettings: "quotes",
+};
+
 /**
  * useListingForm Hook
  *
@@ -176,6 +188,26 @@ const useListingForm = (options = {}) => {
   const [errors, setErrors] = useState({});
   const initialDataRef = useRef(getDefaultFormData());
   const [lastSaved, setLastSaved] = useState(null);
+
+  const clearErrorFields = useCallback((fieldNames = []) => {
+    if (!Array.isArray(fieldNames) || fieldNames.length === 0) {
+      return;
+    }
+
+    setErrors((prev) => {
+      let changed = false;
+      const next = { ...prev };
+
+      fieldNames.forEach((fieldName) => {
+        if (fieldName in next) {
+          delete next[fieldName];
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, []);
 
   // ========== Derived State ==========
   const isDirty = useMemo(() => {
@@ -262,19 +294,66 @@ const useListingForm = (options = {}) => {
     return "Variant options changed. Regenerate variants before saving so the variant list matches your current variation types and values.";
   }, [variantsRequireRegeneration]);
 
+  const buildValidationSummary = useCallback(
+    (validationErrors = {}) => {
+      const summary = Object.entries(validationErrors).map(([field, message]) => ({
+        field,
+        message,
+        section: FIELD_SECTION_MAP[field] || "details",
+      }));
+
+      if (variantsRequireRegeneration) {
+        summary.push({
+          field: "variants",
+          message: variantSyncError,
+          section: "variants",
+        });
+      }
+
+      return summary;
+    },
+    [variantSyncError, variantsRequireRegeneration]
+  );
+
+  const validationSummary = useMemo(
+    () => buildValidationSummary(errors),
+    [buildValidationSummary, errors]
+  );
+
+  const sectionValidation = useMemo(() => {
+    return validationSummary.reduce(
+      (sections, entry) => {
+        const sectionKey = entry.section || "details";
+        sections[sectionKey].push(entry);
+        return sections;
+      },
+      {
+        details: [],
+        images: [],
+        variants: [],
+        quotes: [],
+      }
+    );
+  }, [validationSummary]);
+
+  const sectionErrorCounts = useMemo(
+    () => ({
+      details: sectionValidation.details.length,
+      images: sectionValidation.images.length,
+      variants: sectionValidation.variants.length,
+      quotes: sectionValidation.quotes.length,
+    }),
+    [sectionValidation]
+  );
+
   // ========== Form Data Methods ==========
   const updateField = useCallback((fieldName, value) => {
     setFormData((prev) => ({
       ...prev,
       [fieldName]: value,
     }));
-    // Clear field error on change
-    setErrors((prev) => {
-      const next = { ...prev };
-      delete next[fieldName];
-      return next;
-    });
-  }, []);
+    clearErrorFields([fieldName]);
+  }, [clearErrorFields]);
 
   const updateFormData = useCallback((data) => {
     setFormData((prev) => ({
@@ -284,6 +363,34 @@ const useListingForm = (options = {}) => {
   }, []);
 
   const handleFormChange = useCallback((data) => {
+    const changedFields = Object.keys(data).filter(
+      (key) => data[key] !== formData[key]
+    );
+
+    if (changedFields.length > 0) {
+      const fieldsToClear = new Set(changedFields);
+
+      if (changedFields.includes("type")) {
+        fieldsToClear.add("category");
+        fieldsToClear.add("price");
+        fieldsToClear.add("stock");
+      }
+
+      if (
+        changedFields.includes("isFree") ||
+        changedFields.includes("isQuoteOnly") ||
+        changedFields.includes("price")
+      ) {
+        fieldsToClear.add("price");
+      }
+
+      if (changedFields.includes("stock")) {
+        fieldsToClear.add("stock");
+      }
+
+      clearErrorFields([...fieldsToClear]);
+    }
+
     // This is called by DynamicForm on every field change
     setFormData((prev) => {
       // Reset category when type changes to prevent mismatched categories
@@ -312,7 +419,7 @@ const useListingForm = (options = {}) => {
         quoteOnly: data.isQuoteOnly,
       }));
     }
-  }, [quoteSettings]);
+  }, [clearErrorFields, formData, quoteSettings]);
 
   // ========== Image Methods ==========
   const addImages = useCallback((newImages) => {
@@ -321,15 +428,18 @@ const useListingForm = (options = {}) => {
       // Max 10 images
       return combined.slice(0, 10);
     });
-  }, []);
+    clearErrorFields(["images"]);
+  }, [clearErrorFields]);
 
   const removeImage = useCallback((index) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
-  }, []);
+    clearErrorFields(["images"]);
+  }, [clearErrorFields]);
 
   const removeImageByUrl = useCallback((url) => {
     setImages((prev) => prev.filter((img) => img !== url));
-  }, []);
+    clearErrorFields(["images"]);
+  }, [clearErrorFields]);
 
   const reorderImages = useCallback((fromIndex, toIndex) => {
     setImages((prev) => {
@@ -338,16 +448,19 @@ const useListingForm = (options = {}) => {
       result.splice(toIndex, 0, removed);
       return result;
     });
-  }, []);
+    clearErrorFields(["images"]);
+  }, [clearErrorFields]);
 
   const clearImages = useCallback(() => {
     setImages([]);
-  }, []);
+    clearErrorFields(["images"]);
+  }, [clearErrorFields]);
 
   // ========== Variant Methods ==========
   const enableVariants = useCallback(() => {
     setVariantsEnabled(true);
-  }, []);
+    clearErrorFields(["variants", "price", "stock"]);
+  }, [clearErrorFields]);
 
   const disableVariants = useCallback((clearAll = false) => {
     setVariantsEnabled(false);
@@ -355,7 +468,8 @@ const useListingForm = (options = {}) => {
       setVariants([]);
       setVariationConfig([]);
     }
-  }, []);
+    clearErrorFields(["variants", "price", "stock"]);
+  }, [clearErrorFields]);
 
   const addVariant = useCallback((variantData) => {
     const newVariant = {
@@ -364,8 +478,9 @@ const useListingForm = (options = {}) => {
       id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     };
     setVariants((prev) => [...prev, newVariant]);
+    clearErrorFields(["variants", "price", "stock"]);
     return newVariant;
-  }, []);
+  }, [clearErrorFields]);
 
   const updateVariant = useCallback((variantId, variantData) => {
     setVariants((prev) =>
@@ -373,30 +488,36 @@ const useListingForm = (options = {}) => {
         v._id === variantId || v.id === variantId ? { ...v, ...variantData } : v
       )
     );
-  }, []);
+    clearErrorFields(["variants"]);
+  }, [clearErrorFields]);
 
   const removeVariant = useCallback((variantId) => {
     setVariants((prev) =>
       prev.filter((v) => v._id !== variantId && v.id !== variantId)
     );
-  }, []);
+    clearErrorFields(["variants", "price", "stock"]);
+  }, [clearErrorFields]);
 
   const clearVariants = useCallback(() => {
     setVariants([]);
-  }, []);
+    clearErrorFields(["variants", "price", "stock"]);
+  }, [clearErrorFields]);
 
   const clearVariationConfig = useCallback(() => {
     setVariationConfig([]);
-  }, []);
+    clearErrorFields(["variants"]);
+  }, [clearErrorFields]);
 
   // ========== Quote Settings Methods ==========
   const updateQuoteSettings = useCallback((settings) => {
     setQuoteSettings(settings);
-  }, []);
+    clearErrorFields(["quoteSettings", "price"]);
+  }, [clearErrorFields]);
 
   const clearQuoteSettings = useCallback(() => {
     setQuoteSettings(null);
-  }, []);
+    clearErrorFields(["quoteSettings", "price"]);
+  }, [clearErrorFields]);
 
   // ========== Validation ==========
   const validateForm = useCallback(() => {
@@ -509,17 +630,15 @@ const useListingForm = (options = {}) => {
     hasVariants,
   ]);
 
+  const getValidationSummary = useCallback(() => {
+    const validationErrors = validateForm();
+    return buildValidationSummary(validationErrors);
+  }, [buildValidationSummary, validateForm]);
+
   // Get validation errors as array of messages
   const getValidationErrors = useCallback(() => {
-    const validationErrors = validateForm();
-    const messages = Object.values(validationErrors);
-
-    if (variantsRequireRegeneration) {
-      messages.push(variantSyncError);
-    }
-
-    return messages;
-  }, [validateForm, variantSyncError, variantsRequireRegeneration]);
+    return getValidationSummary().map((entry) => entry.message);
+  }, [getValidationSummary]);
 
   const isValid = useMemo(() => {
     return Object.keys(errors).length === 0;
@@ -757,11 +876,15 @@ const useListingForm = (options = {}) => {
     isProduct,
     isService,
     errors,
+    validationSummary,
+    sectionValidation,
+    sectionErrorCounts,
     mode,
 
     // Validation
     validateForm,
     getValidationErrors,
+    getValidationSummary,
 
     // Draft
     saveDraft,

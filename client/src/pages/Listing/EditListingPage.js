@@ -39,6 +39,32 @@ import QuoteSettings from "../../features/listing/components/QuoteSettings";
 import listingService from "../../features/listing/service/listingService";
 import useListingForm from "../../features/listing/hooks/useListingForm";
 import ListingFormLayout from "../../components/listing/ListingFormLayout";
+import { formatErrorForSnackbar } from "../../utils/errorUtils";
+
+const buildValidationAlert = (entries = [], message) => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return null;
+  }
+
+  return {
+    message,
+    validationErrors: entries.map(({ field, message: errorMessage }) => ({
+      field,
+      message: errorMessage,
+    })),
+  };
+};
+
+const formatValidationSnackbarMessage = (entries = []) => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return "";
+  }
+
+  const errorMessages = entries.slice(0, 3).map((entry) => entry.message).join(". ");
+  const moreCount = entries.length - 3;
+  const moreText = moreCount > 0 ? ` (+${moreCount} more errors)` : "";
+  return `${errorMessages}${moreText}`;
+};
 
 const EditListingPage = () => {
   const { listingId } = useParams();
@@ -62,7 +88,7 @@ const EditListingPage = () => {
   // Use centralized form state hook with initialData from fetched listing
   const {
     formData,
-    handleFormChange,
+    handleFormChange: handleFormValuesChange,
     images,
     setImages,
     addImages,
@@ -75,12 +101,14 @@ const EditListingPage = () => {
     enableVariants,
     disableVariants,
     quoteSettings,
-    updateQuoteSettings,
+    updateQuoteSettings: updateListingQuoteSettings,
     isService,
     variantsRequireRegeneration,
     variantSyncError,
     getSubmitData,
-    getValidationErrors,
+    getValidationSummary,
+    sectionValidation,
+    sectionErrorCounts,
   } = useListingForm({
     mode: "edit",
     initialData: listing,
@@ -88,6 +116,7 @@ const EditListingPage = () => {
 
   // Confirmation dialog state for disabling variants
   const [showDisableDialog, setShowDisableDialog] = useState(false);
+  const [showSubmitError, setShowSubmitError] = useState(false);
 
   // Update listing mutation
   const [updateListing, { isLoading: updateLoading, error, isSuccess }] =
@@ -106,6 +135,7 @@ const EditListingPage = () => {
 
   useEffect(() => {
     if (isSuccess) {
+      setShowSubmitError(false);
       showSuccess("Listing updated successfully!");
       setTimeout(() => {
         navigate(ROUTES.MERCHANT.LISTINGS.MY_LISTINGS, { replace: true });
@@ -113,9 +143,22 @@ const EditListingPage = () => {
     }
   }, [isSuccess, navigate, showSuccess]);
 
+  const clearSubmitError = useCallback(() => {
+    setShowSubmitError(false);
+  }, []);
+
+  const handleFormChange = useCallback(
+    (data) => {
+      clearSubmitError();
+      handleFormValuesChange(data);
+    },
+    [clearSubmitError, handleFormValuesChange]
+  );
+
   // Variant handlers - use API for edit mode
   const handleAddVariant = useCallback(
     async (variantData) => {
+      clearSubmitError();
       setVariantLoading(true);
       try {
         const response = await listingService.addVariant(
@@ -127,17 +170,19 @@ const EditListingPage = () => {
           refetchListing();
         }
       } catch (err) {
-        showError(err?.response?.data?.message || "Failed to add variant");
+        const snackbarError = formatErrorForSnackbar(err);
+        showError(snackbarError.message);
         throw err;
       } finally {
         setVariantLoading(false);
       }
     },
-    [listingId, showSuccess, showError, refetchListing],
+    [clearSubmitError, listingId, showSuccess, showError, refetchListing],
   );
 
   const handleUpdateVariant = useCallback(
     async (variantId, variantData) => {
+      clearSubmitError();
       setVariantLoading(true);
       try {
         const response = await listingService.updateVariant(
@@ -150,17 +195,19 @@ const EditListingPage = () => {
           refetchListing();
         }
       } catch (err) {
-        showError(err?.response?.data?.message || "Failed to update variant");
+        const snackbarError = formatErrorForSnackbar(err);
+        showError(snackbarError.message);
         throw err;
       } finally {
         setVariantLoading(false);
       }
     },
-    [listingId, showSuccess, showError, refetchListing],
+    [clearSubmitError, listingId, showSuccess, showError, refetchListing],
   );
 
   const handleDeleteVariant = useCallback(
     async (variantId) => {
+      clearSubmitError();
       setVariantLoading(true);
       try {
         const response = await listingService.deleteVariant(
@@ -172,18 +219,20 @@ const EditListingPage = () => {
           refetchListing();
         }
       } catch (err) {
-        showError(err?.response?.data?.message || "Failed to delete variant");
+        const snackbarError = formatErrorForSnackbar(err);
+        showError(snackbarError.message);
         throw err;
       } finally {
         setVariantLoading(false);
       }
     },
-    [listingId, showSuccess, showError, refetchListing],
+    [clearSubmitError, listingId, showSuccess, showError, refetchListing],
   );
 
   // Variant toggle handlers
   const handleVariantToggle = useCallback(
     (event) => {
+      clearSubmitError();
       if (event.target.checked) {
         enableVariants();
       } else {
@@ -195,27 +244,38 @@ const EditListingPage = () => {
         }
       }
     },
-    [enableVariants, disableVariants, variants.length],
+    [clearSubmitError, enableVariants, disableVariants, variants.length],
   );
 
   const handleConfirmDisableVariants = useCallback(() => {
+    clearSubmitError();
     disableVariants(true); // Clear all variants
     setShowDisableDialog(false);
-  }, [disableVariants]);
+  }, [clearSubmitError, disableVariants]);
 
   const handleCancelDisableVariants = useCallback(() => {
     setShowDisableDialog(false);
   }, []);
 
   const handleImageUploadComplete = (result) => {
+    clearSubmitError();
     const uploadedImages = result.data?.images || result.images || [];
     const imageUrls = uploadedImages.map((img) => img.main.url);
     addImages(imageUrls);
   };
 
   const handleDeleteExistingImage = (url) => {
+    clearSubmitError();
     removeImageByUrl(url);
   };
+
+  const handleQuoteSettingsChange = useCallback(
+    (settings) => {
+      clearSubmitError();
+      updateListingQuoteSettings(settings);
+    },
+    [clearSubmitError, updateListingQuoteSettings]
+  );
 
   // Memoize form config - now uses single-step fields array
   const formConfig = useMemo(
@@ -236,19 +296,16 @@ const EditListingPage = () => {
 
   const handleSubmit = useCallback(async () => {
     try {
+      setShowSubmitError(false);
+
       if (variantsRequireRegeneration) {
         showError(variantSyncError);
         return;
       }
 
-      // Run validation and get explicit error messages
-      const validationErrors = getValidationErrors();
-      if (validationErrors.length > 0) {
-        // Show first 3 errors
-        const errorMessages = validationErrors.slice(0, 3).join(". ");
-        const moreCount = validationErrors.length - 3;
-        const moreText = moreCount > 0 ? ` (+${moreCount} more errors)` : "";
-        showError(`${errorMessages}${moreText}`);
+      const validationSummary = getValidationSummary();
+      if (validationSummary.length > 0) {
+        showError(formatValidationSnackbarMessage(validationSummary));
         return;
       }
 
@@ -259,22 +316,12 @@ const EditListingPage = () => {
     } catch (err) {
       console.error("Failed to update listing:", err);
 
-      let errorMessage = "Failed to update listing";
-
-      if (err?.data?.message) {
-        errorMessage = err.data.message;
-      } else if (err?.data?.errors && Array.isArray(err.data.errors)) {
-        errorMessage = err.data.errors
-          .map((e) => e.msg || e.message)
-          .join(". ");
-      } else if (err?.message) {
-        errorMessage = err.message;
-      }
-
-      showError(errorMessage);
+      setShowSubmitError(true);
+      const snackbarError = formatErrorForSnackbar(err);
+      showError(snackbarError.message);
     }
   }, [
-    getValidationErrors,
+    getValidationSummary,
     getSubmitData,
     listingId,
     updateListing,
@@ -334,11 +381,20 @@ const EditListingPage = () => {
         defaultExpanded: true,
         content: (
           <>
-            {error && (
+            {showSubmitError && error && (
               <ErrorAlert
                 error={error}
                 show={!!error}
                 fallback="Failed to update listing. Please try again."
+                sx={{ mb: 3 }}
+              />
+            )}
+            {sectionValidation.details.length > 0 && (
+              <ErrorAlert
+                error={buildValidationAlert(
+                  sectionValidation.details,
+                  "Please review the listing details before saving."
+                )}
                 sx={{ mb: 3 }}
               />
             )}
@@ -370,6 +426,15 @@ const EditListingPage = () => {
               onDeleteExisting={handleDeleteExistingImage}
               maxImages={10}
             />
+            {sectionValidation.images.length > 0 && (
+              <ErrorAlert
+                error={buildValidationAlert(
+                  sectionValidation.images,
+                  "Please fix the image requirements before saving."
+                )}
+                sx={{ mb: 2 }}
+              />
+            )}
             {images.length === 0 && (
               <Box
                 sx={{
@@ -431,6 +496,15 @@ const EditListingPage = () => {
         defaultExpanded: variantsEnabled,
         content: (
           <Box>
+            {sectionValidation.variants.length > 0 && (
+              <ErrorAlert
+                error={buildValidationAlert(
+                  sectionValidation.variants,
+                  "Please fix the variant setup before saving."
+                )}
+                sx={{ mb: 2 }}
+              />
+            )}
             {/* Variant Toggle */}
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
               <FormControlLabel
@@ -540,7 +614,7 @@ const EditListingPage = () => {
         content: (
           <QuoteSettings
             settings={quoteSettings}
-            onChange={updateQuoteSettings}
+            onChange={handleQuoteSettingsChange}
             disabled={updateLoading}
             isLoading={updateLoading}
           />
@@ -563,6 +637,7 @@ const EditListingPage = () => {
     isDetailsComplete,
     isImagesComplete,
     error,
+    showSubmitError,
     listingId,
     handleSubmit,
     handleImageUploadComplete,
@@ -572,7 +647,8 @@ const EditListingPage = () => {
     handleDeleteVariant,
     handleVariantToggle,
     setVariants,
-    updateQuoteSettings,
+    handleQuoteSettingsChange,
+    sectionValidation,
   ]);
 
   // Loading state
@@ -611,6 +687,7 @@ const EditListingPage = () => {
         title="Edit Listing"
         subtitle="Update your listing details"
         sections={sections}
+        errors={sectionErrorCounts}
         onPublish={handleSubmit}
         isLoading={updateLoading}
         showDraftButton={false}

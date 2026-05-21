@@ -84,9 +84,6 @@ const EditListingPage = () => {
     initialData: listing,
   });
 
-  // Track newly uploaded images separately for edit mode
-  const [newlyUploadedImages, setNewlyUploadedImages] = useState([]);
-
   // Confirmation dialog state for disabling variants
   const [showDisableDialog, setShowDisableDialog] = useState(false);
 
@@ -211,16 +208,12 @@ const EditListingPage = () => {
   const handleImageUploadComplete = (result) => {
     const uploadedImages = result.data?.images || result.images || [];
     const imageUrls = uploadedImages.map((img) => img.main.url);
-    setNewlyUploadedImages((prev) => [...prev, ...imageUrls]);
+    addImages(imageUrls);
   };
 
   const handleDeleteExistingImage = (url) => {
     removeImageByUrl(url);
   };
-
-  const handleDeleteNewImage = useCallback((url) => {
-    setNewlyUploadedImages((prev) => prev.filter((img) => img !== url));
-  }, []);
 
   // Memoize form config - now uses single-step fields array
   const formConfig = useMemo(
@@ -255,9 +248,6 @@ const EditListingPage = () => {
       // Get prepared data from hook
       const listingData = getSubmitData();
 
-      // Merge existing images with newly uploaded images
-      listingData.images = [...images, ...newlyUploadedImages];
-
       await updateListing({ id: listingId, ...listingData }).unwrap();
     } catch (err) {
       console.error("Failed to update listing:", err);
@@ -279,18 +269,10 @@ const EditListingPage = () => {
   }, [
     getValidationErrors,
     getSubmitData,
-    images,
-    newlyUploadedImages,
     listingId,
     updateListing,
     showError,
   ]);
-
-  // Compute all images
-  const allImages = useMemo(
-    () => [...images, ...newlyUploadedImages],
-    [images, newlyUploadedImages],
-  );
 
   // Check if details section is complete
   const isDetailsComplete = useMemo(() => {
@@ -329,7 +311,7 @@ const EditListingPage = () => {
   ]);
 
   // Check if images section is complete
-  const isImagesComplete = allImages.length > 0;
+  const isImagesComplete = images.length > 0;
 
   // Define sections for the layout
   const sections = useMemo(() => {
@@ -367,7 +349,7 @@ const EditListingPage = () => {
         title: "Images",
         description: "Upload up to 10 photos. First image will be the cover.",
         icon: <ImageIcon />,
-        badge: `${allImages.length}`,
+        badge: `${images.length}`,
         isComplete: isImagesComplete,
         defaultExpanded: false,
         content: (
@@ -375,13 +357,11 @@ const EditListingPage = () => {
             <ListingImageUpload
               listingId={listingId}
               existingImages={images}
-              newlyUploadedImages={newlyUploadedImages}
               onUploadComplete={handleImageUploadComplete}
               onDeleteExisting={handleDeleteExistingImage}
-              onDeleteNew={handleDeleteNewImage}
               maxImages={10}
             />
-            {allImages.length === 0 && (
+            {images.length === 0 && (
               <Box
                 sx={{
                   mt: 2,
@@ -564,8 +544,6 @@ const EditListingPage = () => {
     formData,
     handleFormChange,
     images,
-    allImages,
-    newlyUploadedImages,
     variants,
     variantsEnabled,
     quoteSettings,
@@ -579,7 +557,6 @@ const EditListingPage = () => {
     handleSubmit,
     handleImageUploadComplete,
     handleDeleteExistingImage,
-    handleDeleteNewImage,
     handleAddVariant,
     handleUpdateVariant,
     handleDeleteVariant,

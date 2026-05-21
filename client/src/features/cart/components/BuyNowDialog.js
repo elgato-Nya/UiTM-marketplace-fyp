@@ -23,6 +23,7 @@ import {
 } from "@mui/icons-material";
 
 import VariantAttributeSelector from "../../listing/components/variants/VariantAttributeSelector";
+import { getPrimaryOptionImageUrl } from "../../listing/utils/variantImage";
 
 /**
  * BuyNowDialog Component
@@ -41,11 +42,13 @@ const BuyNowDialog = ({
   onClose,
   listing,
   selectedVariant: initialSelectedVariant = null,
+  selectedAttributes: initialSelectedAttributes,
   onBuyNow,
 }) => {
   const [internalSelectedVariant, setInternalSelectedVariant] = useState(null);
   const [loading, setLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [selectedAttributes, setSelectedAttributes] = useState({});
 
   // Destructure listing properties
   const { name, price, images, variants = [], type, stock, isAvailable } =
@@ -61,28 +64,36 @@ const BuyNowDialog = ({
   }, [hasVariants, variants]);
 
   // Use internal state for variant selection
-  const selectedVariant = initialSelectedVariant || internalSelectedVariant;
+  const selectedVariant = internalSelectedVariant;
+  const seededSelectedAttributes =
+    initialSelectedAttributes &&
+    Object.keys(initialSelectedAttributes).length > 0
+      ? initialSelectedAttributes
+      : initialSelectedVariant?.attributes || {};
 
   // Reset when dialog opens/closes
   useEffect(() => {
     if (open) {
       setInternalSelectedVariant(initialSelectedVariant);
+      setSelectedAttributes(seededSelectedAttributes);
       setLoading(false);
       setQuantity(1);
     } else {
       setInternalSelectedVariant(null);
+      setSelectedAttributes({});
     }
-  }, [open, initialSelectedVariant]);
+  }, [open, initialSelectedVariant, seededSelectedAttributes]);
 
   // Determine effective price based on variant
   const effectivePrice = selectedVariant ? selectedVariant.price : price;
   const effectiveStock = selectedVariant ? selectedVariant.stock : stock;
   const isService = type === "service";
   const selectionLabel = selectedVariant
-    ? selectedVariant.attributes
-      ? Object.values(selectedVariant.attributes).join(" - ")
-      : selectedVariant.name
-    : null;
+    ? Object.values(selectedAttributes || {}).filter(Boolean).join(" - ") ||
+      (selectedVariant.attributes
+        ? Object.values(selectedVariant.attributes).join(" - ")
+        : selectedVariant.name)
+    : Object.values(selectedAttributes || {}).filter(Boolean).join(" - ") || null;
   const selectedStatusLabel = selectedVariant
     ? selectedVariant.isAvailable === false
       ? "Unavailable"
@@ -99,12 +110,19 @@ const BuyNowDialog = ({
 
   // Get display image
   const displayImage = useMemo(() => {
+    const primaryOptionImageUrl = getPrimaryOptionImageUrl(
+      listing,
+      selectedAttributes,
+      selectedVariant
+    );
+
+    if (primaryOptionImageUrl) return primaryOptionImageUrl;
     if (selectedVariant?.image) return selectedVariant.image;
     if (images?.length > 0) {
       return typeof images[0] === "string" ? images[0] : images[0]?.url;
     }
     return null;
-  }, [selectedVariant, images]);
+  }, [listing, selectedAttributes, selectedVariant, images]);
 
   // Check if can proceed
   const canProceed = hasVariants
@@ -128,6 +146,26 @@ const BuyNowDialog = ({
   const handleVariantSelect = (variant) => {
     setInternalSelectedVariant(variant);
     setQuantity(1);
+  };
+
+  const handleSelectionChange = (attributes) => {
+    setSelectedAttributes(attributes);
+
+    if (!internalSelectedVariant?.attributes) {
+      return;
+    }
+
+    const allSelected = Object.values(attributes || {}).every(
+      (value) => value !== null && value !== undefined && value !== ""
+    );
+
+    const matchesCurrentVariant = Object.entries(attributes || {}).every(
+      ([key, value]) => !value || internalSelectedVariant.attributes?.[key] === value
+    );
+
+    if (!allSelected || !matchesCurrentVariant) {
+      setInternalSelectedVariant(null);
+    }
   };
 
   const handleDecrease = () => {
@@ -393,7 +431,9 @@ const BuyNowDialog = ({
             <VariantAttributeSelector
               variants={variants}
               selectedVariant={selectedVariant}
+              selectedAttributes={selectedAttributes}
               onVariantSelect={handleVariantSelect}
+              onSelectionChange={handleSelectionChange}
               compact
             />
           </Box>

@@ -40,6 +40,10 @@ import BuyNowDialog from "../../features/cart/components/BuyNowDialog";
 import { createSessionFromListing } from "../../features/checkout/store/checkoutSlice";
 import { createQuoteRequest } from "../../features/quote/store/quoteSlice";
 import { useChatActions } from "../../features/chat/hooks/useChatActions";
+import {
+  buildListingGalleryImages,
+  getPrimaryOptionImageUrl,
+} from "../../features/listing/utils/variantImage";
 
 const ListingDetailPage = () => {
   const { theme } = useTheme();
@@ -53,6 +57,7 @@ const ListingDetailPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  const [selectedAttributes, setSelectedAttributes] = useState({});
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [buyNowDialogOpen, setBuyNowDialogOpen] = useState(false);
@@ -103,6 +108,7 @@ const ListingDetailPage = () => {
     if (listingId) {
       getListingById(listingId);
     }
+    setSelectedAttributes({});
     return () => {
       clearCurrent();
     };
@@ -116,7 +122,6 @@ const ListingDetailPage = () => {
     price = 0,
     category = "",
     type = "",
-    images = [],
     stock = 0,
     isFree = false,
     isAvailable = false,
@@ -131,6 +136,17 @@ const ListingDetailPage = () => {
   const availableVariants = useMemo(() => {
     return hasVariants ? variants.filter((v) => v.isAvailable !== false) : [];
   }, [hasVariants, variants]);
+
+  const primaryOptionImageUrl = useMemo(
+    () =>
+      getPrimaryOptionImageUrl(listing, selectedAttributes, selectedVariant),
+    [listing, selectedAttributes, selectedVariant],
+  );
+
+  const galleryImages = useMemo(
+    () => buildListingGalleryImages(listing),
+    [listing],
+  );
 
   // Determine effective price based on variant selection
   const effectivePrice = selectedVariant ? selectedVariant.price : price;
@@ -339,7 +355,11 @@ const ListingDetailPage = () => {
       >
         {/* Image Gallery */}
         <Box sx={{ width: "100%", minWidth: 0 }}>
-          <ImageGallery images={images} altText={name} />
+          <ImageGallery
+            images={galleryImages}
+            altText={name}
+            preferredImageUrl={primaryOptionImageUrl}
+          />
         </Box>
 
         {/* Product Information */}
@@ -436,6 +456,7 @@ const ListingDetailPage = () => {
                   variants={variants}
                   selectedVariant={selectedVariant}
                   onVariantSelect={(variant) => setSelectedVariant(variant)}
+                  onSelectionChange={setSelectedAttributes}
                 />
               </Box>
 
@@ -721,6 +742,7 @@ const ListingDetailPage = () => {
         onClose={() => setDialogOpen(false)}
         listing={currentListing}
         selectedVariant={hasVariants ? selectedVariant : null}
+        selectedAttributes={hasVariants ? selectedAttributes : undefined}
       />
 
       {/* Buy Now Dialog - confirmation flow before checkout */}
@@ -729,6 +751,7 @@ const ListingDetailPage = () => {
         onClose={() => setBuyNowDialogOpen(false)}
         listing={currentListing}
         selectedVariant={hasVariants ? selectedVariant : null}
+        selectedAttributes={hasVariants ? selectedAttributes : undefined}
         onBuyNow={async (variant, quantity = 1) => {
           setBuyNowDialogOpen(false);
           if (variant) {

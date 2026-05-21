@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Box,
   IconButton,
@@ -15,11 +15,34 @@ import {
   ImageNotSupported as NoImageIcon,
 } from "@mui/icons-material";
 
-const ImageGallery = ({ images = [], altText = "Listing image" }) => {
+const ImageGallery = ({
+  images = [],
+  altText = "Listing image",
+  preferredImageUrl,
+}) => {
   const [activeStep, setActiveStep] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const [thumbnailStartIndex, setThumbnailStartIndex] = useState(0);
-  const maxSteps = images.length;
+
+  const getImageUrl = (image) => {
+    if (typeof image === "string") return image;
+    return image?.url || "https://via.placeholder.com/600x400?text=No+Image";
+  };
+
+  const getImageLabel = (image) => {
+    if (typeof image === "string") return null;
+    return image?.label || null;
+  };
+
+  const normalizedImages = useMemo(
+    () =>
+      (images || []).map((image) => ({
+        url: getImageUrl(image),
+        label: getImageLabel(image),
+      })),
+    [images],
+  );
+  const maxSteps = normalizedImages.length;
 
   // Responsive visible thumbnails: 3 for mobile, 5 for desktop
   // This is a simple approach - in a real app you might use useMediaQuery
@@ -36,6 +59,32 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
     window.addEventListener("resize", updateVisibleThumbnails);
     return () => window.removeEventListener("resize", updateVisibleThumbnails);
   }, []);
+
+  const imageSignature = useMemo(
+    () => normalizedImages.map((image) => image.url).join("|"),
+    [normalizedImages],
+  );
+
+  useEffect(() => {
+    if (!normalizedImages.length) {
+      setActiveStep(0);
+      setThumbnailStartIndex(0);
+      return;
+    }
+
+    const preferredIndex = preferredImageUrl
+      ? normalizedImages.findIndex((image) => image.url === preferredImageUrl)
+      : -1;
+    const nextActiveStep = preferredIndex >= 0 ? preferredIndex : 0;
+
+    setActiveStep(nextActiveStep);
+    setThumbnailStartIndex(
+      Math.max(
+        0,
+        Math.min(nextActiveStep, normalizedImages.length - visibleThumbnails),
+      ),
+    );
+  }, [imageSignature, normalizedImages, preferredImageUrl, visibleThumbnails]);
 
   const handleNext = () => {
     setActiveStep((prevActiveStep) => {
@@ -94,6 +143,9 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
     setIsZoomed(false);
   };
 
+  const thumbnailNavVisibility =
+    maxSteps > visibleThumbnails ? "visible" : "hidden";
+
   const handleNextInZoom = () => {
     if (activeStep < maxSteps - 1) {
       setActiveStep((prevActiveStep) => prevActiveStep + 1);
@@ -132,13 +184,7 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
     };
   }, [isZoomed, activeStep, maxSteps]);
 
-  // Handle both string URLs and object with url property
-  const getImageUrl = (image) => {
-    if (typeof image === "string") return image;
-    return image?.url || "https://via.placeholder.com/600x400?text=No+Image";
-  };
-
-  if (!images || images.length === 0) {
+  if (!normalizedImages.length) {
     return (
       <Paper
         elevation={3}
@@ -228,9 +274,39 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
             pointerEvents: "none",
             userSelect: "none",
           }}
-          src={getImageUrl(images[activeStep])}
+          src={normalizedImages[activeStep]?.url}
           alt={`${altText} ${activeStep + 1}`}
         />
+        {normalizedImages[activeStep]?.label && (
+          <Box
+            sx={{
+              position: "absolute",
+              left: { xs: 10, sm: 14 },
+              bottom: { xs: 10, sm: 14 },
+              maxWidth: "calc(100% - 20px)",
+              px: 1.25,
+              py: 0.6,
+              borderRadius: 999,
+              bgcolor: "rgba(17, 24, 39, 0.76)",
+              color: "common.white",
+              backdropFilter: "blur(6px)",
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                display: "block",
+                fontWeight: 700,
+                lineHeight: 1.2,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {normalizedImages[activeStep].label}
+            </Typography>
+          </Box>
+        )}
       </Paper>
 
       {/* Navigation Controls */}
@@ -244,6 +320,12 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
               mt: { xs: 1.5, sm: 2 },
               bgcolor: "transparent",
               px: 0,
+              justifyContent: "center",
+              gap: 1.25,
+              "& .MuiMobileStepper-dotContainer": {
+                flex: "0 1 auto",
+                mx: 0.5,
+              },
             }}
             nextButton={
               <IconButton
@@ -270,6 +352,7 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
             sx={{
               display: "flex",
               alignItems: "center",
+              justifyContent: "center",
               gap: 1,
               mt: { xs: 1.5, sm: 2 },
               width: "100%",
@@ -281,8 +364,10 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
               onClick={handleThumbnailPrev}
               disabled={thumbnailStartIndex === 0}
               sx={{
-                flexShrink: 0,
-                display: maxSteps > visibleThumbnails ? "flex" : "none",
+                flex: "0 0 36px",
+                width: 36,
+                height: 36,
+                visibility: thumbnailNavVisibility,
               }}
             >
               <KeyboardArrowLeft />
@@ -295,9 +380,11 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
                 gap: { xs: 0.75, sm: 1 },
                 overflow: "hidden",
                 flex: 1,
+                justifyContent: "center",
+                minWidth: 0,
               }}
             >
-              {images
+              {normalizedImages
                 .slice(
                   thumbnailStartIndex,
                   thumbnailStartIndex + visibleThumbnails
@@ -330,7 +417,7 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
                     >
                       <Box
                         component="img"
-                        src={getImageUrl(image)}
+                        src={image.url}
                         alt={`${altText} thumbnail ${absoluteIndex + 1}`}
                         sx={{
                           width: "100%",
@@ -349,8 +436,10 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
               onClick={handleThumbnailNext}
               disabled={thumbnailStartIndex >= maxSteps - visibleThumbnails}
               sx={{
-                flexShrink: 0,
-                display: maxSteps > visibleThumbnails ? "flex" : "none",
+                flex: "0 0 36px",
+                width: 36,
+                height: 36,
+                visibility: thumbnailNavVisibility,
               }}
             >
               <KeyboardArrowRight />
@@ -460,7 +549,7 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
           {/* Zoomed Image */}
           <Box
             component="img"
-            src={getImageUrl(images[activeStep])}
+            src={normalizedImages[activeStep]?.url}
             alt={`${altText} ${activeStep + 1} (zoomed)`}
             sx={{
               maxWidth: "100%",
@@ -470,6 +559,29 @@ const ImageGallery = ({ images = [], altText = "Listing image" }) => {
               px: { xs: 1, sm: 2 },
             }}
           />
+          {normalizedImages[activeStep]?.label && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: { xs: 12, sm: 16 },
+                left: { xs: 12, sm: 16 },
+                maxWidth: "min(70vw, 320px)",
+                color: "white",
+                bgcolor: "rgba(0, 0, 0, 0.6)",
+                px: { xs: 1.25, sm: 1.5 },
+                py: { xs: 0.75, sm: 0.9 },
+                borderRadius: 999,
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                fontWeight: 700,
+                lineHeight: 1.2,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {normalizedImages[activeStep].label}
+            </Box>
+          )}
 
           {/* Image Counter */}
           {maxSteps > 1 && (

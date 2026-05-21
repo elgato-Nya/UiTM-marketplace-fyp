@@ -25,7 +25,9 @@ import { Check as CheckIcon } from "@mui/icons-material";
 const VariantAttributeSelector = ({
   variants = [],
   selectedVariant = null,
+  selectedAttributes: controlledSelectedAttributes,
   onVariantSelect,
+  onSelectionChange,
   compact = false,
 }) => {
   // Extract all unique attribute types and their values from variants
@@ -58,9 +60,17 @@ const VariantAttributeSelector = ({
 
   // State for selected attribute values
   const [selectedAttributes, setSelectedAttributes] = useState({});
+  const isControlled = controlledSelectedAttributes !== undefined;
+  const activeSelectedAttributes = isControlled
+    ? controlledSelectedAttributes
+    : selectedAttributes;
 
   // Initialize selected attributes from selectedVariant
   useEffect(() => {
+    if (isControlled) {
+      return;
+    }
+
     if (selectedVariant?.attributes) {
       setSelectedAttributes({ ...selectedVariant.attributes });
     } else if (attributeConfig.length > 0) {
@@ -71,13 +81,19 @@ const VariantAttributeSelector = ({
       });
       setSelectedAttributes(initial);
     }
-  }, [selectedVariant, attributeConfig]);
+  }, [selectedVariant, attributeConfig, isControlled]);
+
+  useEffect(() => {
+    if (!isControlled && onSelectionChange) {
+      onSelectionChange(selectedAttributes);
+    }
+  }, [selectedAttributes, onSelectionChange, isControlled]);
 
   // Get available values for each attribute based on current selections
   const getAvailableValues = useCallback(
     (attributeKey) => {
       // Get all other selected attributes except this one
-      const otherSelections = { ...selectedAttributes };
+      const otherSelections = { ...activeSelectedAttributes };
       delete otherSelections[attributeKey];
 
       // Filter variants that match other selections
@@ -100,7 +116,7 @@ const VariantAttributeSelector = ({
 
       return availableValues;
     },
-    [variants, selectedAttributes]
+    [variants, activeSelectedAttributes]
   );
 
   // Check if a value is available for selection
@@ -116,7 +132,7 @@ const VariantAttributeSelector = ({
   // A value is considered "in stock" if ANY variant combination with that value is available
   const isValueInStock = useCallback(
     (attributeKey, value) => {
-      const testSelection = { ...selectedAttributes, [attributeKey]: value };
+      const testSelection = { ...activeSelectedAttributes, [attributeKey]: value };
 
       // Find all variants matching this selection
       const matchingVariants = variants.filter((v) => {
@@ -138,14 +154,19 @@ const VariantAttributeSelector = ({
         return variant.stock === undefined || variant.stock > 0;
       });
     },
-    [variants, selectedAttributes]
+    [variants, activeSelectedAttributes]
   );
 
   // Handle attribute value selection
   const handleAttributeSelect = useCallback(
     (attributeKey, value) => {
-      const newSelection = { ...selectedAttributes, [attributeKey]: value };
-      setSelectedAttributes(newSelection);
+      const newSelection = { ...activeSelectedAttributes, [attributeKey]: value };
+
+      if (isControlled) {
+        onSelectionChange?.(newSelection);
+      } else {
+        setSelectedAttributes(newSelection);
+      }
 
       // Check if all attributes are selected
       const allSelected = attributeConfig.every(
@@ -166,7 +187,14 @@ const VariantAttributeSelector = ({
         }
       }
     },
-    [selectedAttributes, attributeConfig, variants, onVariantSelect]
+    [
+      activeSelectedAttributes,
+      attributeConfig,
+      variants,
+      onVariantSelect,
+      onSelectionChange,
+      isControlled,
+    ]
   );
 
   // Early return if no variants or no attributes
@@ -199,7 +227,7 @@ const VariantAttributeSelector = ({
             }}
           >
             {attribute.values.map((value) => {
-              const isSelected = selectedAttributes[attribute.key] === value;
+              const isSelected = activeSelectedAttributes[attribute.key] === value;
               const isAvailable = isValueAvailable(attribute.key, value);
               const inStock = isValueInStock(attribute.key, value);
               const isDisabled = !isAvailable || !inStock;
@@ -273,7 +301,9 @@ VariantAttributeSelector.propTypes = {
     })
   ),
   selectedVariant: PropTypes.object,
+  selectedAttributes: PropTypes.object,
   onVariantSelect: PropTypes.func.isRequired,
+  onSelectionChange: PropTypes.func,
   compact: PropTypes.bool,
 };
 

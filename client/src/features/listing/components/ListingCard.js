@@ -67,10 +67,12 @@ const ListingCard = ({
     seller,
     variants,
   } = listing;
+  const hasVariants = Array.isArray(variants) && variants.length > 0;
+  const isBaseFree = !hasVariants && isFree;
 
   // Get lowest price from variants or base price
   const displayPrice = useMemo(() => {
-    if (isFree) return 0;
+    if (isBaseFree) return 0;
     if (!variants || variants.length === 0) return price;
 
     // Find lowest priced available variant
@@ -81,7 +83,7 @@ const ListingCard = ({
       ...availableVariants.map((v) => Number(v.price) || 0),
     );
     return lowestPrice > 0 ? lowestPrice : price;
-  }, [variants, price, isFree]);
+  }, [variants, price, isBaseFree]);
 
   const displayStock = useMemo(() => {
     if (!variants || variants.length === 0) {
@@ -99,7 +101,7 @@ const ListingCard = ({
 
   // Format price with spaces (e.g., 1 234 567.89)
   const formatPrice = (price) => {
-    if (isFree) return "FREE";
+    if (isBaseFree) return "FREE";
     if (price >= 100000) {
       // Use prefix for 100k+
       if (price >= 1000000000) {
@@ -325,7 +327,7 @@ const ListingCard = ({
                   }}
                 />
               )}
-              {isFree && (
+              {isBaseFree && (
                 <Chip
                   label="Free"
                   size="small"

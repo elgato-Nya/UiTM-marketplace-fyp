@@ -727,9 +727,8 @@ const useListingForm = (options = {}) => {
   // ========== Submit Preparation ==========
   const getSubmitData = useCallback(() => {
     const price = parseFloat(formData.price) || 0;
-    const isFree = formData.isFree || price === 0;
-
     const hasVariantRows = variantsEnabled && variants.length > 0;
+    const isFree = !hasVariantRows && (formData.isFree || price === 0);
 
     const submitData = {
       type: formData.type,
@@ -789,6 +788,7 @@ const useListingForm = (options = {}) => {
     } else {
       submitData.hasVariants = false;
       submitData.variants = [];
+      submitData.variationConfig = [];
     }
 
     // Add quote settings for services - always include if it's a service

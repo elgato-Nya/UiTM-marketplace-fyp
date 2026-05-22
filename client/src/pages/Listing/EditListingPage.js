@@ -287,7 +287,12 @@ const EditListingPage = () => {
       // Use top-level fields (single-step form)
       fields: (editListingFormConfig.fields || []).filter((field) => {
         if (field.name === "images") return false;
-        if (variantsEnabled && (field.name === "price" || field.name === "stock")) {
+        if (
+          variantsEnabled &&
+          (field.name === "isFree" ||
+            field.name === "price" ||
+            field.name === "stock")
+        ) {
           return false;
         }
         return true;

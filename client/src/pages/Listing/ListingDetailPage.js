@@ -131,6 +131,7 @@ const ListingDetailPage = () => {
 
   // Check if listing has variants
   const hasVariants = variants && variants.length > 0;
+  const isBaseFree = !hasVariants && isFree;
 
   // Get available variants only - always call useMemo
   const availableVariants = useMemo(() => {
@@ -257,7 +258,7 @@ const ListingDetailPage = () => {
 
   // Format price with spaces (e.g., 1 234 567.89)
   const formatPrice = (priceValue) => {
-    if (isFree) return "FREE";
+    if (isBaseFree) return "FREE";
     if (priceValue >= 100000) {
       // Use prefix for 100k+
       if (priceValue >= 1000000000) {
@@ -384,7 +385,7 @@ const ListingDetailPage = () => {
             {name}
           </Typography>
 
-          {isFree ? (
+          {isBaseFree ? (
             <Typography
               variant="h3"
               fontWeight="700"

@@ -60,6 +60,8 @@ const ListingListItem = ({
     seller,
     variants,
   } = listing;
+  const hasVariants = Array.isArray(variants) && variants.length > 0;
+  const isBaseFree = !hasVariants && isFree;
 
   const isService = type === "service";
   const isProduct = type === "product";
@@ -84,7 +86,7 @@ const ListingListItem = ({
       sellerMerchant?.verificationStatus === "verified",
   );
   const displayPrice = useMemo(() => {
-    if (isFree) return 0;
+    if (isBaseFree) return 0;
     if (!variants || variants.length === 0) return price;
 
     const availableVariants = variants.filter((v) => v.isAvailable !== false);
@@ -94,7 +96,7 @@ const ListingListItem = ({
       ...availableVariants.map((v) => Number(v.price) || 0),
     );
     return lowestPrice > 0 ? lowestPrice : price;
-  }, [variants, price, isFree]);
+  }, [variants, price, isBaseFree]);
 
   const displayStock = useMemo(() => {
     if (!variants || variants.length === 0) {
@@ -115,7 +117,7 @@ const ListingListItem = ({
 
   // Format price with spaces (e.g., 1 234 567.89)
   const formatPrice = (price) => {
-    if (isFree) return "FREE";
+    if (isBaseFree) return "FREE";
     if (price >= 100000) {
       // Use prefix for 100k+
       if (price >= 1000000000) {

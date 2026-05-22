@@ -295,13 +295,17 @@ const CreateListingPage = () => {
       title: null,
       subtitle: null,
       // Use top-level fields (single-step form)
-      fields: (createListingFormConfig.fields || []).filter(
-        (field) => field.name !== "images",
-      ),
+      fields: (createListingFormConfig.fields || []).filter((field) => {
+        if (field.name === "images") return false;
+        if (variantsEnabled && (field.name === "price" || field.name === "stock")) {
+          return false;
+        }
+        return true;
+      }),
       // Clear steps to ensure single-step rendering
       steps: [],
     }),
-    [],
+    [variantsEnabled],
   );
 
   // Check if details section is complete
@@ -317,6 +321,7 @@ const CreateListingPage = () => {
       variantsEnabled ||
       (formData.price !== "" && formData.price >= 0);
     const hasStockOrService =
+      variantsEnabled ||
       formData.type === "service" ||
       (formData.stock !== "" && formData.stock >= 0);
 

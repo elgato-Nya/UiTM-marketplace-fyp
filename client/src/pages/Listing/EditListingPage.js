@@ -285,13 +285,17 @@ const EditListingPage = () => {
       subtitle: null,
       allowQuickSave: true,
       // Use top-level fields (single-step form)
-      fields: (editListingFormConfig.fields || []).filter(
-        (field) => field.name !== "images",
-      ),
+      fields: (editListingFormConfig.fields || []).filter((field) => {
+        if (field.name === "images") return false;
+        if (variantsEnabled && (field.name === "price" || field.name === "stock")) {
+          return false;
+        }
+        return true;
+      }),
       // Clear steps to ensure single-step rendering
       steps: [],
     }),
-    [],
+    [variantsEnabled],
   );
 
   const handleSubmit = useCallback(async () => {
@@ -343,6 +347,7 @@ const EditListingPage = () => {
       variantsEnabled ||
       (formData.price !== "" && formData.price >= 0);
     const hasStockOrService =
+      variantsEnabled ||
       formData.type === "service" ||
       (formData.stock !== "" && formData.stock >= 0);
 

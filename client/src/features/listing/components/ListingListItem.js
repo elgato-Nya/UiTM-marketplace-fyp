@@ -63,8 +63,6 @@ const ListingListItem = ({
 
   const isService = type === "service";
   const isProduct = type === "product";
-  const isOutOfStock = isProduct && stock <= 0;
-  const canAddToCart = isAvailable && (isService || !isOutOfStock);
   const inCart = isInCart(_id);
   const inWishlist = isInWishlist(_id);
   const primaryImage = images?.[0];
@@ -97,6 +95,23 @@ const ListingListItem = ({
     );
     return lowestPrice > 0 ? lowestPrice : price;
   }, [variants, price, isFree]);
+
+  const displayStock = useMemo(() => {
+    if (!variants || variants.length === 0) {
+      return stock;
+    }
+
+    return variants.reduce((total, variant) => {
+      if (variant.isAvailable === false) {
+        return total;
+      }
+
+      return total + (Number(variant.stock) || 0);
+    }, 0);
+  }, [variants, stock]);
+
+  const isOutOfStock = isProduct && displayStock <= 0;
+  const canAddToCart = isAvailable && (isService || !isOutOfStock);
 
   // Format price with spaces (e.g., 1 234 567.89)
   const formatPrice = (price) => {
@@ -433,7 +448,7 @@ const ListingListItem = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                {formatStock(stock)}
+                {formatStock(displayStock)}
               </Typography>
             )}
 

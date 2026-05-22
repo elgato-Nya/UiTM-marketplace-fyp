@@ -83,6 +83,20 @@ const ListingCard = ({
     return lowestPrice > 0 ? lowestPrice : price;
   }, [variants, price, isFree]);
 
+  const displayStock = useMemo(() => {
+    if (!variants || variants.length === 0) {
+      return stock;
+    }
+
+    return variants.reduce((total, variant) => {
+      if (variant.isAvailable === false) {
+        return total;
+      }
+
+      return total + (Number(variant.stock) || 0);
+    }, 0);
+  }, [variants, stock]);
+
   // Format price with spaces (e.g., 1 234 567.89)
   const formatPrice = (price) => {
     if (isFree) return "FREE";
@@ -174,7 +188,7 @@ const ListingCard = ({
 
   const isService = type === "service";
   const isProduct = type === "product";
-  const isOutOfStock = isProduct && stock <= 0;
+  const isOutOfStock = isProduct && displayStock <= 0;
   const canAddToCart = isAvailable && (isService || !isOutOfStock);
   const inCart = isInCart(_id);
   const inWishlist = isInWishlist(_id);
@@ -527,7 +541,7 @@ const ListingCard = ({
                     maxWidth: isMobile ? "42%" : "38%",
                   }}
                 >
-                  {formatStock(stock)}
+                  {formatStock(displayStock)}
                 </Typography>
               )}
             </Box>

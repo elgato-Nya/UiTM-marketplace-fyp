@@ -565,21 +565,27 @@ const useListingForm = (options = {}) => {
       }
     }
 
-    // Price validation - only if not free and price > 0, and no variants with prices
+    if (variantsEnabled && variants.length === 0) {
+      newErrors.variants =
+        "Add at least one variant before saving a variant listing.";
+    }
+
+    // Price validation - only for non-variant listings that are not free/quote-only
     const price = parseFloat(formData.price);
     const isFreeByPrice = !isNaN(price) && price === 0;
-    if (!formData.isFree && !isFreeByPrice) {
-      const hasVariantPrices =
-        variantsEnabled && variants.some((v) => parseFloat(v.price) > 0);
-      if (!hasVariantPrices) {
-        if (isNaN(price) || price < 0) {
-          newErrors.price = "Valid price is required (or mark as free)";
-        }
+    if (
+      !variantsEnabled &&
+      !formData.isFree &&
+      !formData.isQuoteOnly &&
+      !isFreeByPrice
+    ) {
+      if (isNaN(price) || price < 0) {
+        newErrors.price = "Valid price is required (or mark as free)";
       }
     }
 
     // Stock validation for products without variants
-    if (isProduct && !hasVariants) {
+    if (isProduct && !variantsEnabled) {
       const stock = parseInt(formData.stock);
       if (isNaN(stock) || stock < 0) {
         newErrors.stock = "Valid stock quantity is required for products";
@@ -723,26 +729,31 @@ const useListingForm = (options = {}) => {
     const price = parseFloat(formData.price) || 0;
     const isFree = formData.isFree || price === 0;
 
+    const hasVariantRows = variantsEnabled && variants.length > 0;
+
     const submitData = {
       type: formData.type,
       name: formData.name?.trim(),
       description: formData.description?.trim(),
       category: formData.category,
-      price: isFree ? 0 : price,
       isFree: isFree,
       isAvailable: formData.isAvailable !== false,
     };
+
+    if (!hasVariantRows && (!isService || !formData.isQuoteOnly)) {
+      submitData.price = isFree ? 0 : price;
+    }
 
     // Add images
     submitData.images = images;
 
     // Handle stock for products
-    if (isProduct) {
+    if (isProduct && !hasVariantRows) {
       submitData.stock = parseInt(formData.stock) || 0;
     }
 
     // Add variants if enabled and has variants
-    if (variantsEnabled && variants.length > 0) {
+    if (hasVariantRows) {
       submitData.hasVariants = true;
       // Clean up variants - remove temp IDs and ensure proper structure
       submitData.variants = variants.map((variant) => {

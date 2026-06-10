@@ -136,6 +136,56 @@ describe("Checkout Helpers - Delivery Fee Integration", () => {
     });
   });
 
+  describe("validateCheckoutItems - Variant Safety", () => {
+    it("should reject stale variant selections when the listing no longer has variants", async () => {
+      const variantListing = await Listing.create({
+        name: "Variant Product",
+        description: "Variant safety test product",
+        type: "product",
+        category: "electronics",
+        stock: 0,
+        seller: {
+          userId: merchant1._id,
+          username: "merchant_one",
+        },
+        images: ["https://example.com/variant-product.jpg"],
+        variants: [
+          {
+            name: "Red / Small",
+            price: 25.0,
+            stock: 5,
+            isAvailable: true,
+            attributes: {
+              Color: "Red",
+              Size: "Small",
+            },
+          },
+        ],
+      });
+
+      const staleVariantId = variantListing.variants[0]._id.toString();
+
+      variantListing.price = 25.0;
+      variantListing.stock = 5;
+      variantListing.variants = [];
+      await variantListing.save();
+
+      const validation = await validateCheckoutItems([
+        {
+          listingId: variantListing._id,
+          quantity: 1,
+          variantId: staleVariantId,
+        },
+      ]);
+
+      expect(validation.valid).toBe(false);
+      expect(validation.validatedItems).toHaveLength(0);
+      expect(validation.errors).toContain(
+        `Selected variant for ${variantListing.name} is no longer available`
+      );
+    });
+  });
+
   describe("groupItemsBySeller - Custom Delivery Fees", () => {
     it("should apply custom personal delivery fee (below threshold)", async () => {
       const items = [

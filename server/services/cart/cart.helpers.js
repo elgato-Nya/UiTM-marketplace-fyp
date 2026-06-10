@@ -5,6 +5,91 @@
  * PATTERN: Separated from service layer for better testability
  */
 
+const findListingVariantById = (listing, variantId) => {
+  if (!variantId || !listing?.variants) {
+    return null;
+  }
+
+  if (typeof listing.variants.id === "function") {
+    return listing.variants.id(variantId);
+  }
+
+  return listing.variants.find(
+    (variant) => variant?._id?.toString() === variantId.toString()
+  );
+};
+
+const resolveCartItemState = (item) => {
+  const listing = item.listing;
+
+  if (!listing) {
+    return {
+      isValid: false,
+      isAvailable: false,
+      stockAvailable: false,
+      currentPrice: item.variantSnapshot?.price ?? null,
+      currentStock: null,
+      errors: ["This listing is no longer available"],
+      unavailabilityType: "listing_missing",
+    };
+  }
+
+  const isService = listing.type === "service";
+  const hasVariant = item.variantId != null;
+  let currentPrice = listing.price;
+  let currentStock = isService ? null : listing.stock;
+  let unavailabilityType = null;
+  const errors = [];
+  let stockAvailable = true;
+
+  if (!listing.isAvailable) {
+    errors.push(`${listing.name} is no longer available`);
+    unavailabilityType = "listing_unavailable";
+  }
+
+  if (hasVariant) {
+    const hasVariants =
+      Array.isArray(listing.variants) && listing.variants.length > 0;
+
+    if (!hasVariants) {
+      errors.push(`${listing.name}: Selected variant is no longer available`);
+      unavailabilityType = "variant_missing";
+    } else {
+      const variant = findListingVariantById(listing, item.variantId);
+
+      if (!variant) {
+        errors.push(`${listing.name}: Selected variant is no longer available`);
+        unavailabilityType = "variant_missing";
+      } else if (variant.isAvailable === false) {
+        errors.push(
+          `${listing.name}: Selected variant is no longer available`
+        );
+        unavailabilityType = "variant_unavailable";
+      } else {
+        currentPrice = item.variantSnapshot?.price ?? variant.price;
+        currentStock = isService ? null : variant.stock;
+      }
+    }
+  }
+
+  if (!isService && errors.length === 0 && currentStock < item.quantity) {
+    stockAvailable = false;
+    errors.push(
+      `${listing.name}: Only ${currentStock} available (requested: ${item.quantity})`
+    );
+  }
+
+  return {
+    isValid: errors.length === 0,
+    isAvailable: listing.isAvailable && !unavailabilityType,
+    stockAvailable,
+    currentPrice,
+    currentStock,
+    errors,
+    unavailabilityType,
+  };
+};
+
 /**
  * Calculate comprehensive cart summary
  * @param {Object} cart - Cart document with populated items
@@ -13,8 +98,8 @@
 const calculateCartSummary = async (cart) => {
   const summary = {
     totalItems: cart.totalItems,
-    totalItemsQuantity: cart.totalItemsQuantity, // Changed from totalQuantity
-    totalPrice: 0, // Changed from subtotal
+    totalItemsQuantity: cart.totalItemsQuantity,
+    totalPrice: 0,
     unavailableCount: 0,
     outOfStockCount: 0,
     sellerCount: 0,
@@ -27,33 +112,31 @@ const calculateCartSummary = async (cart) => {
   const sellers = new Set();
 
   cart.items.forEach((item) => {
-    // Access the populated listing via 'listing' field, not 'listingId'
-    if (item.listing) {
-      const listing = item.listing;
-      const isService = listing.type === "service";
+    if (!item.listing) {
+      summary.unavailableCount++;
+      return;
+    }
 
-      // Calculate total price
-      // For services: always include with quantity=1 (no stock check)
-      // For products: only if available and sufficient stock
-      if (listing.isAvailable) {
-        if (isService) {
-          summary.totalPrice += listing.price * 1; // Services always quantity 1
-          sellers.add(listing.seller.userId.toString());
-        } else if (listing.stock >= item.quantity) {
-          summary.totalPrice += listing.price * item.quantity;
-          sellers.add(listing.seller.userId.toString());
-        }
-      }
+    const listing = item.listing;
+    const isService = listing.type === "service";
+    const itemState = resolveCartItemState(item);
 
-      // Count unavailable items
-      if (!listing.isAvailable) {
-        summary.unavailableCount++;
+    if (itemState.isValid) {
+      if (isService) {
+        summary.totalPrice += itemState.currentPrice;
+        sellers.add(listing.seller.userId.toString());
+      } else if (itemState.currentStock >= item.quantity) {
+        summary.totalPrice += itemState.currentPrice * item.quantity;
+        sellers.add(listing.seller.userId.toString());
       }
+    }
 
-      // Count out-of-stock items (products only)
-      if (!isService && listing.stock < item.quantity) {
-        summary.outOfStockCount++;
-      }
+    if (!itemState.isAvailable) {
+      summary.unavailableCount++;
+    }
+
+    if (!isService && !itemState.stockAvailable) {
+      summary.outOfStockCount++;
     }
   });
 
@@ -71,7 +154,6 @@ const groupCartItemsBySeller = (items) => {
   const sellerGroups = {};
 
   items.forEach((item) => {
-    // Access the populated listing via 'listing' field, not 'listingId'
     if (item.listing && item.listing.seller) {
       const sellerId = item.listing.seller.userId.toString();
 
@@ -84,12 +166,13 @@ const groupCartItemsBySeller = (items) => {
         };
       }
 
-      const itemSubtotal = item.listing.price * item.quantity;
+      const itemState = resolveCartItemState(item);
+      const itemSubtotal = itemState.currentPrice * item.quantity;
 
       sellerGroups[sellerId].items.push({
         listingId: item.listing._id,
         name: item.listing.name,
-        price: item.listing.price,
+        price: itemState.currentPrice,
         quantity: item.quantity,
         subtotal: itemSubtotal,
       });
@@ -107,32 +190,23 @@ const groupCartItemsBySeller = (items) => {
  * @returns {Object} Validation result
  */
 const validateCartItem = (item) => {
-  // Access the populated listing via 'listing' field, not 'listingId'
   const listing = item.listing;
-  const isService = listing.type === "service";
+  const itemState = resolveCartItemState(item);
 
   const validation = {
-    listingId: listing._id,
-    name: listing.name,
+    listingId: listing?._id || item.listing,
+    name: listing?.name || "This listing",
     requestedQuantity: item.quantity,
-    isAvailable: listing.isAvailable,
-    stockAvailable: isService ? true : listing.stock >= item.quantity, // Services always have stock
-    currentPrice: listing.price,
-    currentStock: isService ? null : listing.stock, // Services don't have stock
-    errors: [],
+    isAvailable: itemState.isAvailable,
+    stockAvailable: itemState.stockAvailable,
+    currentPrice: itemState.currentPrice,
+    currentStock: itemState.currentStock,
+    errors: [...itemState.errors],
+    variantId: item.variantId || null,
   };
 
-  // Check availability
-  if (!listing.isAvailable) {
-    validation.errors.push(`${listing.name} is no longer available`);
-  }
-
-  // Check stock (products only)
-  if (!isService && listing.stock < item.quantity) {
-    validation.availableStock = listing.stock;
-    validation.errors.push(
-      `${listing.name}: Only ${listing.stock} available (requested: ${item.quantity})`
-    );
+  if (!itemState.stockAvailable) {
+    validation.availableStock = itemState.currentStock;
   }
 
   validation.isValid = validation.errors.length === 0;
@@ -171,7 +245,6 @@ const buildCartValidationResults = (items) => {
     }
   });
 
-  // Add seller grouping if all valid
   if (results.isValid) {
     results.sellerGroups = groupCartItemsBySeller(items);
     results.sellerCount = Object.keys(results.sellerGroups).length;

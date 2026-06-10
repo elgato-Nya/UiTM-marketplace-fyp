@@ -18,6 +18,7 @@ import useCart from "../../features/cart/hook/useCart";
 import CartList from "../../features/cart/components/CartList";
 import CartSummary from "../../features/cart/components/CartSummary";
 import { createSessionFromCart } from "../../features/checkout/store/checkoutSlice";
+import { getCartItemAvailability } from "../../features/cart/utils/cartItemAvailability";
 
 /**
  * Cart Page
@@ -147,7 +148,8 @@ const CartPage = () => {
 
   // Cart state checks
   const hasUnavailableItems =
-    cart?.items?.some((item) => !item.listing?.isAvailable) || false;
+    cart?.items?.some((item) => getCartItemAvailability(item).isUnavailableForCheckout) ||
+    false;
   const isEmpty = !cart || !cart.items || cart.items.length === 0;
 
   return (
@@ -229,8 +231,8 @@ const CartPage = () => {
           role="alert"
           aria-live="assertive"
         >
-          Some items in your cart are no longer available. Please remove them to
-          proceed with checkout.
+          Some items or selected variants in your cart are no longer available.
+          Please remove or adjust them to proceed with checkout.
         </Alert>
       )}
 

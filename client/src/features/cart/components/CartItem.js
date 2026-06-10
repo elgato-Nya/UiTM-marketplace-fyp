@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 
 import { useTheme } from "../../../hooks/useTheme";
 import PriceChangeIndicator from "./PriceChangeIndicator";
+import { getCartItemAvailability } from "../utils/cartItemAvailability";
 
 const CartItem = ({
   item,
@@ -103,22 +104,17 @@ const CartItem = ({
   const currentPrice = listing.price;
   const priceWhenAdded = item.priceWhenAdded;
   const quantity = item.quantity;
-  const maxStock = listing.stock || 0;
-  const isAvailable = listing.isAvailable;
   const listingType = listing.type || "product";
   const isService = listingType === "service";
-  const isOutOfStock = !isService && maxStock === 0;
-
-  // Variant support
-  const hasVariant = !!item.variantId || !!item.variantSnapshot;
+  const availability = getCartItemAvailability(item);
+  const maxStock = availability.availableStock ?? 0;
+  const isOutOfStock = availability.isOutOfStock;
+  const isPurchaseBlocked = availability.isUnavailableForCheckout;
+  const hasVariant = availability.hasVariant;
   const variantSnapshot = item.variantSnapshot;
   const effectivePrice =
     hasVariant && variantSnapshot?.price ? variantSnapshot.price : currentPrice;
-  const effectiveStock =
-    hasVariant && variantSnapshot?.stock !== undefined
-      ? variantSnapshot.stock
-      : maxStock;
-  const variantOutOfStock = hasVariant && effectiveStock === 0;
+  const effectiveStock = maxStock;
 
   const getVariantLabel = (snapshot) => {
     if (!snapshot) return "";
@@ -198,17 +194,17 @@ const CartItem = ({
         flexDirection: "row",
         mb: 2,
         minHeight: 200,
-        opacity: !isAvailable ? 0.5 : isOutOfStock ? 0.65 : 1,
+        opacity: isPurchaseBlocked ? 0.6 : 1,
         borderRadius: 2,
         border: "1px solid",
-        borderColor: isOutOfStock ? "warning.main" : "divider",
+        borderColor: isPurchaseBlocked ? "warning.main" : "divider",
         position: "relative",
         overflow: "hidden",
         transition: "all 0.2s ease",
       }}
     >
       {/* Out of Stock Overlay Badge */}
-      {isOutOfStock && (
+      {isOutOfStock && !availability.isVariantMissing && !availability.isVariantUnavailable && (
         <Box
           sx={{
             position: "absolute",
@@ -246,7 +242,7 @@ const CartItem = ({
         sx={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}
       >
         <CardContent sx={{ flex: 1, pb: 1 }}>
-          {!isAvailable && (
+          {isPurchaseBlocked && (
             <Chip
               label="Unavailable"
               color="error"
@@ -303,9 +299,30 @@ const CartItem = ({
             )}
           </Box>
 
+          {availability.isVariantMissing && (
+            <Typography variant="caption" color="error" fontWeight={600}>
+              This selected variant is no longer available. Remove this item to
+              continue checkout.
+            </Typography>
+          )}
+
+          {availability.isVariantUnavailable && (
+            <Typography variant="caption" color="error" fontWeight={600}>
+              This selected variant has been disabled by the seller. Remove
+              this item to continue checkout.
+            </Typography>
+          )}
+
+          {availability.hasInsufficientStock && (
+            <Typography variant="caption" color="error" fontWeight={600}>
+              Only {effectiveStock} left. Reduce quantity or remove this item
+              to continue checkout.
+            </Typography>
+          )}
+
           {/* Stock warning - Products only */}
           {!isService &&
-            isAvailable &&
+            !isPurchaseBlocked &&
             !hasVariant &&
             maxStock > 0 &&
             maxStock < 5 && (
@@ -316,7 +333,7 @@ const CartItem = ({
 
           {/* Variant stock warning */}
           {!isService &&
-            isAvailable &&
+            !isPurchaseBlocked &&
             hasVariant &&
             effectiveStock > 0 &&
             effectiveStock < 5 && (
@@ -326,11 +343,14 @@ const CartItem = ({
             )}
 
           {/* Out of stock warning - Products only */}
-          {!isService && isAvailable && maxStock === 0 && (
-            <Typography variant="caption" color="error" fontWeight={600}>
-              Out of stock
-            </Typography>
-          )}
+          {!isService &&
+            !availability.isVariantMissing &&
+            !availability.isVariantUnavailable &&
+            isOutOfStock && (
+              <Typography variant="caption" color="error" fontWeight={600}>
+                Out of stock
+              </Typography>
+            )}
         </CardContent>
 
         <Box
@@ -346,7 +366,10 @@ const CartItem = ({
         >
           {/* Quantity Controls - Only for products */}
           {!isService && (
-            <ButtonGroup size="small" disabled={!isAvailable || isLoading}>
+            <ButtonGroup
+              size="small"
+              disabled={isPurchaseBlocked || isLoading}
+            >
               <Button
                 onClick={() => handleQuantityChange("decrease")}
                 disabled={quantity <= 1 || loadingAction === "decrease"}
@@ -360,7 +383,7 @@ const CartItem = ({
               <Button
                 onClick={() => handleQuantityChange("increase")}
                 disabled={
-                  quantity >= (hasVariant ? effectiveStock : maxStock) ||
+                  quantity >= effectiveStock ||
                   loadingAction === "increase"
                 }
                 sx={{ minWidth: 36 }}

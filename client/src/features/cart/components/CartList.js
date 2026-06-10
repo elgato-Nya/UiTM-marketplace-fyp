@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
 
 import CartItem from "./CartItem";
+import { getCartItemAvailability } from "../utils/cartItemAvailability";
 
 const CartList = ({
   items = [],
@@ -22,10 +23,8 @@ const CartList = ({
     if (!a.listing && !b.listing) return 0;
 
     // Out of stock items second
-    const aOutOfStock =
-      a.listing.type === "product" && (a.listing.stock || 0) === 0;
-    const bOutOfStock =
-      b.listing.type === "product" && (b.listing.stock || 0) === 0;
+    const aOutOfStock = getCartItemAvailability(a).isUnavailableForCheckout;
+    const bOutOfStock = getCartItemAvailability(b).isUnavailableForCheckout;
 
     if (aOutOfStock && !bOutOfStock) return -1;
     if (!aOutOfStock && bOutOfStock) return 1;

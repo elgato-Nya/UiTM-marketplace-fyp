@@ -3,6 +3,20 @@ const { calcDeliveryFee } = require("../order/order.helpers");
 const Listing = require("../../models/listing/listing.model");
 const logger = require("../../utils/logger");
 
+const findListingVariantById = (listing, variantId) => {
+  if (!variantId || !listing?.variants) {
+    return null;
+  }
+
+  if (typeof listing.variants.id === "function") {
+    return listing.variants.id(variantId);
+  }
+
+  return listing.variants.find(
+    (variant) => variant?._id?.toString() === variantId.toString()
+  );
+};
+
 /**
  * Checkout Helper Functions
  *
@@ -61,9 +75,18 @@ const validateCheckoutItems = async (items) => {
     let effectiveStock = listing.stock;
     let variantSnapshot = null;
 
+    const hasVariants = Array.isArray(listing.variants) && listing.variants.length > 0;
+
+    if (variantId && !hasVariants) {
+      errors.push(
+        `Selected variant for ${listing.name} is no longer available`
+      );
+      continue;
+    }
+
     // If listing has variants and variantId is provided, use variant data
-    if (variantId && listing.variants && listing.variants.length > 0) {
-      const variant = listing.variants.id(variantId);
+    if (variantId && hasVariants) {
+      const variant = findListingVariantById(listing, variantId);
       if (!variant) {
         errors.push(`Variant not found for ${listing.name}`);
         continue;
@@ -82,7 +105,7 @@ const validateCheckoutItems = async (items) => {
         price: variant.price,
         attributes: variant.attributes || null,
       };
-    } else if (listing.variants && listing.variants.length > 0 && !variantId) {
+    } else if (hasVariants && !variantId) {
       // Listing has variants but no variantId provided - this is an error
       errors.push(`${listing.name} requires a variant selection`);
       continue;

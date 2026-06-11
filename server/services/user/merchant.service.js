@@ -211,6 +211,7 @@ const getOrCreateShop = async (userId) => {
         {
           $match: {
             "seller.userId": new mongoose.Types.ObjectId(userId),
+            isDeleted: { $ne: true },
           },
         },
         {
@@ -402,6 +403,7 @@ const getMerchantBySlug = async (shopSlug) => {
       {
         $match: {
           "seller.userId": new mongoose.Types.ObjectId(user._id),
+          isDeleted: { $ne: true },
         },
       },
       {
@@ -522,6 +524,7 @@ const searchMerchants = async (searchQuery, filters = {}, pagination = {}) => {
       merchants.map(async (user) => {
         const listingCount = await Listing.countDocuments({
           "seller.userId": user._id,
+          isDeleted: { $ne: true },
           isAvailable: true,
         });
 

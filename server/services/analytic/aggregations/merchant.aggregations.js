@@ -365,7 +365,10 @@ const countMerchantListings = async (merchantId) => {
   try {
     const result = await Listing.aggregate([
       {
-        $match: { "seller.userId": toObjectId(merchantId) },
+        $match: {
+          "seller.userId": toObjectId(merchantId),
+          isDeleted: { $ne: true },
+        },
       },
       {
         $group: {
@@ -408,6 +411,7 @@ const countLowStockProducts = async (merchantId) => {
   try {
     const count = await Listing.countDocuments({
       "seller.userId": toObjectId(merchantId),
+      isDeleted: { $ne: true },
       type: "product",
       stock: { $lt: 5, $gt: 0 },
       isAvailable: true,

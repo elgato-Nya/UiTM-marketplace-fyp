@@ -41,7 +41,9 @@ const calculatePlatformAnalytics = async (period = "week") => {
       countUsersByRole(),
       countActiveUsers(start, end),
       countListingsByCategory(),
-      require("../../models/listing/listing.model").countDocuments({}), // Total listings (all)
+      require("../../models/listing/listing.model").countDocuments({
+        isDeleted: { $ne: true },
+      }), // Total non-deleted listings
       countUsersByCampus(),
       calculatePlatformGMV(start, end),
       countMerchantsByStatus(),

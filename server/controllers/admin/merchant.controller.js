@@ -158,7 +158,10 @@ const handleGetMerchantDetails = asyncHandler(async (req, res) => {
   const { Order } = require("../../models/order");
 
   const [listingCount, orderCount] = await Promise.all([
-    Listing.countDocuments({ "seller.userId": userId }),
+    Listing.countDocuments({
+      "seller.userId": userId,
+      isDeleted: { $ne: true },
+    }),
     Order.countDocuments({
       "seller.userId": userId,
       status: "completed",

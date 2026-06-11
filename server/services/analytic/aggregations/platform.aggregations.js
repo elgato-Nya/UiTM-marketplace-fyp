@@ -57,7 +57,7 @@ const countActiveUsers = async (startDate, endDate) => {
 const countListingsByCategory = async () => {
   try {
     const result = await Listing.aggregate([
-      { $match: { isAvailable: true } },
+      { $match: { isAvailable: true, isDeleted: { $ne: true } } },
       { $group: { _id: "$category", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $project: { _id: 0, category: "$_id", count: 1 } },

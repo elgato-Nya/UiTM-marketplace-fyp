@@ -159,8 +159,11 @@ const handleDeleteListing = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { permanent } = sanitizeQuery(req.query);
   const isPermanent = permanent === "true";
+  const isAdmin = Array.isArray(req.user.roles) && req.user.roles.includes("admin");
 
-  const result = await deleteListing(listingId, userId, isPermanent);
+  const result = await deleteListing(listingId, userId, isPermanent, {
+    isAdmin,
+  });
 
   baseController.logAction(
     isPermanent ? "permanent_delete_listing" : "soft_delete_listing",
@@ -177,7 +180,7 @@ const handleDeleteListing = asyncHandler(async (req, res) => {
     { success: true, isPermanent, result, listingId: listingId.toString() },
     isPermanent
       ? "Listing permanently deleted"
-      : "Listing marked as unavailable"
+      : "Listing removed from your dashboard and hidden from buyers"
   );
 }, "delete_listing");
 

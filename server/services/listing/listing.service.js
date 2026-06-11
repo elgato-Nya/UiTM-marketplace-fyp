@@ -25,6 +25,8 @@ const { getActiveSellerPlan } = require("../plan/plan.service");
 const LISTING_LIMIT_REACHED_MESSAGE =
   "You've reached your active listing limit. Deactivate an existing listing or upgrade your plan to add more.";
 
+const NON_DELETED_LISTING_QUERY = { $ne: true };
+
 const shouldEnforceListingLimits = () =>
   config.finance?.enforceListingLimits !== false;
 
@@ -107,7 +109,7 @@ const getListingById = async (listingId, options = {}) => {
     const { includeSeller = false, fields = "" } = options;
 
     // 1. Build query object
-    const queryObj = { _id: listingId };
+    const queryObj = { _id: listingId, isDeleted: NON_DELETED_LISTING_QUERY };
 
     // 2. Prepare select fields
     let selectFields = "";
@@ -175,7 +177,10 @@ const getSellerListings = async (userId, options = {}) => {
       search,
     } = options;
 
-    const query = { "seller.userId": userId };
+    const query = {
+      "seller.userId": userId,
+      isDeleted: NON_DELETED_LISTING_QUERY,
+    };
 
     if (!includeUnavailable) {
       query.isAvailable = true;
@@ -299,7 +304,7 @@ const getAllListings = async (options = {}) => {
     } = options;
 
     // Base query - only available listings for public access
-    const query = {};
+    const query = { isDeleted: NON_DELETED_LISTING_QUERY };
 
     if (!includeUnavailable) {
       query.isAvailable = true;
@@ -554,9 +559,15 @@ const updateListing = async (listingId, userId, updateData) => {
  * @returns {Promise<Boolean|Listing>}
  * NOTE: Authorization handled by isListingOwner middleware
  */
-const deleteListing = async (listingId, userId, isPermanent = false) => {
+const deleteListing = async (
+  listingId,
+  userId,
+  isPermanent = false,
+  options = {}
+) => {
   try {
     const listing = await Listing.findById(listingId);
+    const { isAdmin = false } = options;
 
     if (!listing) {
       return handleNotFoundError(
@@ -568,6 +579,13 @@ const deleteListing = async (listingId, userId, isPermanent = false) => {
     }
 
     if (isPermanent) {
+      if (!isAdmin) {
+        throw createForbiddenError(
+          "Permanent listing deletion is restricted to admins",
+          "LISTING_PERMANENT_DELETE_FORBIDDEN"
+        );
+      }
+
       // Permanent delete - remove from database
       await Listing.findByIdAndDelete(listingId);
 
@@ -579,14 +597,17 @@ const deleteListing = async (listingId, userId, isPermanent = false) => {
 
       return { deleted: true };
     } else {
-      // Soft delete by marking as unavailable
+      // Merchant-facing delete is a tombstone delete that preserves references.
+      listing.isDeleted = true;
+      listing.deletedAt = new Date();
+      listing.deletedBy = userId;
       listing.isAvailable = false;
       await listing.save();
 
-      logger.info("Listing soft deleted (marked unavailable)", {
+      logger.info("Listing tombstone deleted", {
         listingId: listingId.toString(),
         userId: userId.toString(),
-        action: "soft_delete_listing",
+        action: "tombstone_delete_listing",
       });
 
       return listing;
@@ -622,6 +643,13 @@ const toggleAvailability = async (listingId, userId) => {
     }
 
     const listingOwnerId = listing.seller?.userId || userId;
+
+    if (listing.isDeleted) {
+      throw createForbiddenError(
+        "Deleted listings cannot be restored",
+        "LISTING_DELETED"
+      );
+    }
 
     if (listing.isAvailable === false) {
       await enforceActiveListingLimit(listingOwnerId, {

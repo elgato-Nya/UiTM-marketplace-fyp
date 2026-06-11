@@ -24,20 +24,23 @@ const calculateWishlistSummary = (wishlist) => {
   }
 
   wishlist.items.forEach((item) => {
-    if (item.listing) {
-      const listing = item.listing;
+    const listing = item.listing;
 
-      if (!listing.isAvailable) {
-        summary.unavailableCount++;
-      }
+    if (!listing) {
+      summary.unavailableCount++;
+      return;
+    }
 
-      if (listing.price < item.priceWhenAdded) {
-        summary.priceDropCount++;
-      } else if (listing.price > item.priceWhenAdded) {
-        summary.priceIncreaseCount++;
-      } else {
-        summary.priceSameCount++;
-      }
+    if (listing.isDeleted || !listing.isAvailable) {
+      summary.unavailableCount++;
+    }
+
+    if (listing.price < item.priceWhenAdded) {
+      summary.priceDropCount++;
+    } else if (listing.price > item.priceWhenAdded) {
+      summary.priceIncreaseCount++;
+    } else {
+      summary.priceSameCount++;
     }
   });
   return summary;
@@ -76,6 +79,23 @@ const buildEnhancedWishlistItems = (items) => {
     // Use priceWhenAdded from model (consistent field name)
     const priceWhenAdded = item.priceWhenAdded || 0;
 
+    if (!listing) {
+      return {
+        _id: item._id,
+        listingId: null,
+        name: "Listing removed",
+        currentPrice: 0,
+        priceWhenAdded,
+        priceChange: "same",
+        stock: 0,
+        isAvailable: false,
+        isDeleted: true,
+        images: [],
+        category: null,
+        addedAt: item.addedAt,
+      };
+    }
+
     return {
       _id: item._id,
       listingId: listing._id,
@@ -85,6 +105,7 @@ const buildEnhancedWishlistItems = (items) => {
       priceChange: calculatePriceChange(listing.price, priceWhenAdded),
       stock: listing.stock,
       isAvailable: listing.isAvailable,
+      isDeleted: listing.isDeleted === true,
       images: listing.images,
       category: listing.category,
       seller: listing.seller,

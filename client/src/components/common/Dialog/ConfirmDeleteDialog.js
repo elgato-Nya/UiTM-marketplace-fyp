@@ -66,6 +66,7 @@ import { Warning as WarningIcon } from "@mui/icons-material";
  * @param {string} props.confirmWord - Word user must type (default: "DELETE")
  * @param {string} props.warningMessage - Custom warning message
  * @param {string} props.toggleLabel - Label for toggle button
+ * @param {string} props.deleteLabel - Label for delete button
  * @param {boolean} props.showToggle - Show toggle button (default: true)
  */
 function ConfirmDeleteDialog({
@@ -78,6 +79,7 @@ function ConfirmDeleteDialog({
   confirmWord = "DELETE",
   warningMessage,
   toggleLabel = "Mark Unavailable",
+  deleteLabel = "Delete Permanently",
   showToggle = true,
 }) {
   const [confirmText, setConfirmText] = useState("");
@@ -198,7 +200,7 @@ function ConfirmDeleteDialog({
           disabled={!canDelete}
           size="large"
         >
-          Delete Permanently
+          {deleteLabel}
         </Button>
       </DialogActions>
     </Dialog>

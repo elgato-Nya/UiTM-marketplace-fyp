@@ -170,6 +170,23 @@ const ListingSchema = new mongoose.Schema(
       index: true,
     },
 
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+
+    deletedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
     isFree: {
       type: Boolean,
       default: false,
@@ -466,7 +483,11 @@ ListingSchema.methods.restoreVariantStock = async function (
 
 // Static method to get listings by seller
 ListingSchema.statics.findBySeller = function (userId, options = {}) {
-  const query = { "seller.userId": userId, isAvailable: true };
+  const query = {
+    "seller.userId": userId,
+    isAvailable: true,
+    isDeleted: { $ne: true },
+  };
   if (options.type) query.type = options.type;
   if (options.category) query.category = options.category;
 
@@ -481,6 +502,7 @@ ListingSchema.statics.findByMerchant = function (shopSlug, options = {}) {
     "seller.shopSlug": shopSlug,
     "seller.userType": "merchant",
     isAvailable: true,
+    isDeleted: { $ne: true },
   };
 
   return this.find(query)

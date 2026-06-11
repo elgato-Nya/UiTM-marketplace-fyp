@@ -7,12 +7,16 @@ describe("listing.service active listing limit enforcement", () => {
     activeListingCount = 0,
     listingLimit = 5,
     listingDoc = null,
+    findByIdAndDeleteResult = null,
   } = {}) => {
     jest.resetModules();
 
     const countDocuments = jest.fn().mockResolvedValue(activeListingCount);
     const save = jest.fn().mockResolvedValue(undefined);
     const findById = jest.fn().mockResolvedValue(listingDoc);
+    const findByIdAndDelete = jest
+      .fn()
+      .mockResolvedValue(findByIdAndDeleteResult);
     const listingConstructor = jest.fn().mockImplementation((data) => ({
       ...data,
       _id: listingId,
@@ -28,6 +32,7 @@ describe("listing.service active listing limit enforcement", () => {
 
     listingConstructor.countDocuments = countDocuments;
     listingConstructor.findById = findById;
+    listingConstructor.findByIdAndDelete = findByIdAndDelete;
 
     const createForbiddenError = jest.fn((message, code) => {
       const error = new Error(message);
@@ -79,6 +84,7 @@ describe("listing.service active listing limit enforcement", () => {
         Listing: listingConstructor,
         countDocuments,
         findById,
+        findByIdAndDelete,
         save,
         createForbiddenError,
         getActiveSellerPlan: planService.getActiveSellerPlan,
@@ -262,5 +268,68 @@ describe("listing.service active listing limit enforcement", () => {
 
     expect(mocks.countDocuments).not.toHaveBeenCalled();
     expect(mocks.getActiveSellerPlan).not.toHaveBeenCalled();
+  });
+
+  it("tombstone deletes merchant listings instead of removing the document", async () => {
+    const listingDoc = {
+      _id: listingId,
+      isAvailable: true,
+      isDeleted: false,
+      deletedAt: null,
+      deletedBy: null,
+      save: jest.fn().mockResolvedValue(undefined),
+    };
+    const { listingService, mocks } = loadListingService({
+      listingDoc,
+    });
+
+    const result = await listingService.deleteListing(listingId, userId, false);
+
+    expect(mocks.findByIdAndDelete).not.toHaveBeenCalled();
+    expect(listingDoc.isAvailable).toBe(false);
+    expect(listingDoc.isDeleted).toBe(true);
+    expect(listingDoc.deletedBy).toBe(userId);
+    expect(listingDoc.deletedAt).toBeInstanceOf(Date);
+    expect(result).toBe(listingDoc);
+  });
+
+  it("blocks permanent delete for non-admin callers", async () => {
+    const listingDoc = {
+      _id: listingId,
+      isAvailable: true,
+      isDeleted: false,
+      save: jest.fn().mockResolvedValue(undefined),
+    };
+    const { listingService, mocks } = loadListingService({
+      listingDoc,
+    });
+
+    await expect(
+      listingService.deleteListing(listingId, userId, true, { isAdmin: false }),
+    ).rejects.toMatchObject({
+      code: "LISTING_PERMANENT_DELETE_FORBIDDEN",
+      statusCode: 403,
+    });
+
+    expect(mocks.findByIdAndDelete).not.toHaveBeenCalled();
+  });
+
+  it("allows permanent delete for admins only", async () => {
+    const listingDoc = {
+      _id: listingId,
+      isAvailable: true,
+      isDeleted: false,
+      save: jest.fn().mockResolvedValue(undefined),
+    };
+    const { listingService, mocks } = loadListingService({
+      listingDoc,
+    });
+
+    const result = await listingService.deleteListing(listingId, userId, true, {
+      isAdmin: true,
+    });
+
+    expect(mocks.findByIdAndDelete).toHaveBeenCalledWith(listingId);
+    expect(result).toEqual({ deleted: true });
   });
 });

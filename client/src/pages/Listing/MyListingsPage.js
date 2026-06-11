@@ -76,9 +76,9 @@ const MyListingsPage = () => {
     try {
       await deleteListing({
         id: deleteDialog.listingId,
-        permanent: true,
+        permanent: false,
       }).unwrap();
-      success("Listing permanently deleted");
+      success("Listing removed from your dashboard");
       setDeleteDialog({ open: false, listingId: null, listingName: "" });
       refetch();
     } catch (err) {
@@ -181,7 +181,8 @@ const MyListingsPage = () => {
         itemName={deleteDialog.listingName}
         title="Delete Listing"
         toggleLabel="Mark Unavailable"
-        warningMessage="All listing data, images, and associated information will be permanently deleted from the database."
+        deleteLabel="Delete Listing"
+        warningMessage="This removes the listing from your dashboard and hides it from buyers. Existing orders will remain available for records."
         isLoading={isDeleting || isToggling}
       />
     </Container>

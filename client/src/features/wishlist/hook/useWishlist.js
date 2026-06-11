@@ -70,7 +70,7 @@ const useWishlist = (options = {}) => {
   const getWishlistItem = (listingId) => {
     if (!wishlist || !wishlist.items) return null;
     return wishlist.items.find(
-      (item) => item.listing._id.toString() === listingId.toString()
+      (item) => item.listing?._id?.toString() === listingId.toString()
     );
   };
 

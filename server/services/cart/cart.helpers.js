@@ -47,6 +47,11 @@ const resolveCartItemState = (item) => {
     unavailabilityType = "listing_unavailable";
   }
 
+  if (listing.isDeleted) {
+    errors.push(`${listing.name} has been removed by the seller`);
+    unavailabilityType = "listing_deleted";
+  }
+
   if (hasVariant) {
     const hasVariants =
       Array.isArray(listing.variants) && listing.variants.length > 0;

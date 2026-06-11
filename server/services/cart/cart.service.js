@@ -43,7 +43,7 @@ const getCartWithDetails = async (userId) => {
 const addToCart = async (userId, listingId, quantity, variantId = null) => {
   try {
     const listing = await Listing.findById(listingId).select(
-      "name price stock isAvailable seller type variants"
+      "name price stock isAvailable isDeleted seller type variants"
     );
 
     if (!listing) {
@@ -53,7 +53,7 @@ const addToCart = async (userId, listingId, quantity, variantId = null) => {
       });
     }
 
-    if (!listing.isAvailable) {
+    if (listing.isDeleted || !listing.isAvailable) {
       throw createBadRequestError(
         cartErrorMessages.listing.unavailable,
         "LISTING_UNAVAILABLE"
@@ -195,7 +195,7 @@ const updateCartItemQuantity = async (
     }
 
     const listing = await Listing.findById(listingId).select(
-      "stock isAvailable type variants"
+      "stock isAvailable isDeleted type variants"
     );
     if (!listing) {
       handleNotFoundError(
@@ -205,6 +205,13 @@ const updateCartItemQuantity = async (
         {
           listingId: listingId.toString(),
         }
+      );
+    }
+
+    if (listing.isDeleted || !listing.isAvailable) {
+      throw createBadRequestError(
+        cartErrorMessages.listing.unavailable,
+        "LISTING_UNAVAILABLE"
       );
     }
 
@@ -344,11 +351,20 @@ const moveToWishlist = async (userId, listingId) => {
       });
     }
 
-    const listing = await Listing.findById(listingId).select("price");
+    const listing = await Listing.findById(listingId).select(
+      "price isAvailable isDeleted"
+    );
     if (!listing) {
       handleNotFoundError("Listing", "LISTING_NOT_FOUND", "moveToWishlist", {
         listingId: listingId.toString(),
       });
+    }
+
+    if (listing.isDeleted || !listing.isAvailable) {
+      throw createBadRequestError(
+        cartErrorMessages.listing.unavailable,
+        "LISTING_UNAVAILABLE"
+      );
     }
 
     cart.removeItem(listingId);

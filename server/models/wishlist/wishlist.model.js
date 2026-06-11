@@ -123,6 +123,19 @@ WishlistModel.methods.removeItem = function (listingId) {
   return this;
 };
 
+WishlistModel.methods.removeItemById = function (itemId) {
+  const itemIndex = this.items.findIndex(
+    (item) => item._id.toString() === itemId.toString()
+  );
+
+  if (itemIndex === -1) {
+    throw new AppError(wishlistErrorMessages.listingId.notFound, 404);
+  }
+
+  this.items.splice(itemIndex, 1);
+  return this;
+};
+
 WishlistModel.methods.clearWishlist = function () {
   this.items = [];
   return this;
@@ -142,7 +155,7 @@ WishlistModel.statics.findOrCreateWishlist = async function (userId) {
 WishlistModel.statics.getWishlistItemDetails = async function (userId) {
   return this.findOne({ userId }).populate({
     path: "items.listing",
-    select: "name type price stock images isAvailable category seller",
+    select: "name type price stock images isAvailable isDeleted category seller",
   });
 };
 

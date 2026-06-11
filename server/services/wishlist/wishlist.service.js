@@ -31,12 +31,19 @@ const getWishlistWithDetails = async (userId) => {
 const addToWishlist = async (userId, listingId) => {
   try {
     const listing = await Listing.findById(listingId).select(
-      "name price isAvailable"
+      "name price isAvailable isDeleted"
     );
     if (!listing) {
       handleNotFoundError("Listing", "LISTING_NOT_FOUND", "addToWishlist", {
         listingId: listingId.toString(),
       });
+    }
+
+    if (listing.isDeleted || !listing.isAvailable) {
+      throw createBadRequestError(
+        "The listing is not available for wishlist",
+        "LISTING_UNAVAILABLE"
+      );
     }
 
     // Remove from cart if exists (prevent item in both cart and wishlist)
@@ -88,7 +95,11 @@ const removeFromWishlist = async (userId, listingId) => {
       );
     }
 
-    wishlist.removeItem(listingId);
+    try {
+      wishlist.removeItemById(listingId);
+    } catch (error) {
+      wishlist.removeItem(listingId);
+    }
     await wishlist.save();
 
     return await getWishlistWithDetails(userId);
@@ -134,14 +145,14 @@ const moveToCart = async (userId, listingId, quantity) => {
 
     // validate listing exists in wishlist and stock
     const listing = await Listing.findById(listingId).select(
-      "stock isAvailable type"
+      "stock isAvailable isDeleted type"
     );
     if (!listing) {
       handleNotFoundError("Listing", "LISTING_NOT_FOUND", "moveToCart", {
         listingId: listingId.toString(),
       });
     }
-    if (!listing.isAvailable) {
+    if (listing.isDeleted || !listing.isAvailable) {
       throw createBadRequestError(
         "The listing is not available for purchase",
         "LISTING_UNAVAILABLE"

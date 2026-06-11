@@ -46,6 +46,7 @@ const validateCheckoutItems = async (items) => {
   const listingIds = items.map((item) => item.listingId);
   const listings = await Listing.find({
     _id: { $in: listingIds },
+    isDeleted: { $ne: true },
   }).populate("seller.userId", "email profile.username");
 
   // Create a map for quick lookup
@@ -67,6 +68,11 @@ const validateCheckoutItems = async (items) => {
 
     if (!listing.isAvailable) {
       errors.push(`${listing.name} is no longer available`);
+      continue;
+    }
+
+    if (listing.isDeleted) {
+      errors.push(`${listing.name} has been removed by the seller`);
       continue;
     }
 

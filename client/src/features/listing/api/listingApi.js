@@ -233,7 +233,7 @@ export const listingApi = createApi({
 
     // Delete listing (mutation)
     deleteListing: builder.mutation({
-      query: ({ id, permanent = true }) => ({
+      query: ({ id, permanent = false }) => ({
         url: `/listings/${id}`,
         method: "DELETE",
         params: { permanent: permanent.toString() },

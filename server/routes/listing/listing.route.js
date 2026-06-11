@@ -193,12 +193,12 @@ router.patch(
 
 /**
  * @route   DELETE /api/listings/:id
- * @desc    Soft delete listing by marking as unavailable
+ * @desc    Tombstone delete listing for merchants; physical delete for admins only
  * @access  Private (Owner/Admin only)
  * @ratelimit 50 requests per 15 minutes (write operations)
  * @params  id - Listing ID
  * @returns Success confirmation
- * @note    Performs soft delete, ownership verified by middleware
+ * @note    Merchant deletes preserve the document and hide it from buyers/dashboard
  */
 router.delete(
   "/:id",

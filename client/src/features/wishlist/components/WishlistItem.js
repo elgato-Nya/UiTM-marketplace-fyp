@@ -26,15 +26,17 @@ const WishlistItem = ({ item, onRemove, onMoveToCart, isLoading = false }) => {
   const [loadingAction, setLoadingAction] = useState(null);
 
   const listing = item.listing;
+  const removeTargetId = listing?._id || item._id;
   const currentPrice = listing?.price;
   const priceWhenAdded = item.priceWhenAdded;
-  const isAvailable = listing.isAvailable;
-  const hasStock = listing.stock > 0;
+  const isDeleted = !listing || listing.isDeleted === true;
+  const isAvailable = !isDeleted && listing.isAvailable;
+  const hasStock = !isDeleted && listing.stock > 0;
 
   const handleRemove = async () => {
     setLoadingAction("remove");
     try {
-      await onRemove(listing._id);
+      await onRemove(removeTargetId);
     } catch (error) {
       console.error("Remove error:", error);
     } finally {
@@ -45,6 +47,7 @@ const WishlistItem = ({ item, onRemove, onMoveToCart, isLoading = false }) => {
   const handleMoveToCart = async () => {
     setLoadingAction("cart");
     try {
+      if (!listing?._id) return;
       await onMoveToCart(listing._id);
     } catch (error) {
       console.error("Move to cart error:", error);
@@ -54,10 +57,53 @@ const WishlistItem = ({ item, onRemove, onMoveToCart, isLoading = false }) => {
   };
 
   const goToListing = () => {
+    if (!listing?._id || isDeleted) return;
     navigate(`/listings/${listing._id}`);
   };
 
-  const canAddToCart = isAvailable && hasStock;
+  const canAddToCart = !isDeleted && isAvailable && hasStock;
+
+  if (!listing) {
+    return (
+      <Card
+        sx={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          border: "1px solid",
+          borderColor: "error.main",
+          bgcolor: "error.lighter",
+        }}
+      >
+        <CardContent sx={{ flexGrow: 1 }}>
+          <Chip label="Removed" color="error" size="small" sx={{ mb: 2 }} />
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Listing no longer available
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            This listing was removed by the seller. You can remove it from your
+            wishlist below.
+          </Typography>
+        </CardContent>
+        <CardActions sx={{ px: 2, pb: 2 }}>
+          <Button variant="contained" disabled fullWidth sx={{ mr: 1 }}>
+            Unavailable
+          </Button>
+          <Tooltip title="Remove from wishlist">
+            <IconButton
+              size="small"
+              color="error"
+              onClick={handleRemove}
+              disabled={isLoading || loadingAction === "remove"}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
+        </CardActions>
+      </Card>
+    );
+  }
 
   return (
     <Card
@@ -86,7 +132,8 @@ const WishlistItem = ({ item, onRemove, onMoveToCart, isLoading = false }) => {
           gap: 0.5,
         }}
       >
-        {!isAvailable && (
+        {isDeleted && <Chip label="Removed" color="error" size="small" />}
+        {!isDeleted && !isAvailable && (
           <Chip label="Unavailable" color="error" size="small" />
         )}
         {isAvailable && !hasStock && (
@@ -172,7 +219,9 @@ const WishlistItem = ({ item, onRemove, onMoveToCart, isLoading = false }) => {
           fullWidth
           sx={{ mr: 1 }}
         >
-          {!isAvailable
+          {isDeleted
+            ? "Removed"
+            : !isAvailable
             ? "Unavailable"
             : !hasStock
               ? "Out of Stock"

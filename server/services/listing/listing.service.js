@@ -889,7 +889,10 @@ const deleteVariant = async (
  */
 const getVariant = async (listingId, variantId) => {
   try {
-    const listing = await Listing.findById(listingId);
+    const listing = await Listing.findOne({
+      _id: listingId,
+      isDeleted: NON_DELETED_LISTING_QUERY,
+    });
 
     if (!listing) {
       return handleNotFoundError("Listing", "LISTING_NOT_FOUND", "getVariant", {
@@ -922,7 +925,10 @@ const getListingVariants = async (listingId, options = {}) => {
   try {
     const { includeUnavailable = false } = options;
 
-    const listing = await Listing.findById(listingId).select("variants type");
+    const listing = await Listing.findOne({
+      _id: listingId,
+      isDeleted: NON_DELETED_LISTING_QUERY,
+    }).select("variants type");
 
     if (!listing) {
       return handleNotFoundError(

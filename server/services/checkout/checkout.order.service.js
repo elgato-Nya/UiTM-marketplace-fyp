@@ -326,7 +326,21 @@ const createOrdersFromSessionTransactional = async ({
     const processedItems = [];
     for (const item of sellerGroup.items) {
       const listing = await Listing.findById(item.listingId).session(dbSession);
-      if (!listing || !listing.isAvailable) {
+      if (!listing) {
+        createValidationError(
+          "Listing unavailable during checkout confirmation.",
+          { listingId: item.listingId },
+          "LISTING_UNAVAILABLE",
+        );
+      }
+      if (listing.isDeleted) {
+        createValidationError(
+          "Listing removed during checkout confirmation.",
+          { listingId: item.listingId },
+          "LISTING_DELETED",
+        );
+      }
+      if (!listing.isAvailable) {
         createValidationError(
           "Listing unavailable during checkout confirmation.",
           { listingId: item.listingId },
@@ -339,6 +353,7 @@ const createOrdersFromSessionTransactional = async ({
           const updated = await Listing.updateOne(
             {
               _id: item.listingId,
+              isDeleted: { $ne: true },
               "variants._id": item.variantId,
               "variants.stock": { $gte: item.quantity },
               "variants.isAvailable": true,
@@ -357,6 +372,7 @@ const createOrdersFromSessionTransactional = async ({
           const updated = await Listing.updateOne(
             {
               _id: item.listingId,
+              isDeleted: { $ne: true },
               stock: { $gte: item.quantity },
               isAvailable: true,
             },

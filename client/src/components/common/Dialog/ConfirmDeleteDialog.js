@@ -81,6 +81,8 @@ function ConfirmDeleteDialog({
   toggleLabel = "Mark Unavailable",
   deleteLabel = "Delete Permanently",
   showToggle = true,
+  deletePrompt,
+  confirmationInstruction,
 }) {
   const [confirmText, setConfirmText] = useState("");
   const [error, setError] = useState("");
@@ -114,6 +116,12 @@ function ConfirmDeleteDialog({
   const defaultWarning =
     warningMessage ||
     `All data associated with ${itemName} will be permanently deleted from the database.`;
+  const promptText =
+    deletePrompt ||
+    `Are you sure you want to permanently delete ${itemName}?`;
+  const instructionText =
+    confirmationInstruction ||
+    `To confirm permanent deletion, please type ${confirmWord} below:`;
 
   return (
     <Dialog
@@ -132,8 +140,7 @@ function ConfirmDeleteDialog({
 
       <DialogContent>
         <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
-          Are you sure you want to permanently delete{" "}
-          <strong>{itemName}</strong>?
+          {promptText}
         </Typography>
 
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -144,8 +151,7 @@ function ConfirmDeleteDialog({
         </Alert>
 
         <Typography variant="body2" sx={{ mb: 1 }}>
-          To confirm permanent deletion, please type{" "}
-          <strong>{confirmWord}</strong> below:
+          {instructionText}
         </Typography>
 
         <TextField

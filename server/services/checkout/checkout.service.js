@@ -70,6 +70,19 @@ const createCartCheckoutSession = async (userId) => {
     // Then filter here: const selectedItems = cart.items.filter(item => item.isSelected);
     // For now, we checkout all items in cart
 
+    const missingListingItems = cart.items.filter((item) => !item.listing?._id);
+    if (missingListingItems.length > 0) {
+      createValidationError(
+        checkoutErrorMessages.items.unavailable,
+        {
+          errors: [
+            "One or more listings in your cart are no longer available. Please remove them and try again.",
+          ],
+        },
+        "CART_VALIDATION_FAILED"
+      );
+    }
+
     const items = cart.items.map((item) => ({
       listingId: item.listing._id,
       quantity: item.quantity,

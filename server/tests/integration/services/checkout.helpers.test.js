@@ -184,6 +184,25 @@ describe("Checkout Helpers - Delivery Fee Integration", () => {
         `Selected variant for ${variantListing.name} is no longer available`
       );
     });
+
+    it("should reject tombstoned listings during checkout validation", async () => {
+      listing1.isDeleted = true;
+      listing1.isAvailable = false;
+      await listing1.save();
+
+      const validation = await validateCheckoutItems([
+        {
+          listingId: listing1._id,
+          quantity: 1,
+        },
+      ]);
+
+      expect(validation.valid).toBe(false);
+      expect(validation.validatedItems).toHaveLength(0);
+      expect(validation.errors).toContain(
+        `Listing ${listing1._id.toString()} not found`
+      );
+    });
   });
 
   describe("groupItemsBySeller - Custom Delivery Fees", () => {

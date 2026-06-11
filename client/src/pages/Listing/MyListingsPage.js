@@ -182,6 +182,17 @@ const MyListingsPage = () => {
         title="Delete Listing"
         toggleLabel="Mark Unavailable"
         deleteLabel="Delete Listing"
+        deletePrompt={
+          <>
+            Are you sure you want to remove <strong>{deleteDialog.listingName}</strong> from your dashboard?
+          </>
+        }
+        confirmationInstruction={
+          <>
+            To confirm removing this listing from your dashboard, please type{" "}
+            <strong>DELETE</strong> below:
+          </>
+        }
         warningMessage="This removes the listing from your dashboard and hides it from buyers. Existing orders will remain available for records."
         isLoading={isDeleting || isToggling}
       />

@@ -17,6 +17,7 @@ const {
   getTopSellingProducts,
   countMerchantListings,
   countLowStockProducts,
+  getLowStockInventory,
 } = require("./aggregations");
 const { handleServiceError, handleNotFoundError } = require("../base.service");
 const logger = require("../../utils/logger");
@@ -252,6 +253,19 @@ const getMerchantOverview = async (merchantId) => {
   }
 };
 
+const getMerchantLowStockInventory = async (merchantId, options = {}) => {
+  try {
+    validateMerchantId(merchantId);
+    return await getLowStockInventory(merchantId, options);
+  } catch (error) {
+    logger.error("Error fetching merchant low stock inventory", {
+      merchantId: String(merchantId),
+      error: error.message,
+    });
+    throw handleServiceError(error, "fetch merchant low stock inventory");
+  }
+};
+
 /**
  * Refresh merchant analytics manually (rate-limited in controller)
  * @param {ObjectId} merchantId - Merchant user ID
@@ -350,6 +364,7 @@ module.exports = {
   calculateMerchantAnalytics,
   getMerchantAnalytics,
   getMerchantOverview,
+  getMerchantLowStockInventory,
   refreshMerchantAnalytics,
   getBulkMerchantAnalytics,
   deleteMerchantAnalytics,

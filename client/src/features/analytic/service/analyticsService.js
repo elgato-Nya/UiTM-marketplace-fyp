@@ -85,6 +85,15 @@ const analyticsService = {
     return api.post("/analytics/merchant/refresh", { period });
   },
 
+  /**
+   * GET PAGINATED LOW-STOCK INVENTORY
+   * @param {Object} params - page, limit, threshold
+   * @returns {Promise<AxiosResponse>}
+   */
+  async getMerchantLowStockInventory(params = {}) {
+    return api.get("/analytics/merchant/low-stock", { params });
+  },
+
   // Admin Analytics (optional - if needed later)
   async getAdminStats(params = {}) {
     return api.get("/analytics/admin/stats", { params });

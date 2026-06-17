@@ -9,6 +9,79 @@ const logger = require("../../../utils/logger");
 const mongoose = require("mongoose");
 const { fillMissingDates } = require("./helpers");
 
+const LOW_STOCK_THRESHOLD = 5;
+
+const buildLowStockListingStages = (threshold = LOW_STOCK_THRESHOLD) => [
+  {
+    $addFields: {
+      availableVariants: {
+        $filter: {
+          input: { $ifNull: ["$variants", []] },
+          as: "variant",
+          cond: { $eq: ["$$variant.isAvailable", true] },
+        },
+      },
+      variantCount: { $size: { $ifNull: ["$variants", []] } },
+      baseStockSafe: { $ifNull: ["$stock", 0] },
+    },
+  },
+  {
+    $addFields: {
+      lowStockVariants: {
+        $filter: {
+          input: "$availableVariants",
+          as: "variant",
+          cond: {
+            $and: [
+              { $gt: [{ $ifNull: ["$$variant.stock", 0] }, 0] },
+              { $lt: [{ $ifNull: ["$$variant.stock", 0] }, threshold] },
+            ],
+          },
+        },
+      },
+    },
+  },
+  {
+    $match: {
+      $expr: {
+        $or: [
+          {
+            $and: [
+              { $eq: ["$variantCount", 0] },
+              { $gt: ["$baseStockSafe", 0] },
+              { $lt: ["$baseStockSafe", threshold] },
+            ],
+          },
+          {
+            $and: [
+              { $gt: ["$variantCount", 0] },
+              { $gt: [{ $size: "$lowStockVariants" }, 0] },
+            ],
+          },
+        ],
+      },
+    },
+  },
+  {
+    $addFields: {
+      attentionStock: {
+        $cond: [
+          { $gt: ["$variantCount", 0] },
+          { $min: "$lowStockVariants.stock" },
+          "$baseStockSafe",
+        ],
+      },
+    },
+  },
+];
+
+const buildLowStockBaseMatch = (merchantId) => ({
+  "seller.userId": toObjectId(merchantId),
+  isDeleted: { $ne: true },
+  type: "product",
+  isAvailable: true,
+});
+
 /**
  * Safely convert to MongoDB ObjectId
  * @param {String|ObjectId} id - ID to convert
@@ -402,22 +475,116 @@ const countMerchantListings = async (merchantId) => {
 };
 
 /**
+ * Get paginated low-stock inventory for a merchant.
+ * Low stock means a non-variant product with base stock > 0 and below threshold,
+ * or a variant listing with at least one available variant whose stock is > 0 and below threshold.
+ */
+const getLowStockInventory = async (merchantId, options = {}) => {
+  try {
+    const page = Math.max(parseInt(options.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(options.limit, 10) || 10, 1), 100);
+    const threshold = Math.max(
+      parseInt(options.threshold, 10) || LOW_STOCK_THRESHOLD,
+      1
+    );
+
+    const baseStages = [
+      {
+        $match: buildLowStockBaseMatch(merchantId),
+      },
+      ...buildLowStockListingStages(threshold),
+    ];
+
+    const [countResult, items] = await Promise.all([
+      Listing.aggregate([...baseStages, { $count: "total" }]),
+      Listing.aggregate([
+        ...baseStages,
+        { $sort: { attentionStock: 1, updatedAt: -1, _id: 1 } },
+        { $skip: (page - 1) * limit },
+        { $limit: limit },
+        {
+          $project: {
+            _id: 1,
+            name: 1,
+            type: 1,
+            category: 1,
+            images: 1,
+            isAvailable: 1,
+            updatedAt: 1,
+            stock: {
+              $cond: [{ $eq: ["$variantCount", 0] }, "$baseStockSafe", null],
+            },
+            hasVariants: { $gt: ["$variantCount", 0] },
+            variantCount: "$variantCount",
+            lowStockVariants: {
+              $map: {
+                input: "$lowStockVariants",
+                as: "variant",
+                in: {
+                  _id: "$$variant._id",
+                  name: "$$variant.name",
+                  sku: { $ifNull: ["$$variant.sku", ""] },
+                  stock: { $ifNull: ["$$variant.stock", 0] },
+                  attributes: { $ifNull: ["$$variant.attributes", {}] },
+                },
+              },
+            },
+            attentionStock: 1,
+          },
+        },
+      ]),
+    ]);
+
+    const totalItems = countResult[0]?.total || 0;
+
+    return {
+      items,
+      threshold,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalItems / limit) || 1,
+        totalItems,
+        hasNextPage: page * limit < totalItems,
+        hasPrevPage: page > 1,
+        limit,
+      },
+    };
+  } catch (error) {
+    logger.error("Error fetching low stock inventory", {
+      merchantId: merchantId?.toString?.() || merchantId,
+      error: error.message,
+    });
+    return {
+      items: [],
+      threshold: LOW_STOCK_THRESHOLD,
+      pagination: {
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: 10,
+      },
+    };
+  }
+};
+
+/**
  * Count products with low stock (< 5 units)
- * SQL equivalent: SELECT COUNT(*) FROM listings
- *                 WHERE sellerUserId = ? AND type = 'product'
- *                 AND stock < 5 AND stock > 0 AND isAvailable = true
  */
 const countLowStockProducts = async (merchantId) => {
   try {
-    const count = await Listing.countDocuments({
-      "seller.userId": toObjectId(merchantId),
-      isDeleted: { $ne: true },
-      type: "product",
-      stock: { $lt: 5, $gt: 0 },
-      isAvailable: true,
-    });
+    const result = await Listing.aggregate([
+      {
+        $match: buildLowStockBaseMatch(merchantId),
+      },
+      ...buildLowStockListingStages(LOW_STOCK_THRESHOLD),
+      {
+        $count: "count",
+      },
+    ]);
 
-    return count;
+    return result[0]?.count || 0;
   } catch (error) {
     logger.error("Error counting low stock products", {
       merchantId: merchantId?.toString?.() || merchantId,
@@ -437,4 +604,5 @@ module.exports = {
   getTopSellingProducts,
   countMerchantListings,
   countLowStockProducts,
+  getLowStockInventory,
 };

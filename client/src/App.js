@@ -50,6 +50,7 @@ import CheckoutSuccessPageWrapper from "./pages/Checkout/CheckoutSuccessPageWrap
 import CheckoutPaymentReturnPage from "./pages/Checkout/CheckoutPaymentReturnPage";
 import CheckoutRedirectingPaymentPage from "./pages/Checkout/CheckoutRedirectingPaymentPage";
 import MerchantAnalyticsPage from "./pages/Merchant/MerchantAnalyticsPage";
+import MerchantLowStockPage from "./pages/Merchant/MerchantLowStockPage";
 import AdminDashboardPage from "./pages/Admin/AdminDashboardPage";
 import MerchantVerificationPage from "./pages/Admin/MerchantVerificationPage";
 import UserManagementPage from "./pages/Admin/UserManagementPage";
@@ -436,6 +437,8 @@ function AppContent() {
                       path="dashboard"
                       element={<MerchantAnalyticsPage />}
                     />
+
+                    <Route path="low-stock" element={<MerchantLowStockPage />} />
 
                     {/* My Store - Shop Management */}
                     <Route path="store" element={<MyStorePage />} />

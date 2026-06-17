@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Grid,
   Typography,
@@ -9,9 +10,7 @@ import {
   IconButton,
   Tooltip,
   useMediaQuery,
-  Divider,
   Stack,
-  Chip,
   Button,
 } from "@mui/material";
 import {
@@ -22,7 +21,6 @@ import {
   ExpandMore,
   ExpandLess,
   InfoOutlined,
-  Assessment,
   Star,
   BarChart,
   Storefront,
@@ -40,10 +38,10 @@ import { useTheme } from "../../hooks/useTheme";
 import {
   formatCurrency,
   formatNumber,
-  formatPercentage,
   PERIOD_LABELS,
 } from "../../constants/analyticsConstant";
 import DynamicSkeleton from "../../components/ui/Skeleton/DynamicSkeleton";
+import { ROUTES } from "../../constants/routes";
 
 /**
  * MerchantAnalyticsPage
@@ -61,8 +59,8 @@ import DynamicSkeleton from "../../components/ui/Skeleton/DynamicSkeleton";
 const MerchantAnalyticsPage = () => {
   const { theme } = useTheme();
   const { showSnackbar } = useSnackbar();
+  const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const isTablet = useMediaQuery(theme.breakpoints.down("lg"));
 
   // Collapsible sections state - all open by default
   const [showShopOverview, setShowShopOverview] = useState(true);
@@ -76,7 +74,6 @@ const MerchantAnalyticsPage = () => {
     isLoading,
     isRefreshing,
     error,
-    loadAnalytics,
     changePeriod,
     refresh,
     clearError,
@@ -92,11 +89,6 @@ const MerchantAnalyticsPage = () => {
     error: shopError,
     clearSuccessMessage,
   } = useMerchant();
-
-  // Load shop data on mount
-  useEffect(() => {
-    loadMyShop();
-  }, []);
 
   // Handle errors
   useEffect(() => {
@@ -562,6 +554,9 @@ const MerchantAnalyticsPage = () => {
                   color="error"
                   subtitle="needs restocking"
                   isLoading={isLoading}
+                  onClick={() => navigate(ROUTES.MERCHANT.LOW_STOCK)}
+                  actionLabel="View inventory"
+                  actionAriaLabel="View low-stock inventory"
                 />
               </Grid>
 

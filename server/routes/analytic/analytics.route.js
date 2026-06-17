@@ -22,6 +22,7 @@ const {
   handleGetOverview: getMerchantOverview,
   handleRefreshAnalytics: refreshMerchantAnalytics,
   handleGetQuickStats: getMerchantQuickStats,
+  handleGetLowStockInventory: getMerchantLowStockInventory,
 } = require("../../controllers/analytic/merchant.analytics.controller");
 const {
   handleGetAnalyticsByPeriod: getAdminAnalyticsByPeriod,
@@ -68,6 +69,18 @@ router.get(
   authenticate,
   authorize(["merchant"]),
   getMerchantQuickStats
+);
+
+/**
+ * @route   GET /api/analytics/merchant/low-stock
+ * @desc    Get paginated low-stock inventory
+ * @access  Private - Merchant only
+ */
+router.get(
+  "/merchant/low-stock",
+  authenticate,
+  authorize(["merchant"]),
+  getMerchantLowStockInventory
 );
 
 /**

@@ -7,6 +7,7 @@ const BaseController = require("../base.controller");
 const {
   getMerchantAnalytics,
   getMerchantOverview,
+  getMerchantLowStockInventory,
   refreshMerchantAnalytics,
 } = require("../../services/analytic/merchant.analytics.service");
 const asyncHandler = require("../../utils/asyncHandler");
@@ -161,9 +162,74 @@ const handleGetQuickStats = asyncHandler(async (req, res) => {
   );
 }, "get_merchant_quick_stats");
 
+/**
+ * Get paginated low-stock inventory.
+ * GET /api/analytics/merchant/low-stock
+ * @access Private - Merchant only
+ */
+const handleGetLowStockInventory = asyncHandler(async (req, res) => {
+  const merchantId = req.user._id;
+  const { page = 1, limit = 10, threshold } = sanitizeObject(req.query);
+
+  const parsedPage = parseInt(page, 10);
+  const parsedLimit = parseInt(limit, 10);
+  const parsedThreshold =
+    threshold !== undefined ? parseInt(threshold, 10) : undefined;
+
+  if (Number.isNaN(parsedPage) || parsedPage < 1) {
+    return baseController.sendError(
+      res,
+      "Page must be a positive integer",
+      400,
+      "INVALID_PAGE"
+    );
+  }
+
+  if (Number.isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+    return baseController.sendError(
+      res,
+      "Limit must be between 1 and 100",
+      400,
+      "INVALID_LIMIT"
+    );
+  }
+
+  if (
+    threshold !== undefined &&
+    (Number.isNaN(parsedThreshold) || parsedThreshold < 1 || parsedThreshold > 100)
+  ) {
+    return baseController.sendError(
+      res,
+      "Threshold must be between 1 and 100",
+      400,
+      "INVALID_THRESHOLD"
+    );
+  }
+
+  const lowStockInventory = await getMerchantLowStockInventory(merchantId, {
+    page: parsedPage,
+    limit: parsedLimit,
+    threshold: parsedThreshold,
+  });
+
+  baseController.logAction("get_merchant_low_stock_inventory", req, {
+    page: parsedPage,
+    limit: parsedLimit,
+    threshold: lowStockInventory.threshold,
+    totalItems: lowStockInventory.pagination.totalItems,
+  });
+
+  return baseController.sendSuccess(
+    res,
+    lowStockInventory,
+    "Merchant low-stock inventory retrieved successfully"
+  );
+}, "get_merchant_low_stock_inventory");
+
 module.exports = {
   handleGetAnalyticsByPeriod,
   handleGetOverview,
   handleRefreshAnalytics,
   handleGetQuickStats,
+  handleGetLowStockInventory,
 };

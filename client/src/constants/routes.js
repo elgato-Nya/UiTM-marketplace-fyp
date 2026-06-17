@@ -43,6 +43,7 @@ export const ROUTES = {
   MERCHANT: {
     INDEX: "/merchant",
     DASHBOARD: "/merchant/dashboard",
+    LOW_STOCK: "/merchant/low-stock",
     STORE: "/merchant/store",
     PRODUCTS: "/merchant/products",
     ORDERS: "/merchant/orders",

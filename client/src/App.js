@@ -105,14 +105,11 @@ function AppContent() {
 
                     {/* Public Listing Routes - Unified Browse Page */}
                     <Route path="browse" element={<BrowsePage />} />
-                    <Route
-                      path={ROUTES.LISTINGS.ALL}
-                      element={<BrowsePage />}
-                    />
+                    <Route path="listings" element={<BrowsePage />} />
 
                     {/* SEO-friendly redirects with type parameter */}
                     <Route
-                      path={ROUTES.LISTINGS.PRODUCTS}
+                      path="products"
                       element={
                         <Navigate
                           to={`${ROUTES.BROWSE}?type=product`}
@@ -121,7 +118,7 @@ function AppContent() {
                       }
                     />
                     <Route
-                      path={ROUTES.LISTINGS.SERVICES}
+                      path="services"
                       element={
                         <Navigate
                           to={`${ROUTES.BROWSE}?type=service`}
@@ -132,7 +129,7 @@ function AppContent() {
 
                     {/* Cart and Wishlist (Public/Protected) */}
                     <Route
-                      path={ROUTES.CART}
+                      path="cart"
                       element={
                         <ProtectedRoute>
                           <CartPage />
@@ -140,7 +137,7 @@ function AppContent() {
                       }
                     />
                     <Route
-                      path={ROUTES.WISHLIST}
+                      path="wishlist"
                       element={
                         <ProtectedRoute>
                           <WishlistPage />
@@ -150,7 +147,7 @@ function AppContent() {
 
                     {/* Checkout Routes (Protected) */}
                     <Route
-                      path={ROUTES.CHECKOUT.INDEX}
+                      path="checkout"
                       element={
                         <ProtectedRoute>
                           <CheckoutPageWrapper />
@@ -158,7 +155,7 @@ function AppContent() {
                       }
                     />
                     <Route
-                      path={ROUTES.CHECKOUT.SUCCESS}
+                      path="checkout/success"
                       element={
                         <ProtectedRoute>
                           <CheckoutSuccessPageWrapper />
@@ -166,7 +163,7 @@ function AppContent() {
                       }
                     />
                     <Route
-                      path={ROUTES.CHECKOUT.PAYMENT_RETURN}
+                      path="checkout/payment-return"
                       element={
                         <ProtectedRoute>
                           <CheckoutPaymentReturnPage />
@@ -174,7 +171,7 @@ function AppContent() {
                       }
                     />
                     <Route
-                      path={ROUTES.CHECKOUT.REDIRECTING_PAYMENT}
+                      path="checkout/redirecting-payment"
                       element={
                         <ProtectedRoute>
                           <CheckoutRedirectingPaymentPage />
@@ -184,23 +181,23 @@ function AppContent() {
 
                     {/* Merchants Directory */}
                     <Route
-                      path={ROUTES.MERCHANTS.DIRECTORY}
+                      path="merchants"
                       element={<div>Merchants Directory - Coming Soon!</div>}
                     />
 
                     {/* Public Shop Profile - Multiple routes for compatibility */}
                     <Route
-                      path="/shop/:shopSlug"
+                      path="shop/:shopSlug"
                       element={<ShopProfilePage />}
                     />
                     <Route
-                      path="/merchants/:shopSlug"
+                      path="merchants/:shopSlug"
                       element={<ShopProfilePage />}
                     />
 
                     {/* Merchant Application Routes (Public/Protected) */}
                     <Route
-                      path={ROUTES.MERCHANT.BECOME}
+                      path="merchant/become"
                       element={
                         <ProtectedRoute>
                           <BecomeMerchantPage />
@@ -208,7 +205,7 @@ function AppContent() {
                       }
                     />
                     <Route
-                      path={ROUTES.MERCHANT.VERIFY_EMAIL}
+                      path="merchant/verify-email"
                       element={<VerifyMerchantEmailPage />}
                     />
 
@@ -219,7 +216,7 @@ function AppContent() {
 
                     {/* Protected Profile Routes */}
                     <Route
-                      path={ROUTES.PROFILE.INDEX}
+                      path="profile"
                       element={
                         <ProtectedRoute>
                           <Outlet />
@@ -236,7 +233,7 @@ function AppContent() {
 
                     {/* Protected Settings Route */}
                     <Route
-                      path={ROUTES.SETTINGS}
+                      path="settings"
                       element={
                         <ProtectedRoute>
                           <NotificationPreferencesPage />
@@ -246,7 +243,7 @@ function AppContent() {
 
                     {/* Protected Notification Preferences Route */}
                     <Route
-                      path="/notifications/preferences"
+                      path="notifications/preferences"
                       element={
                         <ProtectedRoute>
                           <NotificationPreferencesPage />
@@ -256,7 +253,7 @@ function AppContent() {
 
                     {/* Protected Notifications Route */}
                     <Route
-                      path={ROUTES.NOTIFICATIONS}
+                      path="notifications"
                       element={
                         <ProtectedRoute>
                           <NotificationsPage />
@@ -266,7 +263,7 @@ function AppContent() {
 
                     {/* Protected Chat Routes */}
                     <Route
-                      path={ROUTES.CHAT.INDEX}
+                      path="chat"
                       element={
                         <ProtectedRoute>
                           <ChatPage />
@@ -274,7 +271,7 @@ function AppContent() {
                       }
                     />
                     <Route
-                      path="/chat/:conversationId"
+                      path="chat/:conversationId"
                       element={
                         <ProtectedRoute>
                           <ChatPage />
@@ -284,13 +281,13 @@ function AppContent() {
 
                     {/* Public Listing Detail */}
                     <Route
-                      path="/listings/:listingId"
+                      path="listings/:listingId"
                       element={<ListingDetailPage />}
                     />
 
                     {/* Protected Order Routes - Buyer Only */}
                     <Route
-                      path={ROUTES.ORDERS.INDEX}
+                      path="orders"
                       element={
                         <ProtectedRoute>
                           <Outlet />
@@ -303,7 +300,7 @@ function AppContent() {
 
                     {/* Legacy seller orders path redirect */}
                     <Route
-                      path="/orders/sales"
+                      path="orders/sales"
                       element={
                         <ProtectedRoute>
                           <Navigate to={ROUTES.MERCHANT.ORDERS} replace />
@@ -313,7 +310,7 @@ function AppContent() {
 
                     {/* Protected Quote Routes - Buyer Only */}
                     <Route
-                      path={ROUTES.QUOTES.INDEX}
+                      path="quotes"
                       element={
                         <ProtectedRoute>
                           <Outlet />
@@ -325,14 +322,14 @@ function AppContent() {
                     </Route>
 
                     {/* Public Pages */}
-                    <Route path={ROUTES.ABOUT.INDEX} element={<AboutPage />} />
-                    <Route path="/about/nekodez" element={<NekodezPage />} />
-                    <Route path="/contact" element={<ContactUsPage />} />
+                    <Route path="about" element={<AboutPage />} />
+                    <Route path="about/nekodez" element={<NekodezPage />} />
+                    <Route path="contact" element={<ContactUsPage />} />
 
                     {/* Legal Pages */}
-                    <Route path={ROUTES.TERMS} element={<TermsPage />} />
-                    <Route path={ROUTES.PRIVACY} element={<PrivacyPage />} />
-                    <Route path="/cookies" element={<CookiePolicyPage />} />
+                    <Route path="terms" element={<TermsPage />} />
+                    <Route path="privacy" element={<PrivacyPage />} />
+                    <Route path="cookies" element={<CookiePolicyPage />} />
 
                     <Route path="*" element={<NotFoundPage />} />
                   </Route>
